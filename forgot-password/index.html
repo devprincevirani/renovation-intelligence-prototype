@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en" data-root="../" data-page="forgot-password">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Reset your password | Renovation Intelligence</title>
+<meta name="description" content="Get a link to set a new password.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#203B38">
+<link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Jost:wght@400;500&display=swap">
+<link rel="stylesheet" href="../assets/css/styles.css">
+<script defer src="../assets/js/data.js"></script>
+<script defer src="../assets/js/site.js"></script>
+<script defer src="../assets/js/auth.js"></script>
+</head>
+<body>
+<div id="focus-head" data-exit="login/" data-exit-text="Back to log in"></div>
+<main id="main">
+<div class="fx-wrap"><div class="fx-card">
+  <div id="fp-step1" class="fx-in">
+    <div class="fx-art" data-art="key"></div>
+    <div class="fx-head"><h1>Forgot your password?</h1><p class="muted">Enter the email you signed up with. We will send a link to set a new one.</p></div>
+    <form class="form-grid" id="fp-form" novalidate>
+      <div class="field"><label for="fp-email">Email</label><input class="input" id="fp-email" type="email" autocomplete="email" placeholder="name@example.com"><span class="err" id="fp-email-err" role="alert"></span></div>
+      <button class="btn btn-primary btn-block btn-lg" type="submit">Send the link <i data-i="arrow" class="i-arrow"></i></button>
+    </form>
+    <a class="fx-back" href="../login/"><i data-i="arrow" class="flip"></i>Back to log in</a>
+  </div>
+  <div id="fp-step2" class="fx-in" hidden></div>
+</div></div>
+</main>
+</body>
+</html>

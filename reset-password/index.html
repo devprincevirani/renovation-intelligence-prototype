@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" data-root="../" data-page="reset-password">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Set a new password | Renovation Intelligence</title>
+<meta name="description" content="Choose a new password for your account.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#203B38">
+<link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Jost:wght@400;500&display=swap">
+<link rel="stylesheet" href="../assets/css/styles.css">
+<script defer src="../assets/js/data.js"></script>
+<script defer src="../assets/js/site.js"></script>
+<script defer src="../assets/js/auth.js"></script>
+</head>
+<body>
+<div id="focus-head" data-exit="login/" data-exit-text="Back to log in"></div>
+<main id="main">
+<div class="fx-wrap"><div class="fx-card">
+  <div id="rp-step1" class="fx-in">
+    <div class="fx-art" data-art="lock"></div>
+    <div class="fx-head"><h1>Set a new password</h1><p class="muted" id="rp-for">For your account.</p></div>
+    <form class="form-grid" id="rp-form" novalidate>
+      <div class="field"><label for="rp-pw">New password</label><div class="pw-wrap"><input class="input" id="rp-pw" type="password" autocomplete="new-password" aria-describedby="rp-pw-help"><button type="button" aria-pressed="false">Show</button></div><div class="meter" id="rp-pw-meter" aria-hidden="true"><i></i><i></i><i></i></div><span class="help" id="rp-pw-help">A longer phrase is stronger.</span><span class="err" id="rp-pw-err" role="alert"></span></div>
+      <div class="field"><label for="rp-pw2">Type it again</label><div class="pw-wrap"><input class="input" id="rp-pw2" type="password" autocomplete="new-password"><button type="button" aria-pressed="false">Show</button></div><span class="err" id="rp-pw2-err" role="alert"></span></div>
+      <ul class="pw-rules" aria-live="polite"><li id="rp-r-len"><i data-i="check" class="i-sm"></i>At least 8 characters</li><li id="rp-r-match"><i data-i="check" class="i-sm"></i>Both passwords match</li></ul>
+      <button class="btn btn-primary btn-block btn-lg" type="submit">Save my new password</button>
+    </form>
+    <a class="fx-back" href="../login/"><i data-i="arrow" class="flip"></i>Back to log in</a>
+  </div>
+  <div id="rp-step2" class="fx-in" hidden tabindex="-1">
+    <div class="fx-art" data-art="check"></div>
+    <div class="fx-head"><h2>Your password is changed</h2><p class="muted">Use it the next time you log in. For your safety, other devices are logged out.</p></div>
+    <a class="btn btn-primary btn-block btn-lg" href="../login/">Log in <i data-i="arrow" class="i-arrow"></i></a>
+  </div>
+</div></div>
+</main>
+</body>
+</html>

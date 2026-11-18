@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en" data-root="../" data-page="waitlist">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Join the waitlist for Metro Detroit renovation estimates | Renovation Intelligence</title>
+<meta name="description" content="We open in Metro Detroit on April 1, 2027. Join the waitlist and we will write once, when you can enter your first house.">
+<meta name="theme-color" content="#203B38">
+<link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Jost:wght@400;500&display=swap">
+<link rel="stylesheet" href="../assets/css/styles.css">
+<script defer src="../assets/js/data.js"></script>
+<script defer src="../assets/js/site.js"></script>
+<script defer src="../assets/js/auth.js"></script>
+</head>
+<body>
+<div id="site-head"></div>
+<main id="main">
+<div class="auth auth2 auth-wl">
+  <div class="auth-form"><div class="auth-inner" id="wl-panel">
+    <form class="form-grid" id="wl-form" novalidate>
+      <div class="stack" style="gap:10px"><span class="open-chip"><i data-i="clock" class="i-sm"></i>Opening April 1, 2027 in Metro Detroit</span><h1>Join the waitlist</h1><p class="muted">We write once, when you can enter your first house. People Sam invites can start earlier, with a 15-day trial.</p></div>
+      <div class="field"><label for="wl-email">Email</label><input class="input" id="wl-email" type="email" autocomplete="email" placeholder="name@example.com"><span class="err" id="wl-email-err" role="alert"></span></div>
+      <fieldset class="field"><legend class="flabel">I am a <span class="opt">(optional)</span></legend><div class="chips-pick" role="radiogroup" aria-label="I am a"><label><input type="radio" name="wl-type" value="homeowner"><span>Homeowner</span></label><label><input type="radio" name="wl-type" value="buyer"><span>Buyer</span></label><label><input type="radio" name="wl-type" value="seller"><span>Seller</span></label><label><input type="radio" name="wl-type" value="builder"><span>Builder</span></label><label><input type="radio" name="wl-type" value="agent"><span>Agent</span></label><label><input type="radio" name="wl-type" value="other"><span>Other</span></label></div></fieldset>
+      <button class="btn btn-primary btn-block btn-lg" type="submit">Join the waitlist <i data-i="arrow" class="i-arrow"></i></button>
+      <p class="wl2-trust"><i data-i="shield"></i><span>One email when we open. Nothing else.</span></p>
+      <p class="small muted center">Invited by Sam? Open the link in his email to sign up.</p>
+    </form>
+    <div class="success" id="wl-done" hidden tabindex="-1">
+      <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path class="draw-check" d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+      <h2 style="font-size:1.6rem" id="wl-done-t">You are on the list</h2>
+      <p id="wl-done-b"></p>
+      <div class="cta-row"><a class="btn btn-secondary" href="../sample/">See a sample estimate</a><button type="button" class="linkbtn" id="wl-again">Add another email</button></div>
+    </div>
+  </div></div>
+  <aside class="auth-show" aria-label="What you get"><div class="as-in">
+  <p class="as-k">What you will get, free</p><h2>One house. Three goals. A Low and a High for each.</h2>
+  <div class="as-card"><div class="as-photo"><img src="../assets/img/brick-ranch.jpg" alt="A one-story brick ranch house" width="1280" height="853"><span class="as-addr"><b>18450 Maple Ridge Dr</b> Clinton Township, MI</span></div>
+    <ul class="as-pk" id="as-pk"></ul>
+    <p class="as-note" id="as-note"></p></div>
+  <p class="as-foot">Sample house. Your own estimate uses your photos and facts.</p>
+</div></aside>
+</div>
+</main>
+<div id="site-foot"></div>
+</body>
+</html>

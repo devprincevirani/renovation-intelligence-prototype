@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en" data-root="../" data-page="cost">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Renovation cost in Metro Detroit, by area and house type | Renovation Intelligence</title>
+<meta name="description" content="Typical Low and High installed costs for the work Metro Detroit houses most often need, by area and by house type. Start a free price by package for one specific house.">
+<meta name="theme-color" content="#203B38">
+<link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Jost:wght@400;500&display=swap">
+<link rel="stylesheet" href="../assets/css/styles.css">
+<script defer src="../assets/js/data.js"></script>
+<script defer src="../assets/js/site.js"></script>
+<script defer src="../assets/js/costkit.js"></script>
+<script defer src="../assets/js/cost.js"></script>
+</head>
+<body>
+<div id="site-head"></div>
+<main id="main" data-hub>
+
+  <!-- 1. Finder and map -->
+  <div class="page-head cost-head">
+    <div class="wrap cost-head-grid">
+      <div class="stack" style="gap:22px">
+        <nav class="crumbs" aria-label="Breadcrumb"><a href="../">Home</a><span aria-hidden="true">/</span><span>Renovation cost</span></nav>
+        <h1>Renovation cost in Metro Detroit</h1>
+        <p class="lede">Typical Low and High installed costs for the work these houses most often need. Start with your area and your kind of house.</p>
+        <form class="finder" id="finder" novalidate>
+          <p class="finder-sentence">Show typical costs for a</p>
+          <div class="finder-row">
+            <div class="field"><label class="sr" for="f-type">House type</label><select class="select" id="f-type"><option value="">any house type</option></select></div>
+            <span class="finder-in">in</span>
+            <div class="field"><label class="sr" for="f-area">Area</label><select class="select" id="f-area"><option value="">any area</option></select></div>
+          </div>
+          <button class="btn btn-primary" type="submit">Show typical costs <i data-i="arrow" class="i-sm i-arrow"></i></button>
+          <p class="finder-hint small muted" id="finder-hint" aria-live="polite">Pick one or both.</p>
+        </form>
+      </div>
+      <div class="map-card">
+        <div id="map"></div>
+        <div class="map-info" id="map-info" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Areas -->
+  <section style="padding-top:clamp(40px,5vw,64px)" aria-labelledby="h-areas">
+    <div class="wrap">
+      <div class="sec-head" style="margin-bottom:20px"><p class="label">By area</p><h2 id="h-areas">Five areas to start</h2></div>
+      <div class="area-list" id="hub-areas"></div>
+    </div>
+  </section>
+
+  <!-- 2. House types as drawings -->
+  <section class="offer" id="types" aria-labelledby="h-htypes">
+    <div class="wrap">
+      <div class="sec-head"><p class="label">By house type</p><h2 id="h-htypes">What each kind of house usually needs</h2><p class="lede">Most Metro Detroit houses are one of four types, and each tends to need the same kinds of work. Point at an item to see where it usually is.</p></div>
+      <div class="type-grid" id="hub-types"></div>
+    </div>
+  </section>
+
+  <!-- 3. Rate explorer -->
+  <section id="rates" aria-labelledby="h-rates">
+    <div class="wrap">
+      <div class="sec-head"><p class="label">Typical installed costs</p><h2 id="h-rates">Try a size, see the range</h2><p class="lede">Pick a kind of work and set the size. The Low and High come from local installed rates, the same way each line of an estimate is priced.</p></div>
+      <div id="hub-rates"></div>
+    </div>
+  </section>
+
+  <!-- 4. Typical vs your house -->
+  <section class="offer" aria-labelledby="h-tvy">
+    <div class="wrap">
+      <div class="sec-head"><p class="label">Why your house gets its own range</p><h2 id="h-tvy">A typical range is wide. Yours is not.</h2><p class="lede">A typical range has to cover every size and condition. An estimate for one house counts its real rooms, parts and sizes, so its range is narrower, and it tells you what it could not confirm.</p></div>
+      <div id="hub-tvy"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="closing">
+        <div class="stack" style="gap:12px"><h2>Get a range for one specific house.</h2><p class="lede">The price by package is free.</p></div>
+        <div class="cta-row"><a class="textlink" href="../sample/">See the sample first</a><a class="btn btn-primary" data-cta data-arrow href="../waitlist/">Join the waitlist</a></div>
+      </div>
+    </div>
+  </section>
+</main>
+<div id="site-foot"></div>
+</body>
+</html>

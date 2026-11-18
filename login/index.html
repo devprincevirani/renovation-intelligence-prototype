@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en" data-root="../" data-page="login">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Log in | Renovation Intelligence</title>
+<meta name="description" content="Log in to see your houses and estimates.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#203B38">
+<link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Jost:wght@400;500&display=swap">
+<link rel="stylesheet" href="../assets/css/styles.css">
+<script defer src="../assets/js/data.js"></script>
+<script defer src="../assets/js/site.js"></script>
+<script defer src="../assets/js/auth.js"></script>
+</head>
+<body>
+<div id="focus-head" data-exit="" data-exit-text="Back to the site"></div>
+<main id="main">
+<div class="auth auth2 auth-login">
+  <div class="auth-form"><div class="auth-inner">
+    <div class="stack" style="gap:8px"><h1>Welcome back</h1><p class="muted">Log in to see your houses and their estimates.</p></div>
+    <div class="notice notice-bad" id="li-alert" hidden role="alert"></div>
+    <form class="form-grid" id="li-form" novalidate>
+      <div class="field"><label for="li-email">Email</label><input class="input" id="li-email" type="email" autocomplete="email" placeholder="name@example.com"><span class="err" id="li-email-err" role="alert"></span></div>
+      <div class="field"><label for="li-pw">Password</label><div class="pw-wrap"><input class="input" id="li-pw" type="password" autocomplete="current-password"><button type="button" aria-pressed="false">Show</button></div><span class="err" id="li-pw-err" role="alert"></span></div>
+      <div class="li-row"><label class="check"><input type="checkbox" id="li-keep"><span>Keep me logged in</span></label><a class="small" href="../forgot-password/">Forgot your password?</a></div>
+      <button class="btn btn-primary btn-block btn-lg" type="submit">Log in <i data-i="arrow" class="i-arrow"></i></button>
+    </form>
+    <div class="demo-box"><div class="or">or try the demo, no password</div>
+    <div class="demo-access" id="demo-access"></div></div>
+    <p class="small muted center">New here? <a href="../signup/" data-when="launched" hidden>Create an account</a><a href="../waitlist/" data-when="prelaunch">Join the waitlist</a></p>
+  </div></div>
+  <aside class="auth-show" aria-label="Your houses"><div class="as-in">
+  <p class="as-k">Pick up where you left off</p><h2>Your houses, each with its next step.</h2>
+  <ul class="as-houses">
+    <li><img src="../assets/img/brick-ranch.jpg" alt="" width="1280" height="853"><span><b>18450 Maple Ridge Dr</b><span>Clinton Township</span></span><em class="st-ready">Price ready</em></li>
+    <li><img src="../assets/img/colonial.jpg" alt="" width="1280" height="853"><span><b>40322 Clinton Ct</b><span>Sterling Heights</span><i class="as-prog"><i></i></i></span><em class="st-run">Reading photos</em></li>
+    <li><img src="../assets/img/livonia-street.jpg" alt="" width="1280" height="853"><span><b>6820 Kendal St</b><span>Dearborn</span></span><em class="st-draft">Draft, step 2 of 4</em></li>
+  </ul>
+  <p class="as-foot">Demo houses. In this prototype every role opens in one click.</p>
+</div></aside>
+</div>
+</main>
+</body>
+</html>

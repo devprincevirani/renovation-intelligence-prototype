@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en" data-root="../" data-page="sample">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sample renovation estimate for a 1986 brick ranch | Renovation Intelligence</title>
+<meta name="description" content="Open a full sample presentation: room by room, trade by trade, with a Low and a High under Essential, Standard and Premium, the unverified items and guidance on the house's systems.">
+<meta name="theme-color" content="#203B38">
+<link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Jost:wght@400;500&display=swap">
+<link rel="stylesheet" href="../assets/css/styles.css">
+<script defer src="../assets/js/data.js"></script>
+<script defer src="../assets/js/site.js"></script>
+<script defer src="../assets/js/plan.js"></script>
+<script defer src="../assets/js/sample.js"></script>
+</head>
+<body>
+<div id="site-head"></div>
+<main id="main">
+  <div class="pres-head">
+    <div class="wrap pres-hero">
+      <div class="ph"><img src="../assets/img/brick-ranch.jpg" alt="Single-story brick ranch house with an attached garage and a lawn in front" width="1280" height="851"></div>
+      <div class="stack" style="gap:16px">
+        <nav class="crumbs" aria-label="Breadcrumb"><a href="../">Home</a><span aria-hidden="true">/</span><span>Sample estimate</span></nav>
+        <div class="cta-row" style="gap:8px"><span class="state state-sample">Sample house</span><span class="state state-partial">Partial</span></div>
+        <h1 style="font-size:clamp(2rem,1.5rem + 2vw,3rem)">Brick ranch, built 1986</h1>
+        <p class="lede">Clinton Township, MI. This is what the full presentation holds. Switch the goal and turn items on and off: the totals update at once.</p>
+        <dl class="house-facts" id="facts"></dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="pres-bar" id="pres-bar">
+    <div class="wrap">
+      <div class="pkg-wrap">
+        <div class="seg" role="tablist" aria-label="Package" id="pk-seg"><span class="seg-thumb"></span>
+          <button type="button" role="tab" data-pk="E" aria-selected="false">Essential</button>
+          <button type="button" role="tab" data-pk="S" aria-selected="true">Standard</button>
+          <button type="button" role="tab" data-pk="P" aria-selected="false">Premium</button>
+        </div>
+      </div>
+      <span class="small muted" id="pk-goal"></span>
+      <div class="pres-total" aria-live="polite">
+        <span class="lbl"><span id="tot-label">Selected items</span><span class="state state-partial">Partial</span></span>
+        <span class="range-txt" id="tot"></span>
+        <div data-scale="0,125000"><div class="rl partial" id="tot-rl" data-low="0" data-high="0"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap pres-layout">
+    <div class="stack" style="gap:40px;min-width:0">
+      <section style="padding:0" aria-labelledby="h-glance">
+        <div class="stack" style="gap:6px;margin-bottom:16px"><h2 id="h-glance" style="font-size:1.6rem">The house at a glance</h2><p class="small muted">Darker rooms need more work under the selected goal. Select a room to open it below.</p></div>
+        <div class="explorer-plan card" id="plan" style="border-radius:var(--r-lg)"></div>
+      </section>
+
+      <section style="padding:0" aria-labelledby="h-compare">
+        <div class="stack" style="gap:6px;margin-bottom:16px"><h2 id="h-compare" style="font-size:1.6rem">The three goals side by side</h2><p class="small muted">Every room, one shared scale. Items you turned off are left out.</p></div>
+        <div class="scroll-x"><table class="rates" id="compare" style="min-width:640px"></table></div>
+      </section>
+
+      <section style="padding:0" aria-labelledby="h-rooms">
+        <div class="cta-row" style="justify-content:space-between;margin-bottom:16px">
+          <div class="stack" style="gap:6px"><h2 id="h-rooms" style="font-size:1.6rem">Room by room</h2><p class="small muted">Open a room to see each item, its action, product and range.</p></div>
+          <div class="cta-row" style="gap:8px"><button type="button" class="btn btn-secondary btn-sm" id="expand">Open all rooms</button><button type="button" class="btn btn-secondary btn-sm" id="reset">Turn all items on</button></div>
+        </div>
+        <div id="rooms"></div>
+      </section>
+
+      <section style="padding:0" aria-labelledby="h-unk">
+        <div class="stack" style="gap:6px;margin-bottom:16px"><h2 id="h-unk" style="font-size:1.6rem">What we could not confirm</h2><p class="small muted">These lines are not in any total. Each one says what would settle it.</p></div>
+        <div class="unk-list" id="unknowns"></div>
+      </section>
+
+      <section style="padding:0" aria-labelledby="h-mech">
+        <div class="stack" style="gap:6px;margin-bottom:16px"><h2 id="h-mech" style="font-size:1.6rem">Guidance on the house systems</h2><p class="small muted">The roof, heating and cooling, water heater and electrical panel are never scored and never part of any total. Each shows a typical range for planning only. Sample guidance; the final text comes from Sam.</p></div>
+        <div class="mech" id="mech"></div>
+      </section>
+
+      <div class="notice notice-quiet"><i data-i="info"></i><span>This is an estimate for planning, not a contractor's bid or a fixed price. A contractor still needs to see the house. Anything hidden in walls, floors or systems stays unknown until someone opens them.</span></div>
+    </div>
+
+    <aside class="pres-side" aria-label="Summary">
+      <div class="side-box"><h3>By trade</h3><div id="trades"></div></div>
+      <div class="side-box">
+        <h3>Share and keep</h3>
+        <p class="small muted">In a paid presentation you can share a read-only link or save a PDF.</p>
+        <div class="stack" style="gap:8px">
+          <button type="button" class="btn btn-secondary btn-sm btn-block" id="share">Copy a share link</button>
+          <button type="button" class="btn btn-secondary btn-sm btn-block" id="pdf">Save as PDF</button>
+        </div>
+      </div>
+      <div class="side-box">
+        <h3>Your own house</h3>
+        <p class="small muted">The price by package is free. The full presentation is one payment per house.</p>
+        <a class="btn btn-primary btn-sm btn-block" data-cta href="../waitlist/">Join the waitlist</a>
+      </div>
+    </aside>
+  </div>
+</main>
+<div id="site-foot"></div>
+</body>
+</html>

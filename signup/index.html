@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en" data-root="../" data-page="signup">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Create your account | Renovation Intelligence</title>
+<meta name="description" content="Create an account to enter a house and see its price by package.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#203B38">
+<link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Jost:wght@400;500&display=swap">
+<link rel="stylesheet" href="../assets/css/styles.css">
+<script defer src="../assets/js/data.js"></script>
+<script defer src="../assets/js/site.js"></script>
+<script defer src="../assets/js/auth.js"></script>
+</head>
+<body>
+<div id="focus-head" data-exit="" data-exit-text="Back to the site"></div>
+<main id="main">
+<div class="auth auth2">
+  <div class="auth-form"><div class="auth-inner">
+    <ol class="auth-steps" aria-label="Getting started"><li class="cur"><span>1</span>Account</li><li><span>2</span>Confirm email</li><li><span>3</span>First house</li></ol>
+    <div class="stack" style="gap:8px"><h1>Create your account</h1><p class="muted">Email, password and what describes you. Nothing else.</p></div>
+    <div class="invite-chip" id="su-invited" hidden><i data-i="mail"></i><span><b>Sam invited you.</b> Your 15-day trial starts when you enter your first house. <span class="xsmall muted">Proposed: how Sam invites contacts is still open.</span></span></div>
+    <div class="su-closed" id="su-closed" hidden><span class="sc-ic"><i data-i="lock"></i></span><h2 id="su-closed-t">Sign up opens on April 1, 2027</h2><p class="muted" id="su-closed-b">Until then, only the people Sam invites can sign up. Join the waitlist and we will write when it opens.</p><a class="btn btn-primary btn-block btn-lg" href="../waitlist/">Join the waitlist <i data-i="arrow" class="i-arrow"></i></a><p class="small muted center">Invited by Sam? Open the link in his email.</p></div>
+    <form class="form-grid" id="su-form" novalidate>
+      <fieldset class="field"><legend class="flabel">I am a</legend><div class="types-pick2"><label><input type="radio" name="su-type" value="homeowner" data-d="I own the house" checked><span><i data-i="house"></i><strong>Homeowner</strong></span></label><label><input type="radio" name="su-type" value="buyer" data-d="I am looking at a house"><span><i data-i="search"></i><strong>Buyer</strong></span></label><label><input type="radio" name="su-type" value="seller" data-d="I am selling a house"><span><i data-i="pin"></i><strong>Seller</strong></span></label><label><input type="radio" name="su-type" value="builder" data-d="I renovate houses for clients"><span><i data-i="hammer"></i><strong>Builder</strong></span></label><label><input type="radio" name="su-type" value="agent" data-d="I help people buy and sell"><span><i data-i="user"></i><strong>Agent</strong></span></label><label><input type="radio" name="su-type" value="other" data-d="Something else"><span><i data-i="dot"></i><strong>Other</strong></span></label></div><p class="tp-desc" id="su-type-desc" aria-live="polite">I own the house</p></fieldset>
+      <div class="field"><label for="su-email">Email</label><input class="input" id="su-email" type="email" autocomplete="email" placeholder="name@example.com"><span class="err" id="su-email-err" role="alert"></span></div>
+      <div class="field"><label for="su-pw">Password</label><div class="pw-wrap"><input class="input" id="su-pw" type="password" autocomplete="new-password" aria-describedby="su-pw-help"><button type="button" aria-pressed="false">Show</button></div><div class="meter" id="su-pw-meter" aria-hidden="true"><i></i><i></i><i></i></div><span class="help" id="su-pw-help">A longer phrase is stronger.</span><span class="err" id="su-pw-err" role="alert"></span></div>
+      <ul class="pw-rules" aria-live="polite"><li id="su-r-len"><i data-i="check" class="i-sm"></i>At least 8 characters</li></ul>
+      <div class="field consent-card"><label class="check"><input type="checkbox" id="su-disc"><span>I understand that an estimate is for planning. It is not a contractor's bid, an inspection or a fixed price. <a href="../disclaimer/" target="_blank" rel="noopener">Read the disclaimer</a></span></label><span class="err" id="su-disc-err" role="alert"></span></div>
+      <label class="check"><input type="checkbox" id="su-news"><span>Send me product updates. <span class="muted">(optional)</span></span></label>
+      <button class="btn btn-primary btn-block btn-lg" type="submit">Create my account <i data-i="arrow" class="i-arrow"></i></button>
+      <p class="small muted center">Already have an account? <a href="../login/">Log in</a></p>
+    </form>
+  </div></div>
+  <aside class="auth-show" aria-label="What you get"><div class="as-in">
+  <p class="as-k">What you get, free</p><h2>One house. Three goals. A Low and a High for each.</h2>
+  <div class="as-card"><div class="as-photo"><img src="../assets/img/brick-ranch.jpg" alt="A one-story brick ranch house" width="1280" height="853"><span class="as-addr"><b>18450 Maple Ridge Dr</b> Clinton Township, MI</span></div>
+    <ul class="as-pk" id="as-pk"></ul>
+    <p class="as-note" id="as-note"></p></div>
+  <p class="as-foot">Sample house. Your own estimate uses your photos and facts.</p>
+</div></aside>
+</div>
+</main>
+</body>
+</html>
