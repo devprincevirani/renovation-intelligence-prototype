@@ -56,15 +56,32 @@
 
   /* ---------- Layout, stepper, saving ---------- */
   var lastAt = null;
+  /* A few words per step about where this house stands */
+  var STEP_ICON = {house:'house', photos:'camera', measurements:'ruler', review:'check'};
+  function stepMeta(h, k){
+    var f = h.facts || {};
+    if(k === 'house') return f.sqft ? [f.year ? 'Built ' + f.year : '', (+f.sqft).toLocaleString('en-US') + ' sq ft'].filter(Boolean).join(' · ') : 'Address, size, rooms';
+    if(k === 'photos'){ var rooms = A.roomsFor(h).filter(function(r){ return r[0] !== 'other'; }), n = A.photoCount(h); return n ? n + ' photo' + (n === 1 ? '' : 's') + ' · ' + rooms.filter(function(r){ return A.photoCount(h, r[0]); }).length + ' of ' + rooms.length + ' rooms' : 'A photo of each room'; }
+    if(k === 'measurements'){ var z = Object.keys(h.sizes || {}).length; return z ? z + ' room' + (z === 1 ? '' : 's') + ' sized' : 'Optional'; }
+    return 'Check and submit';
+  }
+  function metaRefresh(h){ doc.querySelectorAll('.wz-m[data-k]').forEach(function(m){ m.textContent = stepMeta(h, m.getAttribute('data-k')); }); }
   function layout(view, h, step){
     var at = STEPS.findIndex(function(s){ return s[0] === step; });
     var reach = Math.max(at, STEPS.findIndex(function(s){ return s[0] === (h.step || 'house'); }));
     view.innerHTML = '<div class="wiz">' +
-      '<div class="wiz-top"><ol class="stepper" style="--at:' + at + ';--n:' + STEPS.length + '">' + STEPS.map(function(s, i){
+      /* The step bar: each step names itself and says, in a few words, where this house stands on it */
+      '<div class="wiz-top"><nav class="wz" aria-label="Intake steps"><ol>' + STEPS.map(function(s, i){
         var state = i < at ? 'done' : i === at ? 'cur' : (i <= reach ? 'open' : 'todo');
-        var inner = '<span class="sn">' + (i < at ? RI.icon('check','i-sm') : i + 1) + '</span><span class="sl">' + s[1] + '</span>';
-        return '<li class="' + state + '">' + (state !== 'todo' && i !== at ? '<a href="#/houses/' + h.id + '/intake/' + s[0] + '">' + inner + '</a>' : '<span' + (i === at ? ' aria-current="step"' : '') + '>' + inner + '</span>') + '</li>';
-      }).join('') + '</ol></div>' +
+        var mark = i < at ? RI.icon('check','i-sm') : i === at ? RI.icon(STEP_ICON[s[0]],'i-sm') : '<b>' + (i + 1) + '</b>';
+        var inner = '<span class="wz-ic">' + mark + '</span><span class="wz-t"><small>Step ' + (i + 1) + ' of ' + STEPS.length + '</small><b>' + s[1] + '</b><em class="wz-m" data-k="' + s[0] + '">' + stepMeta(h, s[0]) + '</em></span>';
+        var label = 'Step ' + (i + 1) + ', ' + s[1] + (state === 'done' ? ', done' : '');
+        return '<li class="' + state + '">' + (state !== 'todo' && i !== at ? '<a class="wz-s" href="#/houses/' + h.id + '/intake/' + s[0] + '" aria-label="' + label + '" title="' + s[1] + '">' + inner + '</a>' : '<span class="wz-s"' + (i === at ? ' aria-current="step"' : ' aria-disabled="true"') + ' title="' + s[1] + '">' + inner + '</span>') + '</li>';
+      }).join('') + '</ol>' +
+        /* Phones: where you are and what is next, over a four-part bar */
+        '<div class="wz-mob"><div class="wzm-row"><span class="wzm-ic">' + RI.icon(STEP_ICON[STEPS[at][0]],'i-sm') + '</span><span class="wzm-t"><small>Step ' + (at + 1) + ' of ' + STEPS.length + '</small><b>' + STEPS[at][1] + '</b></span><span class="wzm-next">' + (at === LAST ? 'Last step' : 'Next: ' + STEPS[at + 1][1]) + '</span></div>' +
+        '<div class="wzm-bar">' + STEPS.map(function(s, i){ var st = i < at ? 'done' : i === at ? 'cur' : (i <= reach ? 'open' : 'todo'), lab = 'Step ' + (i + 1) + ', ' + s[1] + (st === 'done' ? ', done' : st === 'cur' ? ', current' : ''); return (st === 'done' || st === 'open') ? '<a class="' + st + '" href="#/houses/' + h.id + '/intake/' + s[0] + '" aria-label="' + lab + '"><i></i></a>' : '<span class="' + st + '" aria-label="' + lab + '"' + (st === 'cur' ? ' aria-current="step"' : '') + '><i></i></span>'; }).join('') + '</div></div>' +
+      '</nav></div>' +
       '<div class="wiz-grid"><div class="wiz-main" id="wiz-main"></div><aside class="wiz-side" id="wiz-side" aria-label="Your house so far"></aside></div>' +
       /* The action dock: how far along, where you are, that it saves; then Back and Continue together */
       (function(){
@@ -79,13 +96,13 @@
       })() + '</div>';
     lastAt = at;
     var exit = doc.getElementById('focus-exit');
-    if(exit) exit.innerHTML = '<a class="textlink inv" href="#/houses">Save and exit</a>';
+    if(exit) exit.innerHTML = '<a class="exit-btn" href="#/houses" aria-label="Save and exit to my houses"><span class="eb-l">Save and exit</span><span class="eb-s" aria-hidden="true">Save &amp; exit</span>' + RI.icon('exit','i-sm') + '</a>';
     side(h);
     return view.querySelector('#wiz-main');
   }
   var savedT;
   function saved(h){
-    if(!A.put(h)) return; side(h);
+    if(!A.put(h)) return; side(h); metaRefresh(h);
     var el = doc.getElementById('saved'); if(!el) return;
     el.innerHTML = '<span class="saving"></span>Saving'; clearTimeout(savedT);
     savedT = setTimeout(function(){ el.innerHTML = RI.icon('check','i-sm') + 'Saved just now'; el.classList.remove('fresh'); void el.offsetWidth; el.classList.add('fresh'); }, 450);

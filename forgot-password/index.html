@@ -21,13 +21,15 @@
 <main id="main">
 <div class="fx-wrap"><div class="fx-card">
   <div id="fp-step1" class="fx-in">
-    <div class="fx-art" data-art="key"></div>
-    <div class="fx-head"><h1>Forgot your password?</h1><p class="muted">Enter the email you signed up with. We will send a link to set a new one.</p></div>
-    <form class="form-grid" id="fp-form" novalidate>
-      <div class="field"><label for="fp-email">Email</label><input class="input" id="fp-email" type="email" autocomplete="email" placeholder="name@example.com"><span class="err" id="fp-email-err" role="alert"></span></div>
-      <button class="btn btn-primary btn-block btn-lg" type="submit">Send the link <i data-i="arrow" class="i-arrow"></i></button>
-    </form>
-    <a class="fx-back" href="../login/"><i data-i="arrow" class="flip"></i>Back to log in</a>
+    <div class="fx-top"><span class="fx-kick">Password reset</span><div class="fx-art" data-art="key"></div></div>
+    <div class="fx-body">
+      <div class="fx-head"><h1>Forgot your password?</h1><p class="muted">No problem. Enter the email you signed up with and we will send you a link to choose a new one.</p></div>
+      <form class="form-grid" id="fp-form" novalidate>
+        <div class="field"><label for="fp-email">Email</label><input class="input" id="fp-email" type="email" autocomplete="email" placeholder="name@example.com"><span class="err" id="fp-email-err" role="alert"></span></div>
+        <button class="btn btn-primary btn-block btn-lg" type="submit">Send the link <i data-i="arrow" class="i-arrow"></i></button>
+      </form>
+      <p class="fx-alt">Remembered it? <a href="../login/">Log in</a></p>
+    </div>
   </div>
   <div id="fp-step2" class="fx-in" hidden></div>
 </div></div>

@@ -47,11 +47,14 @@
               set value(v){ var r = doc.querySelector('input[name=wl-type][value="' + v + '"]'); if(r) r.checked = true; }};
     /* Tap a chosen chip again to clear it: the field is optional */
     doc.querySelectorAll('input[name=wl-type]').forEach(function(r){
-      r.addEventListener('pointerdown', function(){ r.dataset.was = r.checked ? '1' : ''; });
-      r.addEventListener('click', function(){ if(r.dataset.was){ r.checked = false; r.dataset.was = ''; } });
+      r.closest('label').addEventListener('pointerdown', function(){ r.dataset.was = r.checked ? '1' : ''; });
+      r.addEventListener('click', function(){ if(r.dataset.was){ r.checked = false; r.dataset.was = ''; } wlDesc(); });
     });
+    /* The label line says "Optional" until a type is chosen, then what that type means */
+    function wlDesc(){ var c = doc.querySelector('input[name=wl-type]:checked'), d = $('wl-type-desc'); d.textContent = c ? c.getAttribute('data-d') : 'Optional'; d.classList.remove('flip'); void d.offsetWidth; d.classList.add('flip'); }
     if(P.email) em.value = P.email;
     if(P.type) ty.value = P.type;
+    wlDesc();
     blurEmail(em);
     $('wl-form').addEventListener('submit', function(e){
       e.preventDefault();
@@ -71,7 +74,7 @@
         d.focus();
       });
     });
-    $('wl-again').addEventListener('click', function(){ $('wl-form').reset(); $('wl-done').hidden = true; $('wl-form').hidden = false; em.focus(); });
+    $('wl-again').addEventListener('click', function(){ $('wl-form').reset(); wlDesc(); $('wl-done').hidden = true; $('wl-form').hidden = false; em.focus(); });
   }
 
   /* ---------- Sign up ---------- */
@@ -90,7 +93,7 @@
     if(P.email) se.value = P.email;
     blurEmail(se); meter(sp, $('su-pw-meter'));
     /* The chosen account type explains itself under the tiles */
-    function typeDesc(){ var c = doc.querySelector('input[name="su-type"]:checked'); if(c) $('su-type-desc').textContent = c.getAttribute('data-d'); }
+    function typeDesc(){ var c = doc.querySelector('input[name="su-type"]:checked'), d = $('su-type-desc'); if(!c) return; d.textContent = c.getAttribute('data-d'); d.classList.remove('flip'); void d.offsetWidth; d.classList.add('flip'); }
     doc.querySelectorAll('input[name="su-type"]').forEach(function(r){ r.addEventListener('change', typeDesc); }); typeDesc();
     sp.addEventListener('input', function(){ $('su-r-len').classList.toggle('ok', sp.value.length >= 8); });
     sp.addEventListener('blur', function(){ if(sp.value && sp.value.length < 8) F.setInvalid(sp, 'Use at least 8 characters.'); });
@@ -117,16 +120,15 @@
   /* ---------- Verify email ---------- */
   if(page === 'verify-email'){
     var box = $('ve'), email = (P.email || '').toLowerCase(), u = email ? RI.users.get(email) : null;
-    var STEPS3 = function(at){ return '<ol class="auth-steps" aria-label="Getting started">' + ['Account','Confirm email','First house'].map(function(t, i){ return '<li class="' + (i < at ? 'done' : i === at ? 'cur' : '') + '"><span>' + (i < at ? RI.icon('check','i-sm') : i + 1) + '</span>' + t + '</li>'; }).join('') + '</ol>'; };
+    var FLOW = ['Account', 'Confirm email', 'First house'];
     var who = '<span class="fx-email">' + RI.icon('mail','i-sm') + RI.esc(email || 'your email') + '</span>';
-    function render(html){ box.innerHTML = '<div class="fx-in">' + html + '</div>'; RI.fillIcons(box); RI.fillArt(box); }
+    function render(top, body, cur){ box.innerHTML = '<div class="fx-in">' + top + '<div class="fx-body">' + body + '</div></div>'; RI.fillIcons(box); RI.fillArt(box); }
     function sent(){
-      render(STEPS3(1) + '<div class="fx-art" data-art="mail"></div>' +
-        '<div class="fx-head"><h1>Check your email</h1><p class="muted">We sent a link to</p>' + who + '<p class="muted">Open it to confirm your address. The link works for 24 hours.</p></div>' +
+      render(RI.fxTop('Create your account', '2 of 3', 'mail'),
+        '<div class="fx-head"><h1>Check your email</h1><p class="muted">We sent a confirmation link to</p>' + who + '<p class="muted">Open it to confirm your address. It works for 24 hours.</p></div>' +
         '<div class="fx-inbox">' + mailSim('Confirm your email', '<p>Confirm your email to finish creating your Renovation Intelligence account.</p><div><button type="button" class="btn btn-primary btn-sm" id="ve-confirm">Confirm my email</button></div><p class="xsmall muted">Demo only. In the product this arrives as a real email.</p>') + '</div>' +
-        '<ul class="fx-tips"><li>' + RI.icon('info','i-sm') + 'Nothing there? Check spam and promotions.</li></ul>' +
-        '<button type="button" class="btn btn-secondary btn-block" id="ve-resend">Send it again</button>' +
-        '<a class="fx-demo" href="?email=' + encodeURIComponent(email) + '&state=expired">Demo: see the expired link screen</a>');
+        '<div class="fx-row"><p class="fx-note">' + RI.icon('info','i-sm') + 'Nothing there? Check spam and promotions.</p><button type="button" class="btn btn-secondary btn-sm" id="ve-resend">Send it again</button></div>' +
+        '<a class="fx-demo" href="?email=' + encodeURIComponent(email) + '&state=expired">Demo: see the expired link screen</a>', 1);
       $('ve-confirm').addEventListener('click', function(){
         F.busy(this, true, 'Confirming');
         wait(700).then(function(){ if(u){ u.verified = true; RI.users.put(u); } verified(); });
@@ -134,19 +136,19 @@
       cooldown($('ve-resend'), 'Send it again', function(){ RI.toast('We sent a new link to ' + (email || 'your email') + '.', 'mail'); });
     }
     function verified(){
-      render(STEPS3(2) + '<div class="fx-art" data-art="check"></div>' +
+      render(RI.fxTop('Create your account', '3 of 3', 'check'),
         '<div class="fx-head"><h1>Your email is confirmed</h1><p class="muted">Your account is ready.' + (u && u.trial ? ' Your 15-day trial starts when you enter your first house.' : '') + '</p></div>' +
         '<ul class="fx-next"><li><b>About 10 minutes</b><span>to enter your first house</span></li><li><b>Photos first</b><span>room by room</span></li><li><b>Sizes optional</b><span>skip any you do not know</span></li></ul>' +
-        '<button type="button" class="btn btn-primary btn-block btn-lg" id="ve-go">Enter my first house ' + RI.icon('arrow','i-sm i-arrow') + '</button><a class="fx-back fx-center" href="../login/">Log in later</a>');
+        '<button type="button" class="btn btn-primary btn-block btn-lg" id="ve-go">Enter my first house ' + RI.icon('arrow','i-sm i-arrow') + '</button><p class="fx-alt"><a href="../login/">Log in later</a></p>', 2);
       $('ve-go').addEventListener('click', function(){
         RI.store.set('session', {role:(u && (u.type === 'builder' || u.type === 'agent')) ? 'builder' : 'homeowner', name:email.split('@')[0], email:email, type:u ? u.type : 'homeowner', demo:false, at:Date.now()});
         location.href = '../app/#/houses/new';
       });
     }
     function expired(){
-      render(STEPS3(1) + '<div class="fx-art fx-warn" data-art="clock"></div>' +
-        '<div class="fx-head"><h1>This link has expired</h1><p class="muted">Links work for 24 hours. We can send a new one to</p>' + who + '</div>' +
-        '<button type="button" class="btn btn-primary btn-block btn-lg" id="ve-new">Send a new link</button><a class="fx-back fx-center" href="../login/">' + RI.icon('arrow','i-sm flip') + 'Back to log in</a>');
+      render(RI.fxTop('Create your account', '2 of 3', 'clock', {warn:true}),
+        '<div class="fx-head"><h1>This link has expired</h1><p class="muted">Confirmation links work for 24 hours, so this one has run out. We can send a fresh one to</p>' + who + '</div>' +
+        '<button type="button" class="btn btn-primary btn-block btn-lg" id="ve-new">Send a new link</button><p class="fx-alt">Already confirmed? <a href="../login/">Log in</a></p>', 1);
       $('ve-new').addEventListener('click', function(){ F.busy(this, true, 'Sending'); wait(700).then(function(){ history.replaceState(null, '', '?email=' + encodeURIComponent(email)); sent(); RI.toast('A new link is on its way.', 'mail'); }); });
     }
     if(P.state === 'expired') expired(); else if(u && u.verified) verified(); else sent();
@@ -154,7 +156,21 @@
 
   /* ---------- Log in ---------- */
   if(page === 'login'){
-    $('demo-access').innerHTML = RI.roleButtons();
+    /* Demo roles: three compact tiles; the focused one explains itself underneath */
+    var dbox = $('demo-access'), ddesc = $('d2-desc'), dflt = ddesc.textContent;
+    dbox.innerHTML = RI.ROLES.map(function(r){
+      return '<button type="button" class="d2-role d2-' + r.role + '" data-demo-role="' + r.role + '" data-d="' + RI.esc(r.d) + '" aria-describedby="d2-desc"><span class="d2-av">' + RI.icon(r.icon) + '</span><span class="d2-n">' + r.type + '</span></button>';
+    }).join('');
+    function say(b){ ddesc.textContent = b ? b.getAttribute('data-d') : dflt; ddesc.classList.toggle('on', !!b); }
+    dbox.addEventListener('mouseover', function(e){ say(e.target.closest('.d2-role')); });
+    dbox.addEventListener('mouseleave', function(){ if(!dbox.contains(doc.activeElement)) say(null); });
+    dbox.addEventListener('focusin', function(e){ say(e.target.closest('.d2-role')); });
+    dbox.addEventListener('focusout', function(e){ if(!dbox.contains(e.relatedTarget)) say(null); });
+    /* Show that the tile is opening; the shared handler signs in and moves on */
+    dbox.addEventListener('click', function(e){
+      var b = e.target.closest('.d2-role'); if(!b || dbox.classList.contains('busy')) return;
+      dbox.classList.add('busy'); b.classList.add('opening'); b.querySelector('.d2-n').textContent = 'Opening…'; b.setAttribute('aria-busy', 'true');
+    }, true);
     var le = $('li-email'), lp = $('li-pw'), alert = $('li-alert');
     if(P.email) le.value = P.email;
     blurEmail(le);
@@ -192,10 +208,11 @@
       wait(800).then(function(){
         var v = fe.value.trim().toLowerCase(), u = RI.users.get(v);
         $('fp-step1').hidden = true; var s2 = $('fp-step2'); s2.hidden = false;
-        s2.innerHTML = '<div class="fx-art" data-art="mail"></div><div class="fx-head"><h1>Check your email</h1><p class="muted">If an account uses</p><span class="fx-email">' + RI.icon('mail','i-sm') + RI.esc(v) + '</span><p class="muted">a link to set a new password is on its way. It works for one hour.</p></div>' +
+        s2.innerHTML = RI.fxTop('Password reset', '2 of 3', 'mail') + '<div class="fx-body"><div class="fx-head"><h1>Check your email</h1><p class="muted">If an account uses</p><span class="fx-email">' + RI.icon('mail','i-sm') + RI.esc(v) + '</span><p class="muted">a link to set a new password is on its way. It works for one hour.</p></div>' +
           (u ? '<div class="fx-inbox">' + mailSim('Set a new password', '<p>Someone asked to reset the password for this account. If it was you, set a new one.</p><div><a class="btn btn-primary btn-sm" href="../reset-password/?email=' + encodeURIComponent(v) + '">Set a new password</a></div><p class="xsmall muted">Demo only.</p>') + '</div>'
              : '<div class="notice notice-quiet"><i data-i="info"></i><span>Demo note: no account with this email exists in this browser, so no email would be sent. The screen looks the same either way, so nobody can test which emails have accounts.</span></div>') +
-          '<button type="button" class="btn btn-secondary btn-block" id="fp-resend">Send it again</button><a class="fx-back fx-center" href="../login/">' + RI.icon('arrow','i-sm flip') + 'Back to log in</a>';
+          '<div class="fx-row"><p class="fx-note">' + RI.icon('info','i-sm') + 'Nothing there? Check spam.</p><button type="button" class="btn btn-secondary btn-sm" id="fp-resend">Send it again</button></div><p class="fx-alt"><a href="../login/">Back to log in</a></p></div>';
+        RI.fillIcons(s2);
         RI.fillArt(s2); cooldown($('fp-resend'), 'Send it again', function(){ RI.toast('If an account uses ' + v + ', a new link is on its way.', 'mail'); });
         RI.fillIcons(s2);
       });
@@ -206,8 +223,13 @@
   if(page === 'reset-password'){
     var r1 = $('rp-pw'), r2 = $('rp-pw2'), re = (P.email || '').toLowerCase();
     if(re) $('rp-for').innerHTML = 'For <b>' + RI.esc(re) + '</b>.';
+    $('rp-user').value = re;
     meter(r1, $('rp-pw-meter'));
-    function rpRules(){ $('rp-r-len').classList.toggle('ok', r1.value.length >= 8); $('rp-r-match').classList.toggle('ok', !!r1.value && r1.value === r2.value); }
+    function rpRules(){
+      $('rp-r-len').classList.toggle('ok', r1.value.length >= 8); $('rp-r-match').classList.toggle('ok', !!r1.value && r1.value === r2.value);
+      var st = $('rp-str'), n = +F.strength(r1.value) || 0, lab = !r1.value ? 'A longer phrase is stronger.' : ['Too short', 'Weak', 'Good', 'Strong'][Math.max(0, Math.min(3, n))];
+      st.textContent = r1.value ? 'Strength: ' + lab : lab; st.setAttribute('data-s', r1.value ? n : '');
+    }
     r1.addEventListener('input', rpRules); r2.addEventListener('input', rpRules);
     $('rp-form').addEventListener('submit', function(e){
       e.preventDefault(); var ok = true;

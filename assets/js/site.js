@@ -73,7 +73,11 @@
     minus:'<path d="M5 12h14"/>',
     search:'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
     chev:'<path d="M6 9.5l6 6 6-6"/>',
-    dot:'<circle cx="12" cy="12" r="3"/>'
+    dot:'<circle cx="12" cy="12" r="3"/>',
+    tag:'<path d="M3.5 12.2V4.5a1 1 0 011-1h7.7l8.3 8.3a1.2 1.2 0 010 1.7l-7 7a1.2 1.2 0 01-1.7 0z"/><circle cx="8" cy="8" r="1.6"/>',
+    key:'<circle cx="8" cy="15" r="4.5"/><path d="M11.3 11.8L20 3.5M16.5 7l2.5 2.5M14 9.5l2 2"/>',
+    exit:'<path d="M14 4.5h3.5a2 2 0 012 2v11a2 2 0 01-2 2H14"/><path d="M10 16l4-4-4-4M14 12H4.5"/>',
+    more:'<circle cx="5.5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18.5" cy="12" r="1.4"/>'
   };
   RI.icon = function(name, cls){ return '<svg class="i ' + (cls || '') + '" viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[name] || '') + '</svg>'; };
   function fillIcons(scope){ (scope || doc).querySelectorAll('i[data-i]').forEach(function(el){ el.outerHTML = RI.icon(el.getAttribute('data-i'), (el.getAttribute('class') || '') + ' i-' + el.getAttribute('data-i')); }); }
@@ -88,6 +92,9 @@
     check:'<svg viewBox="0 0 96 96" aria-hidden="true"><circle class="a-ok" cx="48" cy="48" r="28"/><path class="a-tick" d="M35 49l9 9 18-20"/></svg>',
     ticket:'<svg viewBox="0 0 96 96" aria-hidden="true"><path class="a-tk" d="M16 30h64v12a6 6 0 0 0 0 12v12H16V54a6 6 0 0 0 0-12z"/><path class="a-perf" d="M58 32v32"/><path class="a-ln" d="M24 42h24M24 50h18"/></svg>'
   };
+  /* The card's dark top band and the journey strip at its foot (account screens) */
+  RI.fxTop = function(kicker, count, art, opt){ opt = opt || {}; return '<div class="fx-top"><span class="fx-kick">' + kicker + '</span>' + '<div class="fx-art' + (opt.warn ? ' fx-warn' : '') + '" data-art="' + art + '"' + (opt.stamp ? ' data-stamp="' + opt.stamp + '"' : '') + '></div></div>'; };
+  RI.fxFlow = function(labels, cur){ return '<ol class="fx-flow" aria-label="Steps">' + labels.map(function(t, i){ return '<li class="' + (i < cur ? 'done' : i === cur ? 'cur' : '') + '"><span>' + (i < cur ? '' : i + 1) + '</span>' + t + '</li>'; }).join('') + '</ol>'; };
   RI.fillArt = function(scope){
     (scope || doc).querySelectorAll('[data-art]:not([data-art-done])').forEach(function(el){
       var k = el.getAttribute('data-art'), stamp = el.getAttribute('data-stamp');
@@ -151,7 +158,7 @@
     var host = doc.getElementById('focus-head'); if(!host) return;
     var exit = host.getAttribute('data-exit') || '';
     var exitText = host.getAttribute('data-exit-text') || 'Back to the site';
-    host.outerHTML = '<header class="focus-head"><div class="wrap">' + brand() + '<a class="textlink" href="' + RI.url(exit) + '">' + exitText + '</a></div></header>';
+    host.outerHTML = '<header class="focus-head"><div class="wrap">' + brand() + '<a class="fh-back" href="' + RI.url(exit) + '" aria-label="' + exitText + '"><span class="fh-ic" aria-hidden="true">' + RI.icon('arrow','i-sm') + '</span><span class="fh-long">' + exitText + '</span><span class="fh-short" aria-hidden="true">Back</span></a></div></header>';
   }
 
   function renderFooter(){
@@ -353,7 +360,7 @@
     });
   }
   var ROLES = [
-    {role:'homeowner', name:'Jordan Lee', email:'homeowner@demo.ri', type:'Homeowner', d:'Two houses, one priced, one in progress', icon:'house'},
+    {role:'homeowner', name:'Jordan Lee', email:'homeowner@demo.ri', type:'Homeowner', d:'Three houses: one presentation, one priced, one in progress', icon:'house'},
     {role:'builder', name:'Avery Brooks', email:'builder@demo.ri', type:'Builder', d:'Six client houses, task lists, scope documents', icon:'hammer'},
     {role:'admin', name:'Sam (super admin)', email:'admin@demo.ri', type:'Admin', d:'Console: decisions, rules, rates, back-tests', icon:'console'}
   ];
@@ -503,10 +510,28 @@
     put:function(u){ var a = RI.users.all(); a[u.email] = u; RI.store.set('users', a); }
   };
 
+  /* ---------- How it works, at a glance: price ranges and presentation rows, read from the sample house ----------
+     Range lines share one scale, Low at the left tick and High at the right, never a middle mark; partial is dashed */
+  function fillGlance(){
+    if(!RI.totals || !RI.SAMPLE) return;
+    var T = {E:RI.totals('E'), S:RI.totals('S'), P:RI.totals('P')}, max = T.P.high * 1.04;
+    var full = function(n){ return '$' + Math.round(n).toLocaleString('en-US'); };
+    doc.querySelectorAll('[data-gv="ranges"]').forEach(function(el){
+      el.innerHTML = [['E','Essential'],['S','Standard'],['P','Premium']].map(function(k){ var t = T[k[0]], on = k[0] === 'S';
+        return '<div class="gv-r' + (on ? ' on' : '') + '"><span class="gv-rn">' + k[1] + '</span><span class="gv-rv">' + full(t.low) + ' <em>to</em> ' + full(t.high) + '</span><span class="gv-rl" aria-hidden="true"><span class="gv-rz' + (t.partial ? ' part' : '') + '" style="left:' + (t.low / max * 100) + '%;width:' + ((t.high - t.low) / max * 100) + '%"></span></span></div>'; }).join('');
+    });
+    var items = (RI.SAMPLE.rooms[0] || {}).items || [], item = function(id){ return items.filter(function(x){ return x.id === id; })[0]; };
+    doc.querySelectorAll('[data-gv="pres"]').forEach(function(el){
+      el.innerHTML = [['k1','cabinet-run.jpg','Cabinets'],['k2','kitchen-dated-wide.jpg','Countertop'],['k5','wood-floor.jpg','Kitchen floor']].map(function(r){
+        var it = item(r[0]); if(!it) return ''; var sp = it.pk.S, hold = it.state === 'measure' || it.state === 'unverified';
+        return '<div class="gv-row"><img src="' + RI.img(r[1]) + '" alt=""><span><b>' + r[2] + '</b><small>' + RI.esc(sp[0].split(',')[0]) + '</small></span>' + (hold ? '<span class="v hold">' + (it.state === 'measure' ? 'Needs measurement' : 'Unverified') + '</span>' : '<span class="v">' + full(sp[1]) + ' to ' + full(sp[2]) + '</span>') + '</div>'; }).join('');
+    });
+  }
+
   /* ---------- Boot ---------- */
   function boot(){
     renderProtoBar(); renderHeader(); renderFocusHeader(); renderFooter();
-    fillIcons(); applyCtas(); RI.initRanges(); initReveal(); initFaq();
+    fillGlance(); fillIcons(); applyCtas(); RI.initRanges(); initReveal(); initFaq();
     syncAllSegs(); window.addEventListener('resize', syncAllSegs);
     if(doc.fonts && doc.fonts.ready) doc.fonts.ready.then(syncAllSegs);
     if(!/^(app|admin)$/.test(PAGE)) RI.track('page_view', {page:PAGE});

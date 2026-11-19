@@ -5,12 +5,11 @@ from page import page
 
 TYPES = [('homeowner','Homeowner','I own the house'),('buyer','Buyer','I am looking at a house'),('seller','Seller','I am selling a house'),
          ('builder','Builder','I renovate houses for clients'),('agent','Agent','I help people buy and sell'),('other','Other','Something else')]
-TICON = {'homeowner':'house','buyer':'search','seller':'pin','builder':'hammer','agent':'user','other':'dot'}
+TICON = {'homeowner':'house','buyer':'search','seller':'tag','builder':'hammer','agent':'key','other':'more'}
 def type_cards(name):
-    return ('<div class="types-pick2">' + ''.join(f'<label><input type="radio" name="{name}" value="{k}" data-d="{d}"{" checked" if k=="homeowner" else ""}><span><i data-i="{TICON[k]}"></i><strong>{t}</strong></span></label>' for k,t,d in TYPES) + '</div>'
-            + '<p class="tp-desc" id="su-type-desc" aria-live="polite">I own the house</p>')
+    return ('<div class="types-pick3">' + ''.join(f'<label><input type="radio" name="{name}" value="{k}" data-d="{d}"{" checked" if k=="homeowner" else ""}><span><span class="tp-ic"><i data-i="{TICON[k]}"></i></span><b>{t}</b><span class="tp-ok" aria-hidden="true"><i data-i="check"></i></span></span></label>' for k,t,d in TYPES) + '</div>')
 def type_chips(name):
-    return '<div class="chips-pick" role="radiogroup" aria-label="I am a">' + ''.join(f'<label><input type="radio" name="{name}" value="{k}"><span>{t}</span></label>' for k,t,_ in TYPES) + '</div>'
+    return '<div class="types-pick3">' + ''.join(f'<label><input type="radio" name="{name}" value="{k}" data-d="{d}"><span><span class="tp-ic"><i data-i="{TICON[k]}"></i></span><b>{t}</b><span class="tp-ok" aria-hidden="true"><i data-i="check"></i></span></span></label>' for k,t,d in TYPES) + '</div>'
 def type_select(id_):
     return f'<select class="select" id="{id_}"><option value="">Choose one</option>' + ''.join(f'<option value="{k}">{t}</option>' for k,t,_ in TYPES) + '</select>'
 
@@ -53,7 +52,7 @@ pages['waitlist'] = ('Join the waitlist for Metro Detroit renovation estimates |
     <form class="form-grid" id="wl-form" novalidate>
       <div class="stack" style="gap:10px"><span class="open-chip"><i data-i="clock" class="i-sm"></i>Opening April 1, 2027 in Metro Detroit</span><h1>Join the waitlist</h1><p class="muted">We write once, when you can enter your first house. People Sam invites can start earlier, with a 15-day trial.</p></div>
       {field('wl-email','Email','email',ac='email',extra=' placeholder="name@example.com"')}
-      <fieldset class="field"><legend class="flabel">I am a <span class="opt">(optional)</span></legend>{type_chips('wl-type')}</fieldset>
+      <fieldset class="field tp-field"><legend class="flabel tp-head"><span>I am a</span><span class="tp-desc" id="wl-type-desc" aria-live="polite">Optional</span></legend>{type_chips('wl-type')}</fieldset>
       <button class="btn btn-primary btn-block btn-lg" type="submit">Join the waitlist <i data-i="arrow" class="i-arrow"></i></button>
       <p class="wl2-trust"><i data-i="shield"></i><span>One email when we open. Nothing else.</span></p>
       <p class="small muted center">Invited by Sam? Open the link in his email to sign up.</p>
@@ -76,7 +75,7 @@ pages['signup'] = ('Create your account | Renovation Intelligence', 'Create an a
     <div class="invite-chip" id="su-invited" hidden><i data-i="mail"></i><span><b>Sam invited you.</b> Your 15-day trial starts when you enter your first house. <span class="xsmall muted">Proposed: how Sam invites contacts is still open.</span></span></div>
     <div class="su-closed" id="su-closed" hidden><span class="sc-ic"><i data-i="lock"></i></span><h2 id="su-closed-t">Sign up opens on April 1, 2027</h2><p class="muted" id="su-closed-b">Until then, only the people Sam invites can sign up. Join the waitlist and we will write when it opens.</p><a class="btn btn-primary btn-block btn-lg" href="../waitlist/">Join the waitlist <i data-i="arrow" class="i-arrow"></i></a><p class="small muted center">Invited by Sam? Open the link in his email.</p></div>
     <form class="form-grid" id="su-form" novalidate>
-      <fieldset class="field"><legend class="flabel">I am a</legend>{type_cards('su-type')}</fieldset>
+      <fieldset class="field tp-field"><legend class="flabel tp-head"><span>I am a</span><span class="tp-desc" id="su-type-desc" aria-live="polite">I own the house</span></legend>{type_cards('su-type')}</fieldset>
       {field('su-email','Email','email',ac='email',extra=' placeholder="name@example.com"')}
       {pw('su-pw','Password','new-password','A longer phrase is stronger.',True)}
       <ul class="pw-rules" aria-live="polite"><li id="su-r-len"><i data-i="check" class="i-sm"></i>At least 8 characters</li></ul>
@@ -100,8 +99,12 @@ pages['login'] = ('Log in | Renovation Intelligence', 'Log in to see your houses
       <div class="li-row"><label class="check"><input type="checkbox" id="li-keep"><span>Keep me logged in</span></label><a class="small" href="../forgot-password/">Forgot your password?</a></div>
       <button class="btn btn-primary btn-block btn-lg" type="submit">Log in <i data-i="arrow" class="i-arrow"></i></button>
     </form>
-    <div class="demo-box"><div class="or">or try the demo, no password</div>
-    <div class="demo-access" id="demo-access"></div></div>
+    <div class="or2"><span>or</span></div>
+    <section class="demo2" aria-labelledby="demo2-h">
+      <div class="d2-head"><h2 id="demo2-h">Try the demo</h2><span class="d2-chip"><i data-i="lock" class="i-sm"></i>No password</span></div>
+      <div class="d2-roles" id="demo-access" role="group" aria-labelledby="demo2-h"></div>
+      <p class="d2-desc" id="d2-desc" aria-live="polite">Pick a role to look around.</p>
+    </section>
     <p class="small muted center">New here? <a href="../signup/" data-when="launched" hidden>Create an account</a><a href="../waitlist/" data-when="prelaunch">Join the waitlist</a></p>
   </div></div>
   {SHOW_LOGIN}
@@ -110,16 +113,25 @@ pages['login'] = ('Log in | Renovation Intelligence', 'Log in to see your houses
 pages['verify-email'] = ('Check your email | Renovation Intelligence', 'Confirm your email address to finish creating your account.',
  '''<div class="fx-wrap"><div class="fx-card" id="ve" aria-live="polite"></div></div>''', ('auth',), ('', 'Back to the site'), True)
 
+RESET_FLOW = ['Enter your email', 'Open the link', 'Set a new password']
+def fx_top(kicker, count, art, warn=False):
+    return f'<div class="fx-top"><span class="fx-kick">{kicker}</span><div class="fx-art{" fx-warn" if warn else ""}" data-art="{art}"></div></div>'
+def fx_flow(labels, cur):
+    items = ''.join(f'<li class="{"done" if i < cur else "cur" if i == cur else ""}"><span>{"" if i < cur else i + 1}</span>{t}</li>' for i, t in enumerate(labels))
+    return f'<ol class="fx-flow" aria-label="Steps">{items}</ol>'
+
 pages['forgot-password'] = ('Reset your password | Renovation Intelligence', 'Get a link to set a new password.',
  f'''<div class="fx-wrap"><div class="fx-card">
   <div id="fp-step1" class="fx-in">
-    <div class="fx-art" data-art="key"></div>
-    <div class="fx-head"><h1>Forgot your password?</h1><p class="muted">Enter the email you signed up with. We will send a link to set a new one.</p></div>
-    <form class="form-grid" id="fp-form" novalidate>
-      {field('fp-email','Email','email',ac='email',extra=' placeholder="name@example.com"')}
-      <button class="btn btn-primary btn-block btn-lg" type="submit">Send the link <i data-i="arrow" class="i-arrow"></i></button>
-    </form>
-    <a class="fx-back" href="../login/"><i data-i="arrow" class="flip"></i>Back to log in</a>
+    {fx_top('Password reset', '1 of 3', 'key')}
+    <div class="fx-body">
+      <div class="fx-head"><h1>Forgot your password?</h1><p class="muted">No problem. Enter the email you signed up with and we will send you a link to choose a new one.</p></div>
+      <form class="form-grid" id="fp-form" novalidate>
+        {field('fp-email','Email','email',ac='email',extra=' placeholder="name@example.com"')}
+        <button class="btn btn-primary btn-block btn-lg" type="submit">Send the link <i data-i="arrow" class="i-arrow"></i></button>
+      </form>
+      <p class="fx-alt">Remembered it? <a href="../login/">Log in</a></p>
+    </div>
   </div>
   <div id="fp-step2" class="fx-in" hidden></div>
 </div></div>''', ('auth',), ('login/', 'Back to log in'), True)
@@ -127,20 +139,26 @@ pages['forgot-password'] = ('Reset your password | Renovation Intelligence', 'Ge
 pages['reset-password'] = ('Set a new password | Renovation Intelligence', 'Choose a new password for your account.',
  f'''<div class="fx-wrap"><div class="fx-card">
   <div id="rp-step1" class="fx-in">
-    <div class="fx-art" data-art="lock"></div>
-    <div class="fx-head"><h1>Set a new password</h1><p class="muted" id="rp-for">For your account.</p></div>
-    <form class="form-grid" id="rp-form" novalidate>
-      {pw('rp-pw','New password','new-password','A longer phrase is stronger.',True)}
-      {pw('rp-pw2','Type it again','new-password')}
-      <ul class="pw-rules" aria-live="polite"><li id="rp-r-len"><i data-i="check" class="i-sm"></i>At least 8 characters</li><li id="rp-r-match"><i data-i="check" class="i-sm"></i>Both passwords match</li></ul>
-      <button class="btn btn-primary btn-block btn-lg" type="submit">Save my new password</button>
-    </form>
-    <a class="fx-back" href="../login/"><i data-i="arrow" class="flip"></i>Back to log in</a>
+    {fx_top('Password reset', '3 of 3', 'lock')}
+    <div class="fx-body">
+      <div class="fx-head"><h1>Set a new password</h1><p class="muted" id="rp-for">For your account.</p></div>
+      <form class="form-grid" id="rp-form" novalidate>
+        <input class="sr" id="rp-user" type="email" autocomplete="username" readonly tabindex="-1" aria-hidden="true">
+        {pw('rp-pw','New password','new-password','',True)}
+        <p class="fx-str" id="rp-str" aria-live="polite">A longer phrase is stronger.</p>
+        {pw('rp-pw2','Type it again','new-password')}
+        <ul class="pw-rules fx-rules" aria-live="polite"><li id="rp-r-len"><i data-i="check" class="i-sm"></i>At least 8 characters</li><li id="rp-r-match"><i data-i="check" class="i-sm"></i>Both passwords match</li></ul>
+        <button class="btn btn-primary btn-block btn-lg" type="submit">Save my new password</button>
+      </form>
+      <p class="fx-note"><i data-i="shield" class="i-sm"></i>Saving logs you out on your other devices.</p>
+    </div>
   </div>
   <div id="rp-step2" class="fx-in" hidden tabindex="-1">
-    <div class="fx-art" data-art="check"></div>
-    <div class="fx-head"><h2>Your password is changed</h2><p class="muted">Use it the next time you log in. For your safety, other devices are logged out.</p></div>
-    <a class="btn btn-primary btn-block btn-lg" href="../login/">Log in <i data-i="arrow" class="i-arrow"></i></a>
+    {fx_top('Password reset', 'Done', 'check')}
+    <div class="fx-body">
+      <div class="fx-head"><h2>Your password is changed</h2><p class="muted">Use it the next time you log in. Your other devices are logged out.</p></div>
+      <a class="btn btn-primary btn-block btn-lg" href="../login/">Log in <i data-i="arrow" class="i-arrow"></i></a>
+    </div>
   </div>
 </div></div>''', ('auth',), ('login/', 'Back to log in'), True)
 

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>How a renovation estimate is made, step by step | Renovation Intelligence</title>
-<meta name="description" content="Scope before price: how photos are read, how rooms are measured, how work is decided under three goals, and the seven checks every line passes before it shows a Low and a High.">
+<title>How it works: from your photos to a price | Renovation Intelligence</title>
+<meta name="description" content="Three steps: add your house in about 10 minutes, we read it, and you see a Low and a High for three packages. The price by package is free.">
 <meta name="theme-color" content="#203B38">
 <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,211 +13,78 @@
 <link rel="stylesheet" href="../assets/css/styles.css">
 <script defer src="../assets/js/data.js"></script>
 <script defer src="../assets/js/site.js"></script>
-<script defer src="../assets/js/how.js"></script>
 </head>
 <body>
 <div id="site-head"></div>
 <main id="main">
 
-  <!-- 1. Who does what -->
+  <!-- 1. Three steps, at a glance -->
   <div class="page-head hiw-head">
     <div class="wrap">
       <nav class="crumbs" aria-label="Breadcrumb"><a href="../">Home</a><span aria-hidden="true">/</span><span>How it works</span></nav>
-      <div class="hiw-intro">
-        <h1>How an estimate is made</h1>
-        <p class="lede">You do one step. The photo reading only looks. Rules do every measurement, decision and price, in the order a builder would. Scope always comes before price.</p>
-      </div>
-      <div class="lanes" id="lanes" aria-label="Who does each of the eight steps">
-        <svg class="lanes-path" aria-hidden="true"><polyline points=""/></svg>
-        <div class="lane-label" style="--lane:1"><b>You</b><span>About 10 minutes</span></div>
-        <div class="lane-label" style="--lane:2"><b>Photo reading</b><span>Looks, never decides</span></div>
-        <div class="lane-label" style="--lane:3"><b>Rules</b><span>Measure, decide, count, price</span></div>
-        <a class="lane-node" href="#step-1" style="--lane:1;--step:1"><span class="k">1</span>Enter the house</a>
-        <a class="lane-node ai" href="#step-2" style="--lane:2;--step:2"><span class="k">2</span>Read the photos</a>
-        <a class="lane-node" href="#step-3" style="--lane:3;--step:3"><span class="k">3</span>Measure</a>
-        <a class="lane-node" href="#step-4" style="--lane:3;--step:4"><span class="k">4</span>Evaluate</a>
-        <a class="lane-node" href="#step-5" style="--lane:3;--step:5"><span class="k">5</span>Decide the work</a>
-        <a class="lane-node" href="#step-6" style="--lane:3;--step:6"><span class="k">6</span>Count it</a>
-        <a class="lane-node" href="#step-7" style="--lane:3;--step:7"><span class="k">7</span>Price and check</a>
-        <a class="lane-node" href="#step-8" style="--lane:1;--step:8"><span class="k">8</span>See the result</a>
-      </div>
-      <p class="hiw-time"><span><i data-i="clock" class="i-sm"></i>Your part: about 10 minutes</span><span><i data-i="refresh" class="i-sm"></i>Ours: a few minutes</span><span><i data-i="shield" class="i-sm"></i>Nobody approves it before you see it</span></p>
+      <div class="gv-head"><h1>How it works</h1><p class="lede">Three steps. About 10 minutes of your time.</p></div>
+      <ol class="gv-steps big">
+        <li class="gv-s">
+          <div class="gv-v gv-v1" aria-hidden="true"><div class="gv-photos">
+            <figure><img src="../assets/img/kitchen-dated.jpg" alt="" loading="lazy"><figcaption>Kitchen</figcaption></figure>
+            <figure><img src="../assets/img/wood-floor.jpg" alt="" loading="lazy"><figcaption>Living room</figcaption></figure>
+            <figure><img src="../assets/img/brick-ranch.jpg" alt="" loading="lazy"><figcaption>Exterior</figcaption></figure>
+            <figure class="add"><i data-i="camera"></i><figcaption>Add a room</figcaption></figure>
+          </div></div>
+          <div class="gv-cap"><span class="gv-n">1</span><h2>Add your house</h2><span class="gv-t"><i data-i="clock" class="i-sm"></i>About 10 minutes</span></div>
+          <span class="gv-arrow" aria-hidden="true"><i data-i="arrow"></i></span>
+        </li>
+        <li class="gv-s">
+          <div class="gv-v gv-v2" aria-hidden="true">
+            <div class="gv-scan"><img src="../assets/img/kitchen-dated.jpg" alt="" loading="lazy"><span class="gv-pill"><i data-i="refresh" class="i-sm"></i>Reading your photos</span></div>
+            <div class="gv-prog"><i></i><i></i><i class="cur"><b></b></i><i></i></div>
+          </div>
+          <div class="gv-cap"><span class="gv-n us">2</span><h2>We read it</h2><span class="gv-t"><i data-i="clock" class="i-sm"></i>A few minutes</span></div>
+          <span class="gv-arrow" aria-hidden="true"><i data-i="arrow"></i></span>
+        </li>
+        <li class="gv-s">
+          <div class="gv-v gv-v3" data-gv="ranges"></div>
+          <div class="gv-cap"><span class="gv-n">3</span><h2>See your price</h2><span class="gv-t"><i data-i="tag" class="i-sm"></i>Free</span></div>
+        </li>
+      </ol>
     </div>
   </div>
 
-  <nav class="hiw-nav" aria-label="On this page">
+  <!-- 2. What you get -->
+  <section id="get" aria-labelledby="h-get">
     <div class="wrap">
-      <a href="#steps" class="cur">Eight steps</a>
-      <a href="#evidence">Evidence and range</a>
-      <a href="#checks">Seven checks</a>
-      <a href="#goals">Three goals</a>
-      <a href="#limits">Where we stop</a>
-    </div>
-  </nav>
-
-  <!-- 2. The walkthrough -->
-  <section id="steps" class="walk" aria-label="The eight steps, one sample kitchen">
-    <div class="wrap walk-grid">
-      <div class="walk-stage-wrap">
-        <div class="walk-stage" id="stage" data-step="1" aria-hidden="true">
-          <div class="walk-rail"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-
-          <!-- 1. Intake on a phone -->
-          <div class="frame f1">
-            <div class="phone">
-              <div class="phone-top"><span>Step 3 of 5</span><b>Photos</b></div>
-              <div class="phone-room"><b>Kitchen</b><span>11 photos</span></div>
-              <div class="phone-thumbs"><img src="../assets/img/kitchen-dated.jpg" alt=""><img src="../assets/img/kitchen-dated-wide.jpg" alt=""><img src="../assets/img/cabinet-run.jpg" alt=""><span>+8</span></div>
-              <div class="phone-room"><b>Living room</b><span>7 photos</span></div>
-              <div class="phone-thumbs"><img src="../assets/img/wood-floor.jpg" alt=""><span class="up"><i data-i="camera" class="i-sm"></i></span></div>
-              <div class="phone-btn">Save and continue</div>
-            </div>
-            <div class="f1-notes"><span><i data-i="check" class="i-sm"></i>Saved after every step</span><span><i data-i="check" class="i-sm"></i>Sizes optional</span><span><i data-i="check" class="i-sm"></i>Photos grouped by room</span></div>
-          </div>
-
-          <!-- 2. Reading -->
-          <div class="frame f2 photo-frame">
-            <img src="../assets/img/kitchen-dated.jpg" alt="">
-            <span class="fx-box" style="left:8%;top:48%;width:70%;height:26%;--d:.15s"></span><span class="fx-chip" style="left:9%;top:49%;--d:.25s">Base cabinets <b>92%</b></span>
-            <span class="fx-box" style="left:8%;top:41%;width:72%;height:6%;--d:.35s"></span><span class="fx-chip" style="left:56%;top:49%;--d:.45s">Countertop, laminate <b>71%</b></span>
-            <span class="fx-box" style="left:18%;top:21%;width:60%;height:15%;--d:.55s"></span><span class="fx-chip" style="left:19%;top:22%;--d:.65s">Backsplash, ceramic <b>88%</b></span>
-            <span class="fx-box dashed" style="left:0;top:76%;width:66%;height:24%;--d:.75s"></span><span class="fx-chip muted" style="left:2%;top:78%;--d:.85s">Floor: no reliable pattern</span>
-          </div>
-
-          <!-- 3. Measuring -->
-          <div class="frame f3 photo-frame">
-            <img src="../assets/img/kitchen-dated.jpg" alt="">
-            <svg class="fx-dims" viewBox="0 0 100 100" preserveAspectRatio="none"><line class="dl" x1="8" y1="78" x2="78" y2="78" pathLength="1"/><line x1="8" y1="75.5" x2="8" y2="80.5"/><line x1="78" y1="75.5" x2="78" y2="80.5"/><line class="dl dl2" x1="18" y1="19" x2="78" y2="19" pathLength="1"/><line x1="18" y1="16.5" x2="18" y2="21.5"/><line x1="78" y1="16.5" x2="78" y2="21.5"/></svg>
-            <span class="fx-chip" style="left:30%;top:80%;--d:.5s">Cabinet run, 22 ft <b>Typed by you</b></span>
-            <span class="fx-chip" style="left:24%;top:8%;--d:.7s">Sixteen 6 in tiles: 8 ft <b>Pattern</b></span>
-            <span class="fx-chip muted" style="left:54%;top:90%;--d:.9s">Floor size <b>Unknown</b></span>
-          </div>
-
-          <!-- 4. Evaluating -->
-          <div class="frame f4 paper-frame">
-            <p class="fx-title">Condition and how dated, scored apart</p>
-            <div class="meters">
-              <div class="meter-row"><b>Base cabinets</b><span class="m"><i style="--v:.78"></i><em style="--t:.5"></em></span><span class="mv">Condition: sound</span><span class="m dated"><i style="--v:.84"></i><em style="--t:.6"></em></span><span class="mv">Dated: yes</span></div>
-              <div class="meter-row"><b>Countertop</b><span class="m"><i style="--v:.62"></i><em style="--t:.5"></em></span><span class="mv">Condition: sound</span><span class="m dated"><i style="--v:.74"></i><em style="--t:.6"></em></span><span class="mv">Dated: yes</span></div>
-              <div class="meter-row"><b>Faucet</b><span class="m low"><i style="--v:.28"></i><em style="--t:.5"></em></span><span class="mv">Condition: failing</span><span class="m dated"><i style="--v:.5"></i><em style="--t:.6"></em></span><span class="mv">Dated: no</span></div>
-            </div>
-            <p class="fx-foot">The tick on each bar is Sam's threshold for that part. A 1990 oak kitchen can be sound and still dated.</p>
-          </div>
-
-          <!-- 5. Deciding -->
-          <div class="frame f5 paper-frame">
-            <p class="fx-title">Base cabinets: sound, dated</p>
-            <div class="tree">
-              <svg class="tree-lines" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M18 50 C35 50 35 18 50 18" pathLength="1"/><path d="M18 50 L50 50" pathLength="1"/><path d="M18 50 C35 50 35 82 50 82" pathLength="1"/></svg>
-              <div class="tree-root">Cabinets<span>22 ft, sound, dated</span></div>
-              <div class="tree-leaf" style="top:18%;--d:.4s"><b>Essential</b>Clean, adjust, replace two hinges</div>
-              <div class="tree-leaf" style="top:50%;--d:.55s"><b>Standard</b>Refinish, new pulls at 18 positions</div>
-              <div class="tree-leaf" style="top:82%;--d:.7s"><b>Premium</b>Replace with shaker cabinets</div>
-            </div>
-            <p class="fx-foot">The least invasive action that meets each goal. All three are worked out at once.</p>
-          </div>
-
-          <!-- 6. Counting -->
-          <div class="frame f6 paper-frame">
-            <p class="fx-title">Standard: refinish the cabinets</p>
-            <table class="tasks">
-              <thead><tr><th>Trade</th><th>Task</th><th>Net qty</th></tr></thead>
-              <tbody>
-                <tr style="--d:.15s"><td>Cabinets</td><td>Clean and degrease fronts and boxes</td><td>22 ft</td></tr>
-                <tr style="--d:.3s"><td>Cabinets</td><td>Sand, prime, two finish coats</td><td>22 ft</td></tr>
-                <tr style="--d:.45s"><td>Cabinets</td><td>Remove old pulls, fill holes</td><td>18 ea</td></tr>
-                <tr style="--d:.6s"><td>Hardware</td><td>Install new pulls</td><td>18 ea</td></tr>
-              </tbody>
-            </table>
-            <p class="fx-foot">Every task has exactly one trade, so nothing is charged twice.</p>
-          </div>
-
-          <!-- 7. Pricing and checking -->
-          <div class="frame f7 paper-frame">
-            <p class="fx-title">Seven checks, then a price</p>
-            <ol class="mini-checks">
-              <li style="--d:.1s">Goal chosen</li><li style="--d:.2s">Quantity supported</li><li style="--d:.3s">Condition clear</li><li style="--d:.4s">Rate ready</li><li style="--d:.5s">One trade</li><li style="--d:.6s">Scope complete</li><li style="--d:.7s">No overlap</li>
-            </ol>
-            <div class="f7-price"><span class="small muted">Cabinets, Standard</span><span class="big">$3,900 <span class="to">to</span> $6,200</span><div class="f7-line" data-scale="0,8000"><div class="rl thick" data-low="3900" data-high="6200"></div></div></div>
-          </div>
-
-          <!-- 8. Result -->
-          <div class="frame f8 paper-frame">
-            <div class="f8-sheet">
-              <div class="f8-h"><b>Brick ranch, built 1986</b><span class="state state-partial">Partial</span></div>
-              <div data-scale="0,125000" class="f8-rows">
-                <div><span>Essential</span><div class="rl partial" data-low="4770" data-high="8400"></div><span class="range-txt">$4,770 <span class="to">to</span> $8,400</span></div>
-                <div><span>Standard</span><div class="rl partial" data-low="40100" data-high="68700"></div><span class="range-txt">$40,100 <span class="to">to</span> $68,700</span></div>
-                <div><span>Premium</span><div class="rl partial" data-low="73400" data-high="120800"></div><span class="range-txt">$73,400 <span class="to">to</span> $120,800</span></div>
-              </div>
-              <p class="small muted">2 unverified, 1 needs measurement. Free to see. The full presentation is one payment.</p>
-            </div>
-          </div>
+      <div class="gv-head"><p class="label">What you get</p><h2 id="h-get">Free price. Full detail when you want it.</h2></div>
+      <div class="gv-get">
+        <div class="gv-plan">
+          <header><h3>Price by package</h3><span class="p">Free</span></header>
+          <div class="gv-v gv-v3" data-gv="ranges"></div>
+          <div class="gv-feat"><span><i data-i="tag" class="i-sm"></i>Three packages</span><span><i data-i="info" class="i-sm"></i>Unknowns named</span><span><i data-i="mail" class="i-sm"></i>Email when ready</span></div>
         </div>
-      </div>
-
-      <div class="walk-steps">
-        <article class="wstep" id="step-1" data-step="1"><span class="who who-you">You</span><span class="k">01</span><h2>You enter the house once</h2><p>Address, the facts from the listing, and a photo of each room. It saves after every step, so you can finish on another device. Sizes help, but they are optional.</p><p class="wnote">After you submit, there is nothing more to do.</p></article>
-        <article class="wstep" id="step-2" data-step="2"><span class="who who-ai">Photo reading</span><span class="k">02</span><h2>We read your photos</h2><p>Each photo is read for rooms, parts, materials and visible condition. Every finding carries how sure we are. Staged or rendered photos count for layout only.</p><p class="wnote">The photo reading never measures, decides or prices. It only looks.</p></article>
-        <article class="wstep" id="step-3" data-step="3"><span class="who who-rules">Rules</span><span class="k">03</span><h2>We measure</h2><p>Your typed sizes come first. Then known patterns in the photos, like a row of tiles, then room templates, then typical sizes. Each size carries its source.</p><p class="wnote">A typical size is never shown as a measurement, and it widens the range.</p></article>
-        <article class="wstep" id="step-4" data-step="4"><span class="who who-rules">Rules</span><span class="k">04</span><h2>We evaluate what is there</h2><p>Condition and how dated a part looks are scored apart, against Sam's threshold for each part. A house's age never tells us a part's age.</p><p class="wnote">Below the threshold, a part is marked unverified instead of guessed.</p></article>
-        <article class="wstep" id="step-5" data-step="5"><span class="who who-rules">Rules</span><span class="k">05</span><h2>We decide the work under each goal</h2><p>For every part, the least invasive action that meets the goal: keep, clean, repair, refinish, replace, add or inspect. Essential, Standard and Premium are worked out together.</p><p class="wnote">Safety concerns are flagged for a professional first.</p></article>
-        <article class="wstep" id="step-6" data-step="6"><span class="who who-rules">Rules</span><span class="k">06</span><h2>We count the work</h2><p>Each action becomes tasks with quantities in square feet, linear feet or each. Every task belongs to exactly one trade.</p><p class="wnote">A door painted by the painter is never billed again by the door installer.</p></article>
-        <article class="wstep" id="step-7" data-step="7"><span class="who who-rules">Rules</span><span class="k">07</span><h2>We price and check</h2><p>A Low and a High per line, from local installed rates and real products. Then seven checks run on every line before it may show a price.</p><p class="wnote">What a homeowner pays a professional. Never do-it-yourself, never national averages.</p></article>
-        <article class="wstep" id="step-8" data-step="8"><span class="who who-you">You</span><span class="k">08</span><h2>You see the result</h2><p>The price by package is free. The full presentation shows every room, trade and product, what we could not confirm, and guidance on the house's systems.</p><p><a class="textlink" href="../sample/">Open the sample estimate <i data-i="arrow" class="i-sm"></i></a></p></article>
-      </div>
-    </div>
-  </section>
-
-  <!-- 3. Evidence ladder -->
-  <section class="offer" id="evidence" aria-labelledby="h-evidence">
-    <div class="wrap">
-      <div class="sec-head"><p class="label">Evidence and range</p><h2 id="h-evidence">Weaker evidence, wider range</h2><p class="lede">Every size says where it came from. The less certain the source, the wider the Low and High. Pick a source to see one sample line change.</p></div>
-      <div class="ladder">
-        <div class="ladder-rungs" role="radiogroup" aria-label="Where the size came from" id="rungs"></div>
-        <div class="ladder-out" aria-live="polite">
-          <p class="label">Bedroom flooring, carpet to LVP</p>
-          <div class="ladder-q"><span id="lq-qty"></span><span id="lq-ev"></span></div>
-          <div class="ladder-price"><span class="big-range" id="lq-price"></span></div>
-          <div data-scale="0,8000" class="ladder-line"><div class="rl thick" id="lq-rl" data-low="0" data-high="0"></div><div class="axis" data-ticks="0,2000,4000,6000,8000"></div></div>
-          <p class="small muted" id="lq-note"></p>
+        <div class="gv-plan paid">
+          <header><h3>Full presentation</h3><span class="p">One payment</span></header>
+          <div class="gv-v gv-pres" data-gv="pres"></div>
+          <div class="gv-feat"><span><i data-i="house" class="i-sm"></i>Room by room</span><span><i data-i="tag" class="i-sm"></i>Real products</span><span><i data-i="share" class="i-sm"></i>PDF and share link</span></div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- 4. Checks as gates, with the simulator -->
-  <section id="checks" aria-labelledby="h-checks">
+  <!-- 3. Our promise -->
+  <section class="offer" id="promise" aria-labelledby="h-pr">
     <div class="wrap">
-      <div class="sec-head"><p class="label">Before any price is shown</p><h2 id="h-checks">Seven checks on every line</h2><p class="lede">One sample line from a hall bath. Change what we know, and watch where it stops. A failed line never blocks the rest of the house.</p></div>
-      <div class="gates-box">
-        <div class="gates-controls">
-          <p class="label">What we know</p>
-          <label class="switch"><input type="checkbox" id="sim-photo"><span class="track"></span><span>A clear photo of the tub and walls</span></label>
-          <label class="switch"><input type="checkbox" id="sim-size" checked><span class="track"></span><span>Bathroom size typed, 5 by 8 ft</span></label>
-          <label class="switch"><input type="checkbox" id="sim-rate" checked><span class="track"></span><span>An approved rate for this region</span></label>
-          <div class="field" style="margin-top:6px"><label for="sim-pk">Goal</label>
-            <select class="select" id="sim-pk"><option value="E">Essential</option><option value="S" selected>Standard</option><option value="P">Premium</option></select>
-          </div>
-        </div>
-        <div class="gates-main">
-          <div class="gates" id="gates" aria-hidden="true"><span class="gates-track"><span class="gates-fill" id="gates-fill"></span></span><span class="token" id="token"></span></div>
-          <div class="sim-line">
-            <div class="row"><strong>Hall bath, tub and surround</strong><span id="sim-state"></span></div>
-            <div class="row"><span class="small muted" id="sim-act"></span><span id="sim-price" class="range-txt"></span></div>
-            <div data-scale="0,9000"><div class="rl" id="sim-rl" data-low="0" data-high="0"></div></div>
-          </div>
-          <ol class="gate-list" id="gate-list"></ol>
-          <p class="xsmall muted">Sample figures. A real line uses Sam's published rules and rates.</p>
-        </div>
+      <div class="gv-head"><p class="label">Our promise</p><h2 id="h-pr">Honest numbers, or none</h2></div>
+      <div class="gv-pr">
+        <div><span class="ic"><i data-i="shield"></i></span><b>Every price checked</b></div>
+        <div><span class="ic"><i data-i="info"></i></span><b>Unknowns named, never zero</b></div>
+        <div><span class="ic"><i data-i="user"></i></span><b>No one holds your house back</b></div>
       </div>
     </div>
   </section>
 
   <!-- Three goals -->
-  <section class="offer" id="goals" aria-labelledby="h-goals">
+  <section id="goals" aria-labelledby="h-goals">
     <div class="wrap">
-      <div class="sec-head"><p class="label">Three goals</p><h2 id="h-goals">A package is a goal, not a list of work</h2><p class="lede">Work driven by condition stays in every package. What changes is how far each goal goes.</p></div>
+      <div class="sec-head"><p class="label">Three goals</p><h2 id="h-goals">A package is a goal, not a list of work</h2></div>
       <div class="goals">
         <div class="goal"><h3>Essential</h3><p>A functional refresh. Fix what must be fixed so the house works and looks cared for.</p><p class="eg">Worn carpet stays if sound. Failed hinges are replaced. Walls get paint where needed.</p></div>
         <div class="goal"><h3>Standard <span class="default">Default view</span></h3><p>A coordinated update. Modernize dated parts and keep what is sound.</p><p class="eg">Oak cabinets refinished, carpet replaced with LVP, new light fixtures in dated rooms.</p></div>

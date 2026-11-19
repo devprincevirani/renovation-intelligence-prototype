@@ -12,7 +12,7 @@
     if(A.status(h) === 'open'){ A.go('#/houses/' + h.id + '/presentation'); return; }
     if(A.status(h) !== 'ready' && !(runPay && A.status(h) === 'draft')){ A.go('#/houses/' + h.id); return; }
     var s = A.me(), cov = A.cover(h); RI.track('checkout_started', {house:h.id});
-    var exit = doc.getElementById('focus-exit'); if(exit) exit.innerHTML = '<a class="textlink inv" href="#/houses/' + h.id + '">Cancel</a>';
+    var exit = doc.getElementById('focus-exit'); if(exit) exit.innerHTML = '<a class="exit-btn" href="#/houses/' + h.id + '" aria-label="Cancel and go back to the house"><span class="eb-l">Cancel</span>' + RI.icon('x','i-sm') + '</a>';
     view.innerHTML = '<div class="app-wrap co-wrap"><div class="co-demo">' + RI.icon('info','i-sm') + '<span><b>Demo checkout.</b> In the product this is Stripe\'s own secure page. No real payment is taken here.</span></div>' +
       '<div class="co">' +
       '<section class="co-sum"><p class="label">Your order</p><div class="co-house">' + (cov ? '<img src="' + cov + '" alt="">' : '') + '<div><b>' + RI.esc(A.addr(h)) + '</b><span class="small muted">' + RI.esc(A.place(h)) + '</span></div></div>' +
