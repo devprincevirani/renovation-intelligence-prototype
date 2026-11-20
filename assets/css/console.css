@@ -2220,3 +2220,18 @@ dialog.rlb-sheet::backdrop{background:rgba(24,38,36,.45)}
 #rlb-addf.rlb-sh-b{margin:0}
 .rlb-dv{display:inline-grid;color:var(--warn);font-weight:600}
 .rlb-dv small{font-size:.7rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+/* Rates (v98): the toolbar fills the row at every size, no gap. Phone: search; trade and unit; region.
+   Tablet: search; trade, unit, region in thirds. Computer: search stretches, then trade, unit, region */
+.rlb-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:center}
+.rlb-tools .c-search,.rlb-tools .rlb-regsel{grid-column:1/-1}
+.rlb-tools .rlb-sel,.rlb-tools .rlb-regsel{margin:0;min-width:0}
+.rlb-tools .rlb-sel select,.rlb-tools .rlb-regsel select{width:100%;min-width:0}
+.rlb-tools .c-search input{width:100%}
+@media (min-width:720px){
+  .rlb-tools{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .rlb-tools .rlb-regsel{grid-column:auto}
+}
+@media (min-width:1180px){
+  .rlb-tools{grid-template-columns:minmax(240px,1fr) minmax(150px,190px) minmax(140px,170px) minmax(200px,250px)}
+  .rlb-tools .c-search{grid-column:auto}
+}
