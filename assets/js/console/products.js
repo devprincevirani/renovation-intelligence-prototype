@@ -12,7 +12,7 @@
   var RI = window.RI, A = RI.App, C = RI.Con, doc = document, DAY = 86400000;
   var TIERS = [['E', 'Essential'], ['S', 'Standard'], ['P', 'Premium']], TN = {E:'Essential', S:'Standard', P:'Premium'};
   /* Two icons this screen needs that the shared set lacks, drawn in the same line style */
-  var OWN = {plus:'<path d="M12 5v14M5 12h14"/>', pencil:'<path d="M4 20l1-4.5L15.5 5 19 8.5 8.5 19z"/><path d="M13.5 7l3.5 3.5"/>'};
+  var OWN = {grid:'<rect x="4" y="4" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1"/>', plus:'<path d="M12 5v14M5 12h14"/>', pencil:'<path d="M4 20l1-4.5L15.5 5 19 8.5 8.5 19z"/><path d="M13.5 7l3.5 3.5"/>'};
   var esc = RI.esc, money = RI.money, I = function(n, c){ c = c || 'i-sm'; return OWN[n] ? '<svg class="i ' + c + '" viewBox="0 0 24 24" aria-hidden="true">' + OWN[n] + '</svg>' : RI.icon(n === 'image' ? 'camera' : n, c); };
   var PEOPLE = ['Sam', 'Sam', 'Marcus Hill', 'Sam', 'Dana Reyes'];
 
@@ -111,11 +111,9 @@
     var fams = list.map(function(p){ return p.fam; }).filter(function(v, i, a){ return a.indexOf(v) === i; }).sort(function(a, b){ return (C.FAMILY[a] || a).localeCompare(C.FAMILY[b] || b); });
     view.innerHTML = C.page({kicker:'Pricing', title:'Products', sub:'Sam\'s product library: one real product per item and package, with its price, source and photo. The Low and High of a line comes from the product and the rates together. Lines without a product are priced from a rate.',
       actions:canEdit ? '<button type="button" class="btn btn-primary" id="pl-new">' + I('plus') + 'Add product</button>' : '',
-      body:'<div id="pl-stats"></div><div class="pl-bar">' + C.search('pl-q', 'Product or item', '') +
-        '<div class="au-period pl-tiers" id="pl-t" role="radiogroup" aria-label="Package"></div>' +
+      body:'<div id="pl-stats"></div><div class="pl-bar"><div class="pl-chips" id="pl-t" role="radiogroup" aria-label="Package"></div><div class="pl-right">' + C.search('pl-q', 'Search products', '') +
         '<label class="c-select"><span class="sr">Family</span><select id="pl-f"><option value="all">All families</option>' + fams.map(function(f){ return '<option value="' + f + '">' + (C.FAMILY[f] || f) + '</option>'; }).join('') + '</select></label>' +
-        '<label class="c-select"><span class="sr">Show</span><select id="pl-s"><option value="all">Everything</option><option value="photo">Needs a photo</option><option value="gap">Missing a product</option><option value="draft">Draft waiting</option></select></label>' +
-        '<div class="au-period pl-view" id="pl-view" role="radiogroup" aria-label="View">' + [['cards', 'Cards'], ['items', 'By item']].map(function(o){ return '<button type="button" role="radio" data-view="' + o[0] + '" aria-checked="' + (st.view === o[0]) + '" tabindex="' + (st.view === o[0] ? 0 : -1) + '">' + o[1] + '</button>'; }).join('') + '</div></div>' +
+        '<div class="pl-vt" id="pl-view" role="radiogroup" aria-label="View">' + [['cards', 'Cards', 'grid'], ['items', 'By item', 'list']].map(function(o){ return '<button type="button" role="radio" data-view="' + o[0] + '" aria-label="' + o[1] + '" title="' + o[1] + '" aria-checked="' + (st.view === o[0]) + '" tabindex="' + (st.view === o[0] ? 0 : -1) + '">' + I(o[2]) + '</button>'; }).join('') + '</div></div></div>' +
         '<div id="pl-list"></div>' + (canEdit ? '' : '<div class="c-mt">' + C.note('You can read the library. Editing needs the "Edit drafts of products and rates" permission.', 'lock') + '</div>')});
 
     /* Library health: photos, package coverage and drafts, each a bar that filters the list when tapped */
@@ -129,19 +127,28 @@
         '<button type="button" class="ph-m ph-d' + (drafts ? ' warn' : '') + '" data-show="draft" aria-pressed="' + (st.show === 'draft') + '"><span class="ph-l">Drafts waiting</span><span class="ph-big">' + drafts + '</span><span class="ph-note">' + (drafts ? 'Waiting for Sam to publish' : 'Nothing waiting') + '</span></button>' +
         '</div></section>';
       var tc = function(t){ return t === 'all' ? list.length : list.filter(function(p){ return p.tier === t; }).length; };
-      doc.getElementById('pl-t').innerHTML = [['all', 'All']].concat(TIERS).map(function(t){ return '<button type="button" role="radio" data-tier="' + t[0] + '" aria-checked="' + (st.tier === t[0]) + '" tabindex="' + (st.tier === t[0] ? 0 : -1) + '">' + t[1] + ' <span class="pl-tn">' + tc(t[0]) + '</span></button>'; }).join('');
+      doc.getElementById('pl-t').innerHTML = [['all', 'All tiers']].concat(TIERS).map(function(t){ return '<button type="button" role="radio" data-tier="' + t[0] + '" aria-checked="' + (st.tier === t[0]) + '" tabindex="' + (st.tier === t[0] ? 0 : -1) + '">' + t[1] + ' <span class="pl-tn">' + tc(t[0]) + '</span></button>'; }).join('');
     }
     /* One product as a card (DESIGN: product tile, a square photo, its name and tier) */
+    /* How many priced houses each product prices, counted once per draw */
+    var USE = {};
+    function countUse(){
+      USE = {};
+      A.all().forEach(function(h){ if(A.status(h) === 'draft') return; var seen = {}; A.estimate(h).rooms.forEach(function(r){ r.items.forEach(function(it){ ['E', 'S', 'P'].forEach(function(t){ var a = it.pk && it.pk[t]; if(a && a[3]){ var k = t + '|' + a[3]; if(!seen[k]){ seen[k] = 1; USE[k] = (USE[k] || 0) + 1; } } }); }); }); });
+    }
     function card(p){
-      var dr = C.draftFor('products', p.id), n = +p.price, num = '$' + (n < 100 && n % 1 ? n.toFixed(2) : Math.round(n).toLocaleString('en-US')), per = (p.per || 'each') === 'each' ? 'each' : 'per ' + p.per;
+      var dr = C.draftFor('products', p.id), n = +p.price, num = '$' + (n < 100 && n % 1 ? n.toFixed(2) : Math.round(n).toLocaleString('en-US')), per = (p.per || 'each') === 'each' ? 'each' : 'per ' + p.per, used = USE[p.tier + '|' + p.name] || 0;
       return '<article class="pc' + (dr ? ' drafted' : '') + '">' +
-        '<div class="pc-ph">' + (p.img ? photo(p) : '<span class="pc-noph">' + I('image') + '<b>No photo yet</b></span>') + '<span class="pc-tier t-' + p.tier + '">' + TN[p.tier] + '</span>' +
+        '<div class="pc-ph">' + (p.img ? photo(p) : '<span class="pc-noph">' + I('image') + '<b>No photo yet</b></span>') + '<span class="pc-tier t-' + p.tier + '"><i aria-hidden="true"></i>' + TN[p.tier] + '</span>' +
           (!p.img && canEdit ? '<button type="button" class="pc-addph" data-photo="' + p.id + '">' + I('plus') + 'Add photo</button>' : '') + '</div>' +
-        '<div class="pc-b"><h3 class="pc-name"><button type="button" class="pc-open" data-prod="' + p.id + '">' + esc(p.name) + '</button></h3><p class="pc-item">For ' + esc(p.item) + '</p>' +
-          '<div class="pc-f"><span class="pc-price"><b>' + num + '</b> ' + per + '</span>' + (dr ? '<span class="pc-st dr">Draft waiting</span>' : '<span class="pc-st">v' + (p.v || 1) + '</span>') + '</div></div></article>';
+        '<div class="pc-b"><p class="pc-fam">' + esc(p.item) + '</p><h3 class="pc-name"><button type="button" class="pc-open" data-prod="' + p.id + '">' + esc(p.name) + '</button></h3>' +
+          '<p class="pc-price"><b>' + num + '</b><span>' + per + '</span></p>' +
+          '<div class="pc-f"><div class="pc-s">' + (dr ? '<span class="pc-st dr"><i aria-hidden="true"></i>Draft waiting</span><small class="pc-note">Not live until Sam publishes</small>'
+            : '<span class="pc-st ok"><i aria-hidden="true"></i>Live · v' + (p.v || 1) + '</span><small class="pc-note">' + (used ? 'Prices ' + used + (used === 1 ? ' house' : ' houses') : 'Not used by a priced house yet') + '</small>') + '</div>' +
+          (canEdit ? '<button type="button" class="pc-edit" data-edit="' + p.id + '" aria-label="Edit ' + esc(p.name) + '" title="Edit">' + I('pencil') + '</button>' : '') + '</div></div></article>';
     }
     function draw(){
-      list = all(); stats();
+      list = all(); stats(); countUse();
       var v = st.q.toLowerCase().trim(), match = function(p){ return p.name.toLowerCase().indexOf(v) > -1 || p.item.toLowerCase().indexOf(v) > -1 || p.id.indexOf(v) > -1; };
       var el = doc.getElementById('pl-list'), filtered = st.show !== 'all' || st.fam !== 'all' || st.tier !== 'all' || v;
       if(st.view === 'cards'){
@@ -158,7 +165,7 @@
         var groups = []; ps.forEach(function(p){ var g = groups[groups.length - 1]; if(!g || g.fam !== p.fam) groups.push(g = {fam:p.fam, ps:[]}); g.ps.push(p); });
         el.innerHTML = ps.length ? '<p class="pl-count" aria-live="polite"><b>' + ps.length + '</b> ' + (ps.length === 1 ? 'product' : 'products') + (filtered ? ' match' : '') + '</p><div class="pl-groups">' + groups.map(function(g){
           var its = g.ps.map(function(p){ return p.item; }).filter(function(x, i, a){ return a.indexOf(x) === i; }).length;
-          return '<section class="pc-grp"><h2 class="pc-gh">' + (C.FAMILY[g.fam] || g.fam) + '<span>' + g.ps.length + (g.ps.length === 1 ? ' product' : ' products') + ' · ' + its + (its === 1 ? ' item' : ' items') + '</span></h2><div class="pc-grid" style="--n:' + Math.min(g.ps.length, 5) + '">' + g.ps.map(card).join('') + '</div></section>';
+          return '<section class="pc-grp"><h2 class="pc-gh">' + (C.FAMILY[g.fam] || g.fam) + '<span>' + g.ps.length + (g.ps.length === 1 ? ' product' : ' products') + ' · ' + its + (its === 1 ? ' item' : ' items') + '</span></h2><div class="pc-grid" style="--n:' + Math.min(g.ps.length, 4) + '">' + g.ps.map(card).join('') + '</div></section>';
         }).join('') + '</div>'
           : '<div class="c-empty">' + I('info') + '<p>' + (v ? 'No product or item matches “' + esc(st.q) + '”.' : 'No product matches these filters.') + '</p></div>';
       } else {
@@ -260,7 +267,6 @@
 
     view.querySelector('#pl-q').addEventListener('input', function(){ st.q = this.value; draw(); });
     view.querySelector('#pl-f').addEventListener('change', function(){ st.fam = this.value; draw(); });
-    view.querySelector('#pl-s').addEventListener('change', function(){ st.show = this.value; draw(); });
     var tg = view.querySelector('#pl-t');
     tg.addEventListener('click', function(e){ var b = e.target.closest('[data-tier]'); if(b){ st.tier = b.getAttribute('data-tier'); draw(); } });
     tg.addEventListener('keydown', function(e){ var bs = [].slice.call(tg.querySelectorAll('[data-tier]')), i = bs.indexOf(e.target), k = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0; if(i < 0 || !k) return; e.preventDefault(); st.tier = bs[(i + k + bs.length) % bs.length].getAttribute('data-tier'); draw(); var on = tg.querySelector('[aria-checked="true"]'); if(on) on.focus(); });
@@ -269,7 +275,8 @@
     vg.addEventListener('click', function(e){ var b = e.target.closest('[data-view]'); if(b) setView(b.getAttribute('data-view')); });
     vg.addEventListener('keydown', function(e){ if(e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return; e.preventDefault(); setView(st.view === 'cards' ? 'items' : 'cards'); var on = vg.querySelector('[aria-checked="true"]'); if(on) on.focus(); });
     view.addEventListener('click', function(e){
-      var s = e.target.closest('[data-show]'); if(s){ st.show = st.show === s.getAttribute('data-show') ? 'all' : s.getAttribute('data-show'); view.querySelector('#pl-s').value = st.show; draw(); return; }
+      var s = e.target.closest('[data-show]'); if(s){ st.show = st.show === s.getAttribute('data-show') ? 'all' : s.getAttribute('data-show'); draw(); return; }
+      var ed = e.target.closest('[data-edit]'); if(ed){ form(list.filter(function(x){ return x.id === ed.getAttribute('data-edit'); })[0]); return; }
       var ph = e.target.closest('[data-photo]'); if(ph){ form(list.filter(function(x){ return x.id === ph.getAttribute('data-photo'); })[0]); return; }
       var p = e.target.closest('[data-prod]'); if(p){ panel(p.getAttribute('data-prod')); return; }
       var ad = e.target.closest('[data-add]'); if(ad){ form(null, {item:ad.closest('[data-item]').getAttribute('data-item'), tier:ad.getAttribute('data-add')}); return; }
