@@ -70,6 +70,7 @@
   /* ---------- Overview cards ---------- */
   function niceTop(v){ var p = Math.pow(10, Math.floor(Math.log10(Math.max(v, 1)))), s = [1, 2, 2.5, 5, 10]; for(var i = 0; i < s.length; i++) if(s[i] * p >= v) return s[i] * p; return 10 * p; }
   function kmoney(v){ return v >= 1000 ? '$' + (v / 1000).toLocaleString('en-US', {maximumFractionDigits:1}) + 'k' : '$' + v; }
+  function plural(n, one, many){ return n + ' ' + (n === 1 ? one : (many || one + 's')); }
   /* What would let a held line be priced (DESIGN 8.5: unknowns say what would verify them) */
   function unlock(l){
     var i = l.checks.indexOf(false);
@@ -78,43 +79,60 @@
     if(i === 3) return 'Priced once a rate or product is published for this region';
     return 'Check ' + (i + 1) + ', ' + C.CHECKS[i][0].toLowerCase() + '. Staff see this line; users do not';
   }
-  function priceCard(h, m){
-    var held = heldLines(m), off = h.off || {};
-    /* Only lines that passed all seven checks reach a total (PDF 57) */
-    var tot = PK.map(function(k){ var lo = 0, hi = 0; m.lines.forEach(function(l){ var a = l.item.pk[k[0]]; if(l.pass === 7 && !off[l.item.id] && a && a[1] != null){ lo += a[1]; hi += a[2]; } }); return {k:k, lo:lo, hi:hi}; });
-    var top = niceTop(Math.max.apply(null, tot.map(function(t){ return t.hi; })) * 1.04), goals = {};
-    (RI.PACKAGES || []).forEach(function(p){ goals[p.key] = p.goal; });
-    var rows = tot.map(function(t){
-      return '<div class="iv-pk"><div class="iv-pk-n"><b>' + t.k[1] + '</b><small>' + RI.esc(goals[t.k[0]] || '') + '</small></div>' +
-        '<div class="iv-pk-l"><span class="rl thick' + (held.length ? ' partial' : '') + '" data-low="' + t.lo + '" data-high="' + t.hi + '"></span></div>' +
-        '<div class="iv-pk-v">' + C.range(t.lo, t.hi) + (held.length ? '<small>Partial</small>' : '') + '</div></div>';
-    }).join('');
-    var axis = '<div class="iv-pk iv-axis" aria-hidden="true"><span></span><div class="iv-pk-l"><span>$0</span><span>' + kmoney(top / 2) + '</span><span>' + kmoney(top) + '</span></div><span></span></div>';
-    var out = held.length
-      ? '<div class="iv-out"><h3>Left out of these totals <span class="iv-n warn">' + held.length + '</span></h3><ul>' + held.map(function(l){
-          return '<li>' + code(l) + '<div class="iv-out-w">' + stateLbl(C.whyHeld(l)) + '<small>' + unlock(l) + '</small></div></li>'; }).join('') + '</ul>' +
-          '<button type="button" class="iv-link" data-tab="checks">See all seven checks for every line' + RI.icon('arrow','i-sm') + '</button></div>'
-      : '<p class="iv-allok">' + RI.icon('check','i-sm') + 'Every line passed all seven checks. Nothing is left out.</p>';
-    return '<section class="c-card iv-price iv-wide"><header><div><h2>Price by package</h2><p class="iv-hint">The three goals on one scale. Low and High only.</p></div>' + (held.length ? stateLbl('Partial') : '<span class="rel rel-ok">Complete</span>') + '</header>' +
-      '<div class="iv-pks" data-scale="0,' + top + '">' + rows + axis + '</div>' + out +
-      C.note('A line that is not priced is left out of the total and named here, never counted as zero.') + '</section>';
+  function hasWork(a){ return a && a[0] && !/^keep/i.test(a[0]); }
+  /* Per goal: only lines that passed all seven checks reach a total (PDF 57). A held line counts against a goal
+     only when that goal does work on it, so each goal is partial or complete on its own */
+  function sums(lines, off){
+    return PK.map(function(k){
+      var o = {k:k, lo:0, hi:0, priced:0, left:[]};
+      lines.forEach(function(l){ var a = l.item.pk[k[0]]; if(!a || !a[0] || off[l.item.id]) return;
+        if(l.pass === 7){ if(a[1] != null){ o.lo += a[1]; o.hi += a[2]; o.priced++; } } else if(hasWork(a)) o.left.push(l); });
+      return o;
+    });
   }
-  /* The run end to end: each stage of APP_FLOW 7's inspector, with its count, opens its tab */
-  function pathCard(h, m){
-    var rooms = A.roomsFor(h), withPh = rooms.filter(function(r){ return A.photoCount(h, r[0]); }).length, noPh = rooms.filter(function(r){ return r[0] !== 'other' && !A.photoCount(h, r[0]); }).length;
-    var low = m.lines.filter(function(l){ return l.conf < l.thr; }).length, measure = m.lines.filter(function(l){ return l.checks[1] === false; }).length;
-    var held = heldLines(m).length, n = m.lines.length;
-    var st = [
-      ['photos', 'Photos', A.photoCount(h), withPh + ' rooms' + (noPh ? ', ' + noPh + ' without' : '')],
-      ['obs', 'Observations', n + ' parts', low ? low + ' below threshold' : 'All above threshold'],
-      ['dec', 'Decisions', n + ' × 3', 'One per goal, ' + m.rulesV],
-      ['qty', 'Quantities', (n - measure) + ' of ' + n, measure ? measure + (measure === 1 ? ' needs' : ' need') + ' measurement' : 'All supported'],
-      ['checks', 'Checks', (n - held) + ' of ' + n, held ? held + ' held' : 'All passed'],
-      ['ledger', 'Ledger', n + ' entries', 'Pinned to ' + m.run]
-    ];
-    return '<section class="c-card iv-wide"><header><div><h2>From photo to price</h2><p class="iv-hint">This run, stage by stage. Open a stage to see every line.</p></div></header><ol class="iv-path">' + st.map(function(s, i){
-      return '<li><button type="button" data-tab="' + s[0] + '"><span class="iv-path-i">' + (i + 1) + '</span><span class="iv-path-t">' + s[1] + '</span><b class="num">' + s[2] + '</b><small' + (/held|need|below|without/.test(s[3]) ? ' class="warn"' : '') + '>' + s[3] + '</small></button></li>';
-    }).join('') + '</ol></section>';
+  function mini(lo, hi, top, part){ return '<span class="iv-mini' + (part ? ' partial' : '') + '" aria-hidden="true"><i style="left:' + (lo / top * 100).toFixed(1) + '%;width:' + Math.max(1.2, (hi - lo) / top * 100).toFixed(1) + '%"></i></span>'; }
+  function priceCard(h, m, view){
+    var off = h.off || {}, tot = sums(m.lines, off), held = heldLines(m), goals = {};
+    (RI.PACKAGES || []).forEach(function(p){ goals[p.key] = p.goal; });
+    var body;
+    if(view === 'room'){
+      var rooms = [], by = {};
+      m.lines.forEach(function(l){ if(!by[l.room]){ by[l.room] = []; rooms.push(l.room); } by[l.room].push(l); });
+      var per = rooms.map(function(r){ return {room:r, n:by[r].length, s:sums(by[r], off)}; });
+      var top = niceTop(Math.max.apply(null, per.map(function(x){ return Math.max.apply(null, x.s.map(function(t){ return t.hi; })); })) * 1.02);
+      var cell = function(t){ return t.priced || t.left.length ? '<span class="iv-rc">' + (t.priced ? C.range(t.lo, t.hi) : '<span class="muted">No cost</span>') + mini(t.lo, t.hi, top, t.left.length) + (t.left.length ? '<small class="iv-lo">' + plural(t.left.length, 'line') + ' not priced</small>' : '') + '</span>' : '<span class="muted">No work</span>'; };
+      body = '<div class="c-tbl-wrap"><table class="c-tbl iv-tbl iv-rooms"><thead><tr><th scope="col">Room</th>' + PK.map(function(k){ return '<th scope="col" class="num">' + k[1] + '</th>'; }).join('') + '</tr></thead><tbody>' +
+        per.map(function(x){ return '<tr><td data-label="Room"><b>' + RI.esc(x.room) + '</b><small class="iv-rm-n">' + plural(x.n, 'part') + '</small></td>' + x.s.map(function(t, i){ return '<td data-label="' + PK[i][1] + '" class="num">' + cell(t) + '</td>'; }).join('') + '</tr>'; }).join('') +
+        '<tr class="iv-tot"><td data-label="">Priced total</td>' + tot.map(function(t, i){ return '<td data-label="' + PK[i][1] + '" class="num">' + C.range(t.lo, t.hi) + '</td>'; }).join('') + '</tr></tbody></table></div>';
+    } else {
+      var topP = niceTop(Math.max.apply(null, tot.map(function(t){ return t.hi; })) * 1.04);
+      body = '<div class="iv-pks" data-scale="0,' + topP + '">' + tot.map(function(t){
+        return '<div class="iv-pk"><div class="iv-pk-n"><b>' + t.k[1] + '</b><small>' + RI.esc(goals[t.k[0]] || '') + '</small></div>' +
+          '<div class="iv-pk-l"><span class="rl thick' + (t.left.length ? ' partial' : '') + '" data-low="' + t.lo + '" data-high="' + t.hi + '"></span></div>' +
+          '<div class="iv-pk-v">' + C.range(t.lo, t.hi) + '<small>' + plural(t.priced, 'line') + ' priced' + (t.left.length ? ', <b class="iv-lo">' + t.left.length + ' left out</b>' : '') + '</small></div></div>';
+      }).join('') + '<div class="iv-pk iv-axis" aria-hidden="true"><span></span><div class="iv-pk-l"><span>$0</span><span>' + kmoney(topP / 2) + '</span><span>' + kmoney(topP) + '</span></div><span></span></div></div>';
+    }
+    return '<section class="c-card iv-price"><header><div><h2>Price by package</h2><p class="iv-hint">' + (view === 'room' ? 'Each room under the three goals. A dashed line means a line in that room is not priced.' : 'The three goals on one scale. Low and High only; a dashed line is a partial total.') + '</p></div>' +
+      '<div class="iv-tools">' + C.seg('iv-ovv', [['pk','Packages'],['room','Rooms']], view) + (held.length ? stateLbl('Partial, ' + plural(held.length, 'line') + ' left out') : '<span class="rel rel-ok">Complete</span>') + '</div></header>' + body +
+      C.note('A line that is not priced is left out of the total and named under Needs attention, never counted as zero.') + '</section>';
+  }
+  /* What Sam can act on for this house: held lines, readings under their threshold, rooms with no photo, grading */
+  function attentionCard(h, m){
+    var held = heldLines(m), low = m.lines.filter(function(l){ return l.pass === 7 && l.conf < l.thr; });
+    var miss = A.roomsFor(h).filter(function(r){ return r[0] !== 'other' && !A.photoCount(h, r[0]); });
+    var g = C.get('grades', {}), graded = m.lines.filter(function(l){ return Object.keys(g).some(function(k){ return k.indexOf(l.id + '|') === 0; }); }).length;
+    var next = m.lines.filter(function(l){ return !Object.keys(g).some(function(k){ return k.indexOf(l.id + '|') === 0; }); })[0];
+    var tree = function(l, t){ return '<a class="iv-link" href="#/houses/' + h.id + '/tree?line=' + encodeURIComponent(l.id) + '">' + (t || 'Open in the tree') + RI.icon('arrow','i-sm') + '</a>'; };
+    var group = function(title, n, items){ return n ? '<div class="iv-att-g"><h3>' + title + ' <span class="iv-n warn">' + n + '</span></h3><ul>' + items + '</ul></div>' : ''; };
+    var pc = Math.round(graded / m.lines.length * 100), count = held.length + low.length + miss.length + (m.lines.length - graded ? 1 : 0);
+    return '<section class="c-card iv-att"><header><div><h2>Needs attention</h2><p class="iv-hint">What keeps this house from a complete estimate, and what is left to grade. Nothing here holds the house back.</p></div>' + (count ? '<span class="iv-n warn">' + count + '</span>' : '<span class="rel rel-ok">All clear</span>') + '</header>' +
+      group('Left out of the total', held.length, held.map(function(l){ return '<li>' + code(l) + '<div class="iv-att-w">' + stateLbl(C.whyHeld(l)) + '<small>' + unlock(l) + '</small></div>' + tree(l) + '</li>'; }).join('')) +
+      group('Below threshold', low.length, low.map(function(l){ return '<li>' + code(l) + '<div class="iv-att-w"><span class="iv-cf low"><span class="iv-cf-t" aria-hidden="true"><i style="width:' + l.conf + '%"></i><b style="left:' + l.thr + '%"></b></span></span><small>Confidence ' + l.conf + ', threshold ' + l.thr + '. Check the reading and grade it.</small></div>' + tree(l) + '</li>'; }).join('')) +
+      group('Rooms without photos', miss.length, miss.map(function(r){ return '<li><span class="iv-att-r">' + RI.icon('camera','i-sm') + RI.esc(r[1]) + '</span><div class="iv-att-w"><small>Its parts stay unverified until the owner adds a photo.</small></div><button type="button" class="iv-link" data-tab="photos">See the photos' + RI.icon('arrow','i-sm') + '</button></li>'; }).join('')) +
+      '<div class="iv-att-g iv-grade"><h3>Grading</h3><div class="iv-grade-r"><div class="iv-grade-b" role="progressbar" aria-valuemin="0" aria-valuemax="' + m.lines.length + '" aria-valuenow="' + graded + '" aria-label="Lines graded"><i style="width:' + pc + '%"></i></div>' +
+        '<span><b class="num">' + graded + ' of ' + m.lines.length + '</b> lines graded</span>' + (next ? '<a class="btn btn-secondary btn-sm" href="#/houses/' + h.id + '/tree?line=' + encodeURIComponent(next.id) + '">' + RI.icon('sliders','i-sm') + 'Grade the next line</a>' : '<span class="rel rel-ok">Every line graded</span>') + '</div>' +
+        '<small class="iv-hint">A grade trains the rules. It never changes this delivered run.</small></div>' +
+      (count ? '' : '<p class="iv-allok">' + RI.icon('check','i-sm') + 'Every line is priced, every reading is above its threshold and every line is graded.</p>') + '</section>';
   }
   function draftCard(h){
     var s = STEP_NAMES[h.step] || STEP_NAMES.house, miss = A.roomsFor(h).filter(function(r){ return r[0] !== 'other' && !A.photoCount(h, r[0]); }).map(function(r){ return r[1]; });
@@ -132,27 +150,32 @@
         return '<li class="' + (i < cur ? 'done' : now ? 'now' : '') + '"><i aria-hidden="true">' + (i < cur ? RI.icon('check','i-sm') : '') + '</i><span><b>' + s[1] + '</b><small>' + s[2] + '</small></span><em class="num">' + extra + '</em></li>';
       }).join('') + '</ol></section>';
   }
+  function runEnd(h){ var t = 0; A.STAGES.forEach(function(s){ t += s[0] === 'reading' ? A.readMs(h) : s[3]; }); if(h.run && h.run.slow) t += 9000; return h.run ? h.run.start + t : null; }
   function factsCard(h){
-    var f = h.facts || {}, names = {}, sizes = h.sizes || {};
+    var f = h.facts || {}, names = {}, sizes = h.sizes || {}, fin = f.basement === 'finished' || f.basement === 'partly';
     A.roomsFor(h).forEach(function(r){ names[r[0]] = r[1]; });
-    var rows = [['Year built', f.year || 'Not given'], ['Above grade', f.sqft ? (+f.sqft).toLocaleString('en-US') + ' sq ft' : 'Not given'], ['Stories', f.stories || 'Not given'], ['Bedrooms', f.beds != null ? f.beds : 'Not given'], ['Full baths', f.baths || 'Not given'], ['Half baths', f.halfBaths || 0], ['Basement', BSMT[f.basement] || 'Not given'], ['Finished basement', f.basementSqft ? (+f.basementSqft).toLocaleString('en-US') + ' sq ft' : 'Not given']];
+    var rows = [['Year built', f.year || 'Not given'], ['Above grade', f.sqft ? (+f.sqft).toLocaleString('en-US') + ' sq ft' : 'Not given'], ['Stories', f.stories || 'Not given'], ['Bedrooms', f.beds != null ? f.beds : 'Not given'], ['Baths', (f.baths || 0) + ' full, ' + (f.halfBaths || 0) + ' half'], ['Basement', BSMT[f.basement] || 'Not given']];
+    if(fin) rows.push(['Finished area', f.basementSqft ? (+f.basementSqft).toLocaleString('en-US') + ' sq ft' : 'Not given']);
     var sz = Object.keys(sizes).filter(function(k){ return sizes[k] && sizes[k].l && sizes[k].w; });
-    return '<section class="c-card"><header><h2>Facts as entered</h2><span class="iv-ev" title="Typed by the owner at intake"><i aria-hidden="true"></i>Reported</span></header>' +
+    return '<section class="c-card"><header><h2>House facts</h2><span class="iv-ev" title="Typed by the owner at intake"><i aria-hidden="true"></i>Reported</span></header>' +
       '<dl class="iv-kv">' + rows.map(function(r){ return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join('') + '</dl>' +
       '<h3 class="iv-h3">Room sizes <span class="muted">intake step 3, optional</span></h3>' +
       (sz.length ? '<dl class="iv-kv">' + sz.map(function(k){ var s = sizes[k]; return '<dt>' + RI.esc(names[k] || k) + '</dt><dd>' + s.l + ' × ' + s.w + ' ft <small>' + Math.round(s.l * s.w) + ' sq ft</small></dd>'; }).join('') + '</dl>'
         : '<p class="iv-none">None typed. Quantities come from the photos and the room templates.</p>') + '</section>';
   }
   function runCard(h, m, ready){
+    var end = ready ? runEnd(h) : null;
     return '<section class="c-card"><header><h2>This run</h2>' + (ready ? '<span class="lb lb-pub">Delivered</span>' : '<span class="lb lb-queued">Working</span>') + '</header>' +
-      '<dl class="iv-kv"><dt>Run</dt><dd><code>' + m.run + '</code></dd><dt>Started</dt><dd>' + when(m.at) + '</dd><dt>Rules</dt><dd>' + m.rulesV + '</dd><dt>Rates</dt><dd>' + m.ratesV + '</dd><dt>Products</dt><dd>' + m.productsV + '</dd><dt>Fingerprint</dt><dd><code>' + m.fp + '</code></dd>' +
-      (ready ? '<dt>Lines</dt><dd>' + m.lines.length + ' <small>' + m.lines.filter(function(l){ return l.pass === 7; }).length + ' passed all seven checks</small></dd>' : '') + '</dl>' +
-      C.note('The run keeps the versions it was made with. A new version of a rule or rate only reaches new runs.') + '</section>';
+      '<dl class="iv-kv"><dt>Run</dt><dd><code>' + m.run + '</code></dd><dt>Started</dt><dd>' + when(m.at) + '</dd>' + (end ? '<dt>Finished</dt><dd>' + when(end) + '</dd>' : '') +
+      '</dl><h3 class="iv-h3">Pinned versions</h3><dl class="iv-kv"><dt>Rules</dt><dd>' + m.rulesV + '</dd><dt>Rates</dt><dd>' + m.ratesV + '</dd><dt>Products</dt><dd>' + m.productsV + '</dd><dt>Fingerprint</dt><dd><code>' + m.fp + '</code></dd></dl>' +
+      C.note('A new version of a rule or rate only reaches new runs. This one keeps what it was made with.') + '</section>';
   }
   function consent(c, notYet){ return c ? 'Ticked <small>' + when(c.at) + '<br>Wording: ' + RI.esc(c.version || WORDING) + '</small>' : '<span class="muted">' + notYet + '</span>'; }
   function consentCard(h, st){
-    var c = h.consents || {}, sh = h.shares || [], act = sh.filter(function(s){ return s.active; }).length;
-    return '<section class="c-card"><header><h2>Consents and access</h2></header><dl class="iv-kv">' +
+    var c = h.consents || {}, sh = h.shares || [], act = sh.filter(function(s){ return s.active; }).length, o = C.owner(h.owner);
+    return '<section class="c-card"><header><h2>Owner and consents</h2></header><dl class="iv-kv">' +
+      '<dt>Owner</dt><dd>' + RI.esc(o.name) + '<small>' + RI.esc(o.type) + ', ' + RI.esc(h.owner || '') + '</small></dd>' +
+      (h.client ? '<dt>Client</dt><dd>' + RI.esc(h.client) + '</dd>' : '') +
       '<dt>Photo rights</dt><dd>' + consent(c.rights, 'Not yet') + '</dd>' +
       '<dt>Estimate disclaimer</dt><dd>' + consent(c.estimate, st === 'draft' ? 'Not yet, asked at Review' : 'Not yet') + '</dd>' +
       '<dt>Presentation</dt><dd>' + access(h, st) + '</dd>' +
@@ -195,7 +218,7 @@
     var h = A.get ? A.all().filter(function(x){ return x.id === p.id; })[0] : null;
     if(!h){ view.innerHTML = C.page({title:'That house is not here', sub:'It may have been removed, or the link is wrong.', back:['#/houses','House list']}); return; }
     repairConsents(); h = A.all().filter(function(x){ return x.id === p.id; })[0];
-    var st = A.status(h), ready = isReady(st), m = C.model(h), tab = C.query().tab || 'overview', qpk = h.pk || 'S', obsF = 'all';
+    var st = A.status(h), ready = isReady(st), m = C.model(h), tab = C.query().tab || 'overview', qpk = h.pk || 'S', obsF = 'all', ovView = 'pk';
     var held = heldLines(m).length;
     var tabs = [['overview','Overview'],['photos','Photos',A.photoCount(h)]];
     if(m && ready) tabs = tabs.concat([['obs','Observations',m.lines.length],['dec','Decisions'],['qty','Quantities and prices'],['checks','Checks',held, held ? 'warn' : ''],['ledger','Ledger']]);
@@ -237,8 +260,8 @@
       var el = doc.getElementById('in-body'), html = '';
       el.setAttribute('aria-labelledby', 'ivt-' + tab);
       if(tab === 'overview'){
-        var main = ready ? priceCard(h, m) + pathCard(h, m) : st === 'draft' ? draftCard(h) : progressCard(h);
-        html = '<div class="iv-ov' + (m ? '' : ' no-run') + '">' + main + factsCard(h) + (m ? runCard(h, m, ready) : '') + consentCard(h, st) + '</div>';
+        var main = ready ? priceCard(h, m, ovView) + attentionCard(h, m) : st === 'draft' ? draftCard(h) : progressCard(h);
+        html = '<div class="iv-ov"><div class="iv-col">' + main + '</div><div class="iv-col iv-side">' + (m ? runCard(h, m, ready) : '') + factsCard(h) + consentCard(h, st) + '</div></div>';
       }
       if(tab === 'photos'){
         var P = photoList(), notes = [];
@@ -326,6 +349,7 @@
     });
     view.addEventListener('click', function(e){
       var t = e.target.closest('[data-tab]'); if(t){ show(t.getAttribute('data-tab')); tl.scrollIntoView({block:'nearest'}); return; }
+      var ov = e.target.closest('#iv-ovv [data-v]'); if(ov){ ovView = ov.getAttribute('data-v'); body(); return; }
       var of = e.target.closest('#iv-obsf [data-f]'); if(of){ obsF = of.getAttribute('data-f'); body(); return; }
       var s = e.target.closest('#iv-qpk [data-v]'); if(s){ qpk = s.getAttribute('data-v'); body(); return; }
       var ph = e.target.closest('[data-ph]'); if(ph){ e.stopPropagation(); openPhoto(+ph.getAttribute('data-ph')); return; }

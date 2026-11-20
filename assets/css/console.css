@@ -2831,10 +2831,9 @@ button.bim-c:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2
 .iv-body:focus{outline:none}
 /* Overview */
 .iv-ov{display:grid;gap:16px;align-items:start;min-width:0}
-.iv-ov>*{min-width:0}
-@media (min-width:760px){ .iv-ov{grid-template-columns:repeat(2,minmax(0,1fr))} .iv-wide,.iv-ov>.c-card:last-child{grid-column:1/-1} }
-@media (min-width:1100px){ .iv-ov{grid-template-columns:repeat(3,minmax(0,1fr))} .iv-ov>.c-card:last-child:not(.iv-wide){grid-column:auto} }
-@media (min-width:760px){ .iv-ov.no-run>.c-card:last-child{grid-column:auto} }
+.iv-col{display:grid;gap:16px;align-content:start;min-width:0}
+@media (min-width:760px) and (max-width:1149px){ .iv-side{grid-template-columns:repeat(2,minmax(0,1fr))} .iv-side>.c-card:first-child{grid-column:1/-1} }
+@media (min-width:1150px){ .iv-ov{grid-template-columns:minmax(0,1.8fr) minmax(320px,1fr)} }
 /* Price by package on one shared scale (DESIGN 8.1, 8.4) */
 .iv-pks{display:grid}
 .iv-pk{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border-soft)}
@@ -2845,10 +2844,6 @@ button.bim-c:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2
 .iv-pk-v small{display:block;font-size:.7rem;font-weight:500;color:var(--muted)}
 .iv-axis{border-bottom:0;padding:4px 0 0}
 .iv-axis .iv-pk-l{display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted);font-variant-numeric:tabular-nums;grid-row:auto}
-@media (min-width:640px){
-  .iv-pk{grid-template-columns:minmax(150px,200px) minmax(0,1fr) minmax(170px,auto);gap:24px}
-  .iv-pk-l{grid-column:auto;grid-row:auto}
-}
 .iv-out{margin-top:16px}
 .iv-out h3{display:flex;align-items:center;gap:8px;margin:0 0 4px;font-size:.88rem;font-weight:600}
 .iv-out ul{list-style:none;margin:0;padding:0}
@@ -2910,6 +2905,36 @@ button.bim-c:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2
 .iv-cks small{display:block;font-size:.74rem;color:var(--muted);line-height:1.35}
 .iv-cks em{font-style:normal;font-size:.74rem;font-weight:600;color:var(--ok);white-space:nowrap}
 .iv-cks li.has em{color:#815E3A}
+/* Overview v2: price and what needs attention on the left, the run, facts and owner on the right */
+.iv-tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px}
+.iv-lo{color:#815E3A;font-weight:600}
+.iv-pk-v small .iv-lo{font-size:inherit}
+.iv-rooms td small.iv-rm-n{display:block;font-size:.74rem;color:var(--muted)}
+.iv-rc{display:grid;gap:4px;justify-items:end;min-width:150px}
+.iv-rc small.iv-lo{font-size:.72rem}
+.iv-mini{position:relative;display:block;width:100%;height:10px}
+.iv-mini::before{content:"";position:absolute;left:0;right:0;top:4px;border-top:1px dotted var(--border-strong)}
+.iv-mini i{position:absolute;top:4px;height:0;border-top:2px solid var(--bronze)}
+.iv-mini i::before,.iv-mini i::after{content:"";position:absolute;top:-5px;width:2px;height:8px;background:var(--bronze)}
+.iv-mini i::before{left:-1px}.iv-mini i::after{right:-1px}
+.iv-mini.partial i{border-top-style:dashed}
+.iv-rooms .iv-tot td{font-weight:600;background:var(--page)}
+@media (max-width:759px){ .iv-rc{justify-items:start;min-width:0} .iv-rooms .iv-tot td:first-child{font-weight:700} }
+.iv-att-g{margin-top:14px;padding-top:12px;border-top:1px solid var(--border-soft)}
+.iv-att-g h3{display:flex;align-items:center;gap:8px;margin:0 0 4px;font-size:.86rem;font-weight:600}
+.iv-att-g ul{list-style:none;margin:0;padding:0}
+.iv-att-g li{display:grid;gap:8px;padding:10px 0;border-bottom:1px solid var(--border-soft)}
+.iv-att-g li:last-child{border-bottom:0;padding-bottom:2px}
+@media (min-width:760px){ .iv-att-g li{grid-template-columns:minmax(0,.9fr) minmax(0,1.4fr) auto;align-items:center;gap:16px} }
+.iv-att-w{display:grid;gap:5px;justify-items:start}
+.iv-att-w small{font-size:.8rem;color:var(--muted)}
+.iv-att-r{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:.9rem}
+.iv-att .iv-link{min-height:40px;white-space:nowrap}
+.iv-grade-r{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:6px 0}
+.iv-grade-b{position:relative;flex:1 1 160px;height:6px;border-radius:2px;background:var(--sunken);overflow:hidden}
+.iv-grade-b i{position:absolute;left:0;top:0;bottom:0;background:var(--deep-forest)}
+.iv-grade-r>span{font-size:.86rem;color:var(--muted)}
+.iv-grade-r>span b{color:var(--text)}
 /* Observations: filters, rows grouped by room, each scale drawn as a position on its own scale */
 .iv-obsf{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:12px}
 .iv-obsf button{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 12px;border:1px solid var(--border);border-radius:4px;background:var(--raised);font:inherit;font-size:.84rem;font-weight:500;color:var(--text);cursor:pointer;transition:border-color var(--fast),box-shadow var(--fast)}
