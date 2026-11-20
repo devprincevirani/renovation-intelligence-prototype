@@ -2910,6 +2910,55 @@ button.bim-c:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2
 .iv-cks small{display:block;font-size:.74rem;color:var(--muted);line-height:1.35}
 .iv-cks em{font-style:normal;font-size:.74rem;font-weight:600;color:var(--ok);white-space:nowrap}
 .iv-cks li.has em{color:#815E3A}
+/* Observations: filters, rows grouped by room, each scale drawn as a position on its own scale */
+.iv-obsf{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:12px}
+.iv-obsf button{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 12px;border:1px solid var(--border);border-radius:4px;background:var(--raised);font:inherit;font-size:.84rem;font-weight:500;color:var(--text);cursor:pointer;transition:border-color var(--fast),box-shadow var(--fast)}
+.iv-obsf button:hover:not(:disabled){border-color:var(--deep-forest)}
+.iv-obsf button[aria-pressed="true"]{border-color:var(--deep-forest);box-shadow:inset 0 0 0 1px var(--deep-forest);font-weight:600}
+.iv-obsf button:disabled{opacity:.55;cursor:default}
+.iv-obsf button:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2px}
+.iv-obsf-s{width:1px;height:24px;margin:0 4px;background:var(--border)}
+@media (pointer:coarse){ .iv-obsf button{min-height:44px} }
+.iv-obs .iv-grp{padding:0}
+.iv-obs .iv-grp th{grid-column:1/-1;display:flex;align-items:baseline;gap:8px;padding:10px 14px;background:var(--page);text-align:left;font-size:.86rem;font-weight:600;letter-spacing:0;text-transform:none;color:var(--text);border-bottom:1px solid var(--border-soft)}
+.iv-obs .iv-grp th small{margin-left:8px;font-size:.76rem;font-weight:400;color:var(--muted)}
+.iv-obs tr.is-low>td:first-child{box-shadow:inset 3px 0 0 var(--bronze)}
+.iv-obs .iv-go{color:var(--muted);width:28px}
+.iv-obs tr[data-go]:hover .iv-go{color:var(--deep-forest)}
+@media (max-width:759px){ .iv-obs .iv-go{display:none} }
+@media (min-width:760px){
+  .c-tbl-wrap:has(.iv-obs){overflow-x:auto}
+  .iv-obs{min-width:900px}
+  .iv-obs td:first-child{min-width:200px}
+  .iv-obs td{padding-inline:12px}
+  .iv-obs .iv-grp th{display:table-cell;position:static}
+}
+.iv-sc{display:inline-grid;gap:5px;justify-items:start}
+.iv-sc-m{display:inline-flex;gap:2px}
+.iv-sc-m i{width:10px;height:4px;border-radius:2px;background:var(--border)}
+.iv-sc-m i.on{background:var(--deep-forest)}
+.iv-sev{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;white-space:nowrap}
+.iv-sev b{display:inline-grid;place-items:center;min-width:28px;height:20px;padding:0 5px;border-radius:2px;font:700 .7rem/1 ui-monospace,Menlo,monospace}
+.iv-sev-C0 b,.iv-sev-C1 b{background:var(--ok-bg);color:var(--ok)}
+.iv-sev-C2 b{background:var(--warn-bg);color:var(--warn)}
+.iv-sev-C3 b{background:var(--bad-bg);color:var(--bad)}
+.iv-sev-C4 b{background:var(--bad);color:#fff}
+.iv-sev-CX b{background:transparent;color:var(--text);border:1px dashed var(--border-strong)}
+.iv-cf{display:inline-flex;align-items:center;gap:10px}
+.iv-cf-t{position:relative;width:64px;height:6px;border-radius:2px;background:var(--sunken);flex:none}
+.iv-cf-t i{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--deep-forest)}
+.iv-cf-t b{position:absolute;top:-4px;width:2px;height:14px;margin-left:-1px;background:var(--text)}
+.iv-cf.low .iv-cf-t i{background:var(--bronze)}
+.iv-cf-n{display:grid;line-height:1.2}
+.iv-cf-n b{font-size:.88rem;font-variant-numeric:tabular-nums}
+.iv-cf-n small{font-size:.68rem;color:var(--muted);white-space:nowrap}
+.iv-cf.low .iv-cf-n small{color:#815E3A;font-weight:600}
+.iv-thumbs{display:inline-flex;align-items:center;gap:3px}
+.iv-thumbs button{width:40px;height:40px;padding:0;border:1px solid var(--border);border-radius:2px;overflow:hidden;background:var(--sunken);cursor:zoom-in;transition:border-color var(--fast)}
+.iv-thumbs button:hover{border-color:var(--deep-forest)}
+.iv-thumbs button:focus-visible{outline:2px solid var(--deep-forest);outline-offset:1px}
+.iv-thumbs img{width:100%;height:100%;object-fit:cover;display:block}
+.iv-thumbs small{margin-left:5px;font-size:.74rem;color:var(--muted)}
 /* Photos: one numbered grid. Room label on each tile, a dashed flag where a part could not be read */
 .iv-phs{padding:20px}
 .iv-ph{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px}

@@ -216,7 +216,8 @@
     }
     leaving = false; lastHash = location.hash;
     timers.forEach(function(t){ clearTimeout(t); clearInterval(t); }); timers = [];
-    var view = doc.getElementById('view'), m = C.me();
+    /* A fresh view element per screen, so click and key handlers from the screen before do not pile up and fire here */
+    var old = doc.getElementById('view'), view = old.cloneNode(false), m = C.me(); old.parentNode.replaceChild(view, old);
     var path = (location.hash || '#/overview').slice(1).split('?')[0]; if(path === '/' || path === '') path = '/overview';
     var match = null, params = {};
     C.routes.some(function(r){ var x = path.match(r.re); if(x){ match = r; r.keys.forEach(function(k, i){ params[k] = decodeURIComponent(x[i + 1]); }); return true; } });

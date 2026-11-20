@@ -9,7 +9,7 @@
     var ok = l.conf >= l.thr;
     return '<span class="cf' + (ok ? '' : ' low') + '" title="Confidence ' + l.conf + ', threshold ' + l.thr + '"><span class="cf-t"><i style="width:' + l.conf + '%"></i><b style="left:' + l.thr + '%"></b></span><em>' + l.conf + '</em></span>';
   }
-  function code(l){ return '<span class="c-cmp"><code>' + l.code + '</code><span><b>' + RI.esc(l.item.name) + '</b><small>' + RI.esc(l.room) + '</small></span></span>'; }
+  function code(l, noRoom){ return '<span class="c-cmp"><code>' + l.code + '</code><span><b>' + RI.esc(l.item.name) + '</b>' + (noRoom ? '' : '<small>' + RI.esc(l.room) + '</small>') + '</span></span>'; }
   /* ---------- Shared by the inspector and the decision tree ---------- */
   var TRACK = [['draft','Draft'],['queued','In line'],['reading','Reading photos'],['planning','Working out the plan'],['ready','Price ready']];
   var BSMT = {finished:'Finished', partly:'Partly finished', unfinished:'Unfinished', none:'None'};
@@ -160,6 +160,20 @@
       '<dt>Feedback</dt><dd>' + (h.feedback ? RI.esc(h.feedback.v) : '<span class="muted">None yet</span>') + '</dd></dl></section>';
   }
 
+  /* ---------- Observations: four separate scales (PDF 33), each drawn as a position on its own scale ---------- */
+  var SCALES = {condition:['Excellent','Good','Serviceable','Worn','Poor'], modern:['Current','Acceptable','Dated','Strongly dated'], character:['High','Moderate','Low','None'], func:['Good','Adequate','Limited']};
+  var SEV_SHORT = {C0:'None', C1:'Minor', C2:'Moderate', C3:'Significant', C4:'Urgent', CX:'Not enough evidence'};
+  function scaleCell(kind, v){
+    var s = SCALES[kind], i = s.indexOf(v);
+    if(i < 0) return stateLbl(v || 'Unknown');
+    return '<span class="iv-sc" title="' + RI.esc(v) + ', ' + (i + 1) + ' of ' + s.length + ': ' + s.join(', ') + '"><span>' + RI.esc(v) + '</span><span class="iv-sc-m" aria-hidden="true">' + s.map(function(x, k){ return '<i' + (k === i ? ' class="on"' : '') + '></i>'; }).join('') + '</span></span>';
+  }
+  function sevCell(c){ return '<span class="iv-sev iv-sev-' + c + '" title="' + SEV[c] + '"><b>' + c + '</b>' + SEV_SHORT[c] + '</span>'; }
+  function confCell(l){
+    var low = l.conf < l.thr;
+    return '<span class="iv-cf' + (low ? ' low' : '') + '" title="Confidence ' + l.conf + ', threshold ' + l.thr + '"><span class="iv-cf-t" aria-hidden="true"><i style="width:' + l.conf + '%"></i><b style="left:' + l.thr + '%"></b></span><span class="iv-cf-n"><b>' + l.conf + '</b><small>' + (low ? 'below ' + l.thr : 'needs ' + l.thr) + '</small></span></span>';
+  }
+
   /* ---------- Quantities (GLOSSARY: gross, net, demolition, order; users see net, the rest stays in the console) ---------- */
   var WASTE = {FL:.1, TL:.12, TR:.1, CT:.08, EX:.1, RF:.1, BT:.1};
   function parseQty(q){ var x = /([\d,]+(?:\.\d+)?)\s*(sq ft|linear ft|each|fixtures?|in|rooms?)/.exec(q || ''); return x ? {n:+x[1].replace(/,/g, ''), u:x[2].replace(/s$/, '')} : null; }
@@ -181,7 +195,7 @@
     var h = A.get ? A.all().filter(function(x){ return x.id === p.id; })[0] : null;
     if(!h){ view.innerHTML = C.page({title:'That house is not here', sub:'It may have been removed, or the link is wrong.', back:['#/houses','House list']}); return; }
     repairConsents(); h = A.all().filter(function(x){ return x.id === p.id; })[0];
-    var st = A.status(h), ready = isReady(st), m = C.model(h), tab = C.query().tab || 'overview', qpk = h.pk || 'S';
+    var st = A.status(h), ready = isReady(st), m = C.model(h), tab = C.query().tab || 'overview', qpk = h.pk || 'S', obsF = 'all';
     var held = heldLines(m).length;
     var tabs = [['overview','Overview'],['photos','Photos',A.photoCount(h)]];
     if(m && ready) tabs = tabs.concat([['obs','Observations',m.lines.length],['dec','Decisions'],['qty','Quantities and prices'],['checks','Checks',held, held ? 'warn' : ''],['ledger','Ledger']]);
@@ -237,10 +251,39 @@
           }).join('') + '</div>' + (notes.length ? '<ul class="iv-phn">' + notes.map(function(t){ return '<li>' + t + '</li>'; }).join('') + '</ul>' : (ready ? '<p class="iv-phn">Every room has a photo, and every part could be read from them.</p>' : '')) + '</section>'
           : '<div class="c-empty">' + RI.icon('camera') + '<p>No photos yet. They appear here as the owner adds them.</p></div>';
       }
-      if(tab === 'obs') html = sec('Observations', 'What the photos show for each part, on four separate scales: a part can be sound and still look dated (PDF section 33). Open a line to follow it in the decision tree.',
-        C.table({cls:'iv-tbl', cols:[{label:'Component'},{label:'Evidence'},{label:'Condition'},{label:'Modernisation'},{label:'Character'},{label:'Function'},{label:'Severity'},{label:'Confidence'}],
-          rows:m.lines.map(function(l){ return {attr:'data-go="#/houses/' + h.id + '/tree?line=' + encodeURIComponent(l.id) + '" tabindex="0" role="link"', cells:[code(l), l.photos ? l.photos + ' photo' + (l.photos > 1 ? 's' : '') : '<span class="muted">No photo</span>', l.scales.condition === 'Unknown' ? stateLbl('Unknown') : l.scales.condition, l.scales.modern, l.scales.character, l.scales.func, '<span class="sev sev-' + l.sev + '" title="' + SEV[l.sev] + '">' + l.sev + '</span>', confBar(l)]}; })}) +
-        C.note('The tick on each confidence bar is that part\'s threshold. Below it, the line is unverified.'));
+      if(tab === 'obs'){
+        var PL = photoList().list, below = m.lines.filter(function(l){ return l.conf < l.thr; });
+        var sevs = ['C0','C1','C2','C3','C4','CX'].map(function(c){ return [c, m.lines.filter(function(l){ return l.sev === c; }).length]; }).filter(function(x){ return x[1]; });
+        var keep = function(l){ return obsF === 'all' ? true : obsF === 'low' ? l.conf < l.thr : l.sev === obsF; };
+        var filt = '<div class="iv-obsf" id="iv-obsf" role="group" aria-label="Show"><button type="button" data-f="all" aria-pressed="' + (obsF === 'all') + '">All parts <span class="iv-n">' + m.lines.length + '</span></button>' +
+          '<button type="button" data-f="low" aria-pressed="' + (obsF === 'low') + '"' + (below.length ? '' : ' disabled') + '>Below threshold <span class="iv-n' + (below.length ? ' warn' : '') + '">' + below.length + '</span></button><span class="iv-obsf-s" aria-hidden="true"></span>' +
+          sevs.map(function(x){ return '<button type="button" data-f="' + x[0] + '" aria-pressed="' + (obsF === x[0]) + '" title="' + SEV[x[0]] + '"><span class="iv-sev iv-sev-' + x[0] + '"><b>' + x[0] + '</b></span>' + SEV_SHORT[x[0]] + ' <span class="iv-n">' + x[1] + '</span></button>'; }).join('') + '</div>';
+        /* Photos of the line's room: up to its photo count, each opens the larger view */
+        var thumbs = function(l){
+          if(!l.photos) return stateLbl('No photo');
+          var mine = PL.map(function(x, i){ return [x, i]; }).filter(function(p){ return p[0].key === l.roomKey || p[0].key.indexOf(l.roomKey + '-') === 0; });
+          if(!mine.length) return '<span class="muted">' + l.photos + ' photo' + (l.photos > 1 ? 's' : '') + '</span>';
+          var start = (l.code.charCodeAt(3) || 0) % mine.length, pick = [];
+          for(var k = 0; k < Math.min(l.photos, mine.length, 2); k++) pick.push(mine[(start + k) % mine.length]);
+          return '<span class="iv-thumbs">' + pick.map(function(p){ return '<button type="button" data-ph="' + p[1] + '" aria-label="Open photo ' + p[0].n + '"><img src="' + p[0].src + '" alt="" loading="lazy"></button>'; }).join('') + (l.photos > pick.length ? '<small>+' + (l.photos - pick.length) + '</small>' : '') + '</span>';
+        };
+        var cols = ['Component','Evidence','Condition','Modernisation','Character','Function','Severity','Confidence'];
+        var groups = [], seen = {};
+        m.lines.filter(keep).forEach(function(l){ if(!seen[l.room]){ seen[l.room] = {room:l.room, lines:[]}; groups.push(seen[l.room]); } seen[l.room].lines.push(l); });
+        var rows = groups.map(function(g){
+          var gl = g.lines.filter(function(l){ return l.conf < l.thr; }).length;
+          return '<tr class="iv-grp"><th colspan="' + (cols.length + 1) + '" scope="rowgroup"><span>' + RI.esc(g.room) + '</span><small>' + g.lines.length + ' part' + (g.lines.length > 1 ? 's' : '') + (gl ? ', ' + gl + ' below threshold' : '') + '</small></th></tr>' +
+            g.lines.map(function(l){
+              var cells = [code(l, true), thumbs(l), scaleCell('condition', l.scales.condition), scaleCell('modern', l.scales.modern), scaleCell('character', l.scales.character), scaleCell('func', l.scales.func), sevCell(l.sev), confCell(l)];
+              return '<tr data-go="#/houses/' + h.id + '/tree?line=' + encodeURIComponent(l.id) + '" tabindex="0" role="link" aria-label="Follow ' + RI.esc(l.item.name) + ' in the decision tree"' + (l.conf < l.thr ? ' class="is-low"' : '') + '>' +
+                cells.map(function(c, i){ return '<td data-label="' + cols[i] + '">' + c + '</td>'; }).join('') + '<td class="iv-go" data-label="" aria-hidden="true">' + RI.icon('arrow','i-sm') + '</td></tr>';
+            }).join('');
+        }).join('');
+        html = sec('Observations', 'What the photos show for each part, on four separate scales: a part can be sound and still look dated (PDF section 33). Open a line to follow it in the decision tree.', filt +
+          (rows ? '<div class="c-tbl-wrap"><table class="c-tbl iv-tbl iv-obs"><thead><tr>' + cols.map(function(c){ return '<th scope="col">' + c + '</th>'; }).join('') + '<th scope="col"><span class="sr">Open</span></th></tr></thead><tbody>' + rows + '</tbody></table></div>'
+            : '<div class="c-empty">' + RI.icon('info') + '<p>No part matches this filter.</p></div>') +
+          C.note('Each small scale shows where the word sits, best on the left. The tick on a confidence bar is that part\'s threshold; below it, the part stays unverified.'));
+      }
       if(tab === 'dec') html = sec('Decisions', 'One action per part under each goal, made before any pricing and from the same evidence.',
         C.table({cls:'iv-tbl', cols:[{label:'Component'},{label:'Essential'},{label:'Standard'},{label:'Premium'},{label:'Rule'}],
           rows:m.lines.map(function(l){ return {attr:'data-go="#/houses/' + h.id + '/tree?line=' + encodeURIComponent(l.id) + '" tabindex="0" role="link"', cells:[code(l)].concat(PK.map(function(k){ var a = l.item.pk[k[0]]; return a && a[0] ? (/^keep/i.test(a[0]) ? '<span class="muted">' + RI.esc(a[0]) + '</span>' : RI.esc(a[0])) : '<span class="muted">Not in this goal</span>'; })).concat(['<code>' + l.rule + '</code> <small class="muted">v' + l.ruleV + '</small>'])}; })}));
@@ -283,11 +326,12 @@
     });
     view.addEventListener('click', function(e){
       var t = e.target.closest('[data-tab]'); if(t){ show(t.getAttribute('data-tab')); tl.scrollIntoView({block:'nearest'}); return; }
+      var of = e.target.closest('#iv-obsf [data-f]'); if(of){ obsF = of.getAttribute('data-f'); body(); return; }
       var s = e.target.closest('#iv-qpk [data-v]'); if(s){ qpk = s.getAttribute('data-v'); body(); return; }
-      var ph = e.target.closest('[data-ph]'); if(ph){ openPhoto(+ph.getAttribute('data-ph')); return; }
+      var ph = e.target.closest('[data-ph]'); if(ph){ e.stopPropagation(); openPhoto(+ph.getAttribute('data-ph')); return; }
       var r = e.target.closest('[data-go]'); if(r) C.go(r.getAttribute('data-go'));
     });
-    view.addEventListener('keydown', function(e){ var r = e.target.closest('[data-go]'); if(r && e.key === 'Enter') C.go(r.getAttribute('data-go')); });
+    view.addEventListener('keydown', function(e){ var r = e.target.closest('[data-go]'); if(r && e.key === 'Enter' && !e.target.closest('button')) C.go(r.getAttribute('data-go')); });
     body();
     /* A working house updates by itself: the stage list moves, and the page redraws when the status changes */
     if(st !== 'draft' && !ready) C.every(function(){
