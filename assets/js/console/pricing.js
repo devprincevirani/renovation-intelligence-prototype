@@ -96,7 +96,7 @@
     var total = 0; A.all().forEach(function(h){ var m = C.model(h); if(m) total += m.lines.length; });
     var qck = C.query().ck, st = {ck:qck != null && C.CHECKS[+qck] ? String(+qck) : 'all'};
     var by = C.CHECKS.map(function(c, i){ return lines.filter(function(l){ return l.fail === i; }).length; });
-    view.innerHTML = C.page({kicker:'Pricing', title:'Check results', sub:'No line shows a price until it passes seven checks. A failed check never becomes a number: the line shows why, and the rest of the house is still priced.',
+    view.innerHTML = C.page({kicker:'Quality', title:'Check results', sub:'No line shows a price until it passes seven checks. A failed check never becomes a number: the line shows why, and the rest of the house is still priced.',
       body:'<div class="ck-sum">' + C.CHECKS.map(function(c, i){ return '<button type="button" class="ck-s' + (by[i] ? ' has' : '') + '" data-ck="' + i + '" aria-pressed="' + (String(i) === st.ck) + '"><span class="ck-i">' + (i + 1) + '</span><b>' + c[0] + '</b><span class="ck-c">' + (by[i] ? by[i] + ' held' : 'All pass') + '</span><small>' + (i >= 4 ? 'Visible to admin only' : 'The user sees the reason') + '</small></button>'; }).join('') + '</div>' +
         '<p class="ck-tot"><span><b>' + (total - lines.length) + ' of ' + total + '</b> lines across ' + A.all().filter(function(h){ return A.status(h) !== 'draft'; }).length + ' runs passed all seven checks.</span> <button type="button" class="linkbtn small" id="ck-all"' + (st.ck === 'all' ? ' hidden' : '') + '>Show all held lines</button></p><div id="ck-list"></div>'});
     function draw(){

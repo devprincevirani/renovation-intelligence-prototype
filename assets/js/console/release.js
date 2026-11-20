@@ -41,7 +41,7 @@
   C.route('/publish', function(view){
     var tab = C.query().tab || 'queued';
     function count(s){ return C.drafts().filter(function(d){ return d.status === s && C.mine(d); }).length; }
-    view.innerHTML = C.page({kicker:'Release', title:'Publish queue', sub:'Draft changes waiting for Sam. Run a back-test, read what it found, then publish or discard. Old runs keep the versions they were made with.',
+    view.innerHTML = C.page({kicker:'Changes', title:'Publish queue', sub:'Draft changes waiting for Sam. Run a back-test, read what it found, then publish or discard. Old runs keep the versions they were made with.',
       body:C.seg('pq-tab', [['queued','Waiting',count('queued')],['published','Published',count('published')],['discarded','Discarded',count('discarded')]], tab) +
         (C.can('publish') ? '' : '<div class="c-mt">' + C.note('You see the drafts of your own area. Only Sam publishes or discards.', 'lock') + '</div>') + '<div id="pq-list" class="c-mt"></div>'});
     function draw(){
@@ -91,7 +91,7 @@
   var TYPE = {dbl:['Double charges','The same task counted twice across work types'], skip:['Skipped parts','A part the template expects that got no decision'], broken:['Broken links','A dependency that points to nothing'], changed:['Changed totals','A package total that moved, with the line that moved it']};
   C.route('/backtests', function(view){
     var list = C.get('backtests', []);
-    view.innerHTML = C.page({kicker:'Release', title:'Back-tests', sub:'Replay many houses after a change: double charges, skipped parts, broken links and changed totals. A failed house is marked; the others continue.',
+    view.innerHTML = C.page({kicker:'Changes', title:'Back-tests', sub:'Replay many houses after a change: double charges, skipped parts, broken links and changed totals. A failed house is marked; the others continue.',
       actions:C.can('backtests.run') ? '<button type="button" class="btn btn-primary" id="bt-new">' + RI.icon('refresh','i-sm') + 'Start a back-test</button>' : '',
       body:C.table({empty:'No back-tests yet.', cols:[{label:'Started'},{label:'By'},{label:'Drafts tested', num:true},{label:'Houses', num:true},{label:'Findings'},{label:''}],
         rows:list.map(function(b){ var r = b.res, clean = C.btClean(b);

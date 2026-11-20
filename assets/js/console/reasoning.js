@@ -103,7 +103,7 @@
     /* Drafts saved before templates had usual counts cannot be applied; retire them once */
     var ds = C.drafts(), old = ds.filter(function(d){ return d.area === 'templates' && d.status === 'queued' && !(d.after && d.after.items); });
     if(old.length){ old.forEach(function(d){ d.status = 'discarded'; d.doneAt = Date.now(); d.doneBy = 'Prototype update'; d.note = 'Saved in an older template format'; }); C.set('drafts', ds); }
-    view.innerHTML = C.page({kicker:'Reasoning', title:'Room templates', sub:'The standard contents of each room type, so nobody types the obvious. The photos confirm what is really there.',
+    view.innerHTML = C.page({kicker:'Rulebook', title:'Room templates', sub:'The standard contents of each room type, so nobody types the obvious. The photos confirm what is really there.',
       body:'<div class="c-split rt-split' + (stepIn ? ' in' : '') + '" id="rt-split"><aside class="c-list" aria-label="Room types">' + C.search('rt-q', 'Find a room type', '') + '<div id="rt-list"></div></aside><section class="c-detail" id="rt-detail" aria-live="polite"></section></div>'});
     function list(){
       var v = q.toLowerCase();
@@ -234,7 +234,7 @@
   C.route('/rules', function(view){
     var rules = C.get('rules', []), st = {fam:C.query().fam || 'all', cls:'all', q:''};
     var cnt = function(f){ return rules.filter(function(r){ return f === 'all' || r.fam === f; }).length; };
-    view.innerHTML = C.page({kicker:'Reasoning', title:'Rules and families', sub:'The rule registry, grouped by the twelve families. Every rule has a reason, a worked example, a version and the tests that prove it. A rule without a test cannot be published.',
+    view.innerHTML = C.page({kicker:'Rulebook', title:'Rules and families', sub:'The rule registry, grouped by the twelve families. Every rule has a reason, a worked example, a version and the tests that prove it. A rule without a test cannot be published.',
       body:'<div class="ru-note">' + C.lbl('sample') + '<span>Showing the ' + rules.length + ' rules named in the developer guide: the twelve core rules, Sam\'s approved component rules, and the dependency and quantity rules. The full registry of 221 rules loads from Sam\'s grouped list.</span></div>' +
         '<div class="ru-fams" id="ru-fams"><button type="button" data-fam="all" aria-pressed="' + (st.fam === 'all') + '"><b>All families</b><span>' + rules.length + ' rules</span></button>' + C.FAMILIES.map(function(f){ var n = cnt(f[0]); return '<button type="button" data-fam="' + f[0] + '" aria-pressed="' + (st.fam === f[0]) + '"' + (n ? '' : ' class="empty"') + '><code>' + f[0] + '</code><b>' + f[1] + '</b><span>' + (n ? n + ' rule' + (n > 1 ? 's' : '') : 'None shown yet') + '</span></button>'; }).join('') + '</div>' +
         '<div class="c-toolbar c-mt">' + C.seg('ru-cls', [['all','All classes']].concat(Object.keys(C.CLASSES).map(function(k){ return [k, C.CLASSES[k][0]]; })), 'all') + '<div class="c-tools">' + C.search('ru-q', 'Code or words', '') + '</div></div><div id="ru-list"></div>'});
@@ -283,7 +283,7 @@
   var SEVS = [['C0','No visible defect','Keep, unless the goal asks for change'],['C1','Minor cosmetic wear','Clean, repair or refinish'],['C2','Moderate deterioration','Repair or refinish; replace if the goal needs it'],['C3','Significant deterioration','Replace or repair, by the rules'],['C4','Apparent urgent safety concern','Flag for a professional; no precise replacement'],['CX','Not enough evidence','Verify. Shown as unverified']];
   C.route('/condition-sheets', function(view){
     var sheets = C.get('sheets', {}), fams = Object.keys(sheets), cur = C.query().fam || 'CB', lines = allLines(), val = null, canEdit = C.can('rulebook.edit');
-    view.innerHTML = C.page({kicker:'Reasoning', title:'Condition sheets', sub:'Sam\'s conditions per component type, and the confidence threshold for each. Below the threshold, a line shows as unverified instead of being priced.',
+    view.innerHTML = C.page({kicker:'Rulebook', title:'Condition sheets', sub:'Sam\'s conditions per component type, and the confidence threshold for each. Below the threshold, a line shows as unverified instead of being priced.',
       body:'<div class="c-split"><aside class="c-list" aria-label="Component types"><div id="cs-list"></div></aside><section class="c-detail" id="cs-detail"></section></div>'});
     function list(){
       doc.getElementById('cs-list').innerHTML = '<p class="c-list-g">Component types</p>' + fams.map(function(f){ var s = sheets[f], dr = C.draftFor('sheets', f);
@@ -325,7 +325,7 @@
     'SW-FL-001':[['Remove','Remove the old floor and haul away.'],['Prepare','Flat within 3/16 in over 10 ft. Fill or grind.'],['Install','Underlayment and plank, staggered joints.'],['Transitions','At every doorway and floor change.'],['Baseboard','Reset or replace, by the rules.']]};
   C.route('/packages', function(view){
     var tab = C.query().tab || 'packages', cur = C.query().p || 'SW-CB-002';
-    view.innerHTML = C.page({kicker:'Reasoning', title:'Packages and catalog', sub:'A package is a goal, not a list of work (CORE-06). The catalog holds the scope presets: the standard task list for one action.',
+    view.innerHTML = C.page({kicker:'Rulebook', title:'Packages and catalog', sub:'A package is a goal, not a list of work (CORE-06). The catalog holds the scope presets: the standard task list for one action.',
       body:C.seg('pk-tab', [['packages','Packages',3],['presets','Scope presets',C.PRESETS.length]], tab) + '<div id="pk-body" class="c-mt"></div>'});
     function body(){
       var el = doc.getElementById('pk-body');
@@ -352,7 +352,7 @@
     var SET = C.ACC_SET;
     var agree = SET.filter(function(x){ return x[2] === x[3]; }).length, score = Math.round(agree / SET.length * 100), last = C.get('evalAt', Date.now() - 2 * DAY);
     var byComp = {}; SET.forEach(function(x){ var b = byComp[x[1]] = byComp[x[1]] || [0, 0]; b[1]++; if(x[2] === x[3]) b[0]++; });
-    view.innerHTML = C.page({kicker:'Reasoning', title:'Accuracy', sub:'Sam\'s labelled photos, read by the model and compared with his labels. Run before any prompt or model change.',
+    view.innerHTML = C.page({kicker:'Quality', title:'Photo accuracy', sub:'Sam\'s labelled photos, read by the model and compared with his labels. Run before any prompt or model change.',
       actions:'<button type="button" class="btn btn-primary" id="ac-run">' + RI.icon('refresh','i-sm') + 'Run the photo set</button>',
       body:'<div class="ac-top"><div class="ac-score" style="--p:' + score + '"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52"/><circle class="v" cx="60" cy="60" r="52" style="stroke-dasharray:326.7;stroke-dashoffset:' + (326.7 * (1 - score / 100)).toFixed(1) + '"/></svg><div><b>' + score + '<small>%</small></b><span>agree with Sam</span></div></div>' +
         '<dl class="c-kv ac-kv"><dt>Labelled photos</dt><dd>' + SET.length + ' ' + C.lbl('sample') + '</dd><dt>Agree</dt><dd>' + agree + '</dd><dt>Disagree</dt><dd>' + (SET.length - agree) + '</dd><dt>Last run</dt><dd id="ac-last">' + C.time(last) + '</dd><dt>Model</dt><dd>Vision model behind the adapter</dd></dl>' +

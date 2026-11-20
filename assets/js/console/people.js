@@ -33,7 +33,7 @@
     var users = (RI.ROLES || []).filter(function(r){ return r.role !== 'admin'; }).map(function(r){ return {email:r.email, name:r.name, type:r.type, demo:true, verified:true, news:false, at:now - 30 * DAY}; });
     var acc = RI.users.all(); Object.keys(acc).forEach(function(k){ var u = acc[k]; if(u.role === 'staff') return; users.push({email:u.email, name:u.email.split('@')[0], type:u.type ? u.type.charAt(0).toUpperCase() + u.type.slice(1) : 'User', verified:!!u.verified, news:!!u.news, trial:!!u.trial, at:u.at || now, disabled:u.disabled}); });
     var staff = staffList(), wl = RI.store.get('waitlist', []);
-    view.innerHTML = C.page({kicker:'People', title:'Users and staff', sub:'Every account, its type and state; Sam\'s staff and what each may do; and the waitlist.',
+    view.innerHTML = C.page({kicker:'Admin', title:'Users and staff', sub:'Every account, its type and state; Sam\'s staff and what each may do; and the waitlist.',
       actions:C.can('staff') ? '<button type="button" class="btn btn-primary" id="inv-new">' + RI.icon('mail','i-sm') + 'Invite staff</button>' : '',
       body:C.seg('us-tab', [['users','Users',users.length],['staff','Staff',staff.length + 1],['waitlist','Waitlist',wl.length]], tab) + '<div id="us-body" class="c-mt"></div>'});
     function body(){
@@ -118,7 +118,7 @@
     var all = C.get('audit', []), st = {who:'all', act:'all', when:'all', q:''};
     var people = all.map(function(e){ return e.by; }).filter(function(v, i, a){ return a.indexOf(v) === i; });
     var acts = all.map(function(e){ return e.action; }).filter(function(v, i, a){ return a.indexOf(v) === i; }).sort();
-    view.innerHTML = C.page({kicker:'People and insight', title:'Audit log', sub:'Every change: who made it, when, and why. Nothing here can be edited or removed.',
+    view.innerHTML = C.page({kicker:'Admin', title:'Audit log', sub:'Every change: who made it, when, and why. Nothing here can be edited or removed.',
       body:'<div class="c-toolbar">' + C.seg('au-when', [['all','All time'],['1','Today'],['7','7 days'],['30','30 days']], 'all') +
         '<div class="c-tools">' + C.search('au-q', 'Search what changed', '') +
         '<label class="c-select"><span class="sr">Person</span><select id="au-who"><option value="all">Everyone</option>' + people.map(function(p){ return '<option>' + RI.esc(p) + '</option>'; }).join('') + '</select></label>' +

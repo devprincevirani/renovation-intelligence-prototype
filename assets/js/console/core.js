@@ -258,12 +258,14 @@
   /* ---------- Screens and the side menu ---------- */
   C.SCREENS = [
     ['', [['overview', 'Overview', '#/overview', 'console', 'houses.view']]],
-    ['Houses', [['houses', 'House list', '#/houses', 'house', 'houses.view']]],
-    ['Reasoning', [['rules', 'Rules and families', '#/rules', 'list', 'rulebook.view'], ['sheets', 'Condition sheets', '#/condition-sheets', 'eye', 'rulebook.view'], ['templates', 'Room templates', '#/room-templates', 'ruler', 'rulebook.view'], ['packages', 'Packages and catalog', '#/packages', 'sliders', 'rulebook.view'], ['accuracy', 'Accuracy', '#/accuracy', 'check', 'accuracy.manage']]],
-    ['Pricing', [['products', 'Products', '#/products', 'tag', 'rulebook.view'], ['rates', 'Rates', '#/rates', 'file', 'rulebook.view'], ['checks', 'Check results', '#/checks', 'shield', 'houses.view']]],
-    ['Release', [['publish', 'Publish queue', '#/publish', 'refresh', ['rulebook.edit', 'pricing.edit', 'content.edit']], ['backtests', 'Back-tests', '#/backtests', 'clock', 'backtests.run']]],
+    ['Houses', [['houses', 'Houses', '#/houses', 'house', 'houses.view']]],
+    ['Quality', [['checks', 'Check results', '#/checks', 'shield', 'houses.view'], ['accuracy', 'Photo accuracy', '#/accuracy', 'eye', 'accuracy.manage']]],
+    ['Rulebook', [['rules', 'Rules and families', '#/rules', 'list', 'rulebook.view'], ['sheets', 'Condition sheets', '#/condition-sheets', 'sliders', 'rulebook.view'], ['templates', 'Room templates', '#/room-templates', 'ruler', 'rulebook.view'], ['packages', 'Packages and catalog', '#/packages', 'tag', 'rulebook.view']]],
+    ['Pricing', [['products', 'Products', '#/products', 'tag', 'rulebook.view'], ['rates', 'Rates', '#/rates', 'file', 'rulebook.view']]],
     ['Content', [['guidance', 'Guidance', '#/guidance', 'info', 'rulebook.view'], ['resources', 'Builder documents', '#/resources', 'file', 'content.edit']]],
-    ['People and insight', [['users', 'Users and staff', '#/users', 'user', 'users.view'], ['feedback', 'Contacts and feedback', '#/feedback', 'mail', 'contacts.export'], ['funnel', 'Funnel', '#/funnel', 'sliders', 'funnel.view'], ['audit', 'Audit log', '#/audit', 'console', 'audit.view']]]
+    ['Changes', [['publish', 'Publish queue', '#/publish', 'refresh', ['rulebook.edit', 'pricing.edit', 'content.edit']], ['backtests', 'Back-tests', '#/backtests', 'clock', 'backtests.run']]],
+    ['Customers', [['feedback', 'Contacts and feedback', '#/feedback', 'mail', 'contacts.export'], ['funnel', 'Funnel', '#/funnel', 'sliders', 'funnel.view']]],
+    ['Admin', [['users', 'Users and staff', '#/users', 'user', 'users.view'], ['audit', 'Audit log', '#/audit', 'console', 'audit.view']]]
   ];
   function shell(active, bare){
     var side = doc.getElementById('con-side'), top = doc.getElementById('con-top'), m = C.me();

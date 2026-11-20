@@ -76,7 +76,7 @@
     var users = RI.users.all(), contacts = Object.keys(users).map(function(k){ return users[k]; }).filter(function(u){ return u.news; }).map(function(u){ return {email:u.email, type:u.type, from:'Sign up', at:u.at}; })
       .concat(RI.store.get('waitlist', []).filter(function(w){ return w.news; }).map(function(w){ return {email:w.email, type:w.type, from:'Waitlist', at:w.at}; }));
     var yes = fb.filter(function(f){ return f.v === 'Yes'; }).length;
-    view.innerHTML = C.page({kicker:'People and insight', title:'Contacts and feedback', sub:'What people said after reading a presentation, and the contacts who agreed to hear from Sam. Only contacts with consent are listed.',
+    view.innerHTML = C.page({kicker:'Customers', title:'Contacts and feedback', sub:'What people said after reading a presentation, and the contacts who agreed to hear from Sam. Only contacts with consent are listed.',
       actions:C.can('contacts.export') ? '<button type="button" class="btn btn-secondary" id="fb-exp">' + RI.icon('file','i-sm') + 'Export contacts</button>' : '',
       body:C.seg('fb-tab', [['feedback','Feedback',fb.length],['contacts','Updates list',contacts.length]], tab) + '<div id="fb-body" class="c-mt"></div>'});
     function body(){
@@ -102,7 +102,7 @@
     var mode = C.query().mode || 'browser', ev = RI.store.get('events', []);
     var SAMPLE = {page_view:1840, waitlist_joined:212, signup_completed:96, intake_started:71, intake_submitted:52, price_viewed:49, checkout_started:21, payment_completed:14, presentation_opened:14, share_created:6, feedback_sent:5};
     function counts(){ var c = {}; if(mode === 'sample') return SAMPLE; ev.forEach(function(e){ c[e.e] = (c[e.e] || 0) + 1; }); return c; }
-    view.innerHTML = C.page({kicker:'People and insight', title:'Funnel', sub:'The path from a stranger to a paid presentation, one event per step (APP_FLOW 3). Where people leave, and what each screen does about it.',
+    view.innerHTML = C.page({kicker:'Customers', title:'Funnel', sub:'The path from a stranger to a paid presentation, one event per step (APP_FLOW 3). Where people leave, and what each screen does about it.',
       body:C.seg('fu-mode', [['browser','This browser'],['sample','Sample month']], mode) + '<div id="fu-body" class="c-mt"></div>'});
     function body(){
       var c = counts(), top = Math.max(1, c.page_view || 0), prev = null;

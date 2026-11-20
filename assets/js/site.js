@@ -260,11 +260,14 @@
     ]},
     {key:'console', name:'Admin console', icon:'console', role:'admin', sections:[
       ['Overview', [['Overview', 'admin/#/overview', 'Proposal: what needs Sam and how the engine is doing', 'console']]],
-      ['Houses', [['House list', 'admin/#/houses', 'Every house, with search and filters', 'house'], ['House inspector', 'admin/#/go/inspector', 'One house end to end', 'list'], ['Decision tree', 'admin/#/go/tree', 'Follow a branch and grade it', 'sliders']]],
-      ['Reasoning', [['Rules and families', 'admin/#/rules', 'The rule registry by family', 'list'], ['Condition sheets', 'admin/#/condition-sheets', 'Thresholds per component', 'eye'], ['Room templates', 'admin/#/room-templates', 'What each room type holds', 'ruler'], ['Packages and catalog', 'admin/#/packages', 'Goals and the 23 presets', 'sliders'], ['Accuracy', 'admin/#/accuracy', 'Labelled photos and the score', 'check']]],
-      ['Pricing', [['Products', 'admin/#/products', 'The product library by tier', 'tag'], ['Rates', 'admin/#/rates', 'Low and High per line', 'file'], ['Check results', 'admin/#/checks', 'Lines held by the seven checks', 'shield']]],
-      ['Release', [['Publish queue', 'admin/#/publish', 'Drafts waiting for Sam', 'refresh'], ['Back-tests', 'admin/#/backtests', 'Replay houses after a change', 'clock']]],
-      ['Content and people', [['Guidance', 'admin/#/guidance', 'Systems guidance and texts', 'info'], ['Builder documents', 'admin/#/resources', 'Scope documents', 'file'], ['Users and staff', 'admin/#/users', 'Accounts, staff, waitlist', 'user'], ['Contacts and feedback', 'admin/#/feedback', 'Feedback and the updates list', 'mail'], ['Funnel', 'admin/#/funnel', 'Where people leave', 'sliders'], ['Audit log', 'admin/#/audit', 'Every change, who and why', 'console']]]
+      ['Houses', [['Houses', 'admin/#/houses', 'Every house, with search and filters', 'house'], ['House inspector', 'admin/#/go/inspector', 'One house end to end', 'list'], ['Decision tree', 'admin/#/go/tree', 'Follow a branch and grade it', 'sliders']]],
+      ['Quality', [['Check results', 'admin/#/checks', 'Lines held by the seven checks', 'shield'], ['Photo accuracy', 'admin/#/accuracy', 'Labelled photos and the score', 'eye']]],
+      ['Rulebook', [['Rules and families', 'admin/#/rules', 'The rule registry by family', 'list'], ['Condition sheets', 'admin/#/condition-sheets', 'Thresholds per component', 'sliders'], ['Room templates', 'admin/#/room-templates', 'What each room type holds', 'ruler'], ['Packages and catalog', 'admin/#/packages', 'Goals and the 23 presets', 'tag']]],
+      ['Pricing', [['Products', 'admin/#/products', 'The product library by tier', 'tag'], ['Rates', 'admin/#/rates', 'Low and High per line', 'file']]],
+      ['Content', [['Guidance', 'admin/#/guidance', 'Systems guidance and texts', 'info'], ['Builder documents', 'admin/#/resources', 'Scope documents', 'file']]],
+      ['Changes', [['Publish queue', 'admin/#/publish', 'Drafts waiting for Sam', 'refresh'], ['Back-tests', 'admin/#/backtests', 'Replay houses after a change', 'clock']]],
+      ['Customers', [['Contacts and feedback', 'admin/#/feedback', 'Feedback and the updates list', 'mail'], ['Funnel', 'admin/#/funnel', 'Where people leave', 'sliders']]],
+      ['Admin', [['Users and staff', 'admin/#/users', 'Accounts, staff, waitlist', 'user'], ['Audit log', 'admin/#/audit', 'Every change, who and why', 'console']]]
     ]},
     {key:'other', name:'Shared view', icon:'share', sections:[
       ['Shared view', [['Share link not valid', 's/?t=nope', 'What a dead share link shows', 'share']]]
