@@ -81,28 +81,11 @@
     var stage = function(h){ return GROUP[A.status(h)]; };
     var runs = all.filter(function(h){ return h.run && A.status(h) !== 'draft'; });
     var today = new Date(); today.setHours(0, 0, 0, 0); var T0 = today.getTime();
-    var mode = C.get('ov.data', 'example') === 'browser' ? 'browser' : 'example';
-
-    /* ---------- This browser's numbers ---------- */
-    var runEnd = function(h){ var ms = 0; A.STAGES.forEach(function(st){ ms += st[0] === 'reading' ? A.readMs(h) : st[3]; if(st[0] === 'price' && h.run.slow) ms += 9000; }); return h.run.start + ms; };
-    var heldOf = function(h){ return C.model(h).lines.filter(function(l){ return l.pass < 7; }).length; };
-    var perDay = function(fn){ var out = []; for(var i = 13; i >= 0; i--){ var d0 = T0 - i * DAY; out.push(fn(d0, d0 + DAY)); } return out; };
-    var byCheck = C.CHECKS.map(function(){ return 0; });
-    runs.forEach(function(h){ C.model(h).lines.forEach(function(l){ if(l.pass < 7) byCheck[l.checks.indexOf(false)]++; }); });
-    var SET = C.ACC_SET || [], agree = SET.filter(function(x){ return x[2] === x[3]; }).length, comp = {};
-    SET.forEach(function(x){ var c = comp[x[1]] = comp[x[1]] || [0, 0]; c[1]++; if(x[2] === x[3]) c[0]++; });
-    var weakest = Object.keys(comp).sort(function(a, b){ return comp[a][0] / comp[a][1] - comp[b][0] / comp[b][1]; })[0];
-    var BR = {
-      sub:perDay(function(a, b){ return runs.filter(function(h){ return h.run.start >= a && h.run.start < b; }).length; }),
-      ready:perDay(function(a, b){ return runs.filter(function(h){ var s = stage(h), e = runEnd(h); return (s === 'ready' || s === 'open') && e >= a && e < b; }).length; }),
-      paid:perDay(function(a, b){ return all.filter(function(h){ return h.paidAt >= a && h.paidAt < b; }).length; }),
-      held:perDay(function(a, b){ return runs.filter(function(h){ return h.run.start >= a && h.run.start < b; }).reduce(function(s, h){ return s + heldOf(h); }, 0); }),
-      checks:byCheck, acc:{photos:SET.length, agree:agree, weakest:weakest ? weakest.toLowerCase() : ''}
-    };
-    var D = mode === 'example' ? EX : BR;
+    /* The charts show the example data (EX); the lists below use this browser */
+    var D = EX;
     var sum = function(arr, from, to){ return arr.slice(from, to).reduce(function(s, v){ return s + v; }, 0); };
     var days = D.sub.map(function(v, i){ return {t:T0 - (13 - i) * DAY, sub:v, ready:D.ready[i]}; });
-    var running = mode === 'example' ? sum(D.sub) - sum(D.ready) : all.filter(function(h){ return stage(h) === 'work'; }).length;
+    var running = sum(D.sub) - sum(D.ready);
 
     var card = function(o){ return '<section class="c3' + (o.cls ? ' ' + o.cls : '') + '" aria-labelledby="o3-' + o.id + '"><header class="c3-h"><div><h2 id="o3-' + o.id + '">' + o.title + '</h2>' + (o.sub ? '<p>' + o.sub + '</p>' : '') + '</div>' + (o.aside || '') + '</header>' + o.body + (o.foot ? '<footer class="c3-f' + (o.footCls ? ' ' + o.footCls : '') + '">' + o.foot + '</footer>' : '') + '</section>'; };
     var link = function(href, text){ return '<a href="' + href + '">' + text + ' ' + I('arrow', 'i-sm') + '</a>'; };
@@ -135,7 +118,7 @@
 
     /* ---------- Why lines did not price ---------- */
     var totalHeld = D.checks.reduce(function(a, b){ return a + b; }, 0);
-    var why = card({id:'why', title:'Why lines did not price', sub:'By check, ' + (mode === 'example' ? 'last 14 days' : 'all runs'),
+    var why = card({id:'why', title:'Why lines did not price', sub:'By check, last 14 days',
       body:totalHeld ? donut(D.checks) : '<div class="e3">' + I('shield') + '<p>No held lines. Every line passed the seven checks.</p></div>',
       foot:link('#/checks', 'Open check results')});
 
@@ -168,13 +151,12 @@
     var right = acc + wait;
     view.innerHTML = '<div class="c-page o3">' +
       '<div class="o3-head"><div><p class="c-kicker">Console</p><h1>Overview <span class="o3-tag h-aside">Proposal for Sam</span></h1><p>' + new Date().toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric', year:'numeric'}) + '. What moved in the console this week.</p></div>' +
-        '<div class="o3-act"><span class="o3-seg" role="group" aria-label="Data in the charts"><button type="button" data-mode="example" aria-pressed="' + (mode === 'example') + '">Example data</button><button type="button" data-mode="browser" aria-pressed="' + (mode === 'browser') + '">This browser</button></span>' +
+        '<div class="o3-act">' +
         (canQueue ? '<a class="btn btn-primary" href="#/publish">' + I('refresh', 'i-sm') + 'Open the publish queue</a>' : '') + '</div></div>' +
       kpis +
       '<div class="o3-g' + (right ? ' o3-r1' : '') + '">' + trend + (right ? '<div class="o3-col">' + right + '</div>' : '') + '</div>' +
       '<div class="o3-g' + (act ? ' o3-r2' : '') + '">' + why + act + '</div>' + gradeCard + '</div>';
     RI.fillIcons(view);
     wireColumns(doc.getElementById('o3-chart'));
-    view.querySelector('.o3-seg').addEventListener('click', function(e){ var b = e.target.closest('[data-mode]'); if(!b || b.getAttribute('aria-pressed') === 'true') return; C.set('ov.data', b.getAttribute('data-mode')); C.render(); });
   }, {nav:'overview', perm:'houses.view'});
 })();

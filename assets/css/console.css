@@ -1330,3 +1330,4 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:.78rem}
 }
 @media (pointer:coarse){ .o3-seg button,.d3-l a{min-height:44px} }
 @media (prefers-reduced-motion:reduce){ .g3-b span,.g3-b i,.k3,.d3-l a{transition:none} }
+@media (min-width:1080px) and (max-width:1279px){ .c3-dark{flex-direction:column;align-items:flex-start;gap:18px} }
