@@ -91,7 +91,7 @@
   var capT = function(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; };
 
   C.route('/feedback', function(view){
-    var tab = C.query().tab === 'contacts' ? 'contacts' : 'feedback', st = {q:'', f:'all', a:'all'}, canExp = C.can('contacts.export');
+    var q0 = C.query(), tab = q0.tab === 'contacts' ? 'contacts' : 'feedback', st = {q:'', f:q0.f || 'all', a:q0.a || 'all'}, canExp = C.can('contacts.export');
     var pkgName = function(k){ var p = (RI.PACKAGES || []).filter(function(x){ return x.key === k; })[0]; return p ? p.name : ''; };
     var fb = A.all().filter(function(h){ return h.feedback; }).map(function(h){ return {house:A.addr(h), hid:h.id, who:h.owner || '', pkg:pkgName(h.pk), v:h.feedback.v, note:h.feedback.note || '', at:h.feedback.at || h.updated}; })
       .concat(C.get('feedbackSeed', []).map(function(f){ return Object.assign({who:FB_PEOPLE[f.house] || '', pkg:FB_PKG[f.house] || ''}, f); }));
@@ -103,11 +103,29 @@
     contacts.sort(function(a, b){ return b.at - a.at; });
     var updates = contacts.filter(function(c){ return c.consent === 'given'; });
     var yes = fb.filter(function(f){ return f.v === 'Yes'; }).length;
+    /* Four headline cards, from the same rows as the lists below, so the numbers always agree with what is listed */
+    var inDays = function(f, a, b){ var d = (now - f.at) / DAY; return d >= a && d < b; };
+    var f30 = fb.filter(function(f){ return inDays(f, 0, 30); }).length, fPrev = fb.filter(function(f){ return inDays(f, 30, 60); }).length;
+    var weeks = [5, 4, 3, 2, 1, 0].map(function(w){ return fb.filter(function(f){ return inDays(f, w * 7, w * 7 + 7); }).length; });
+    var spark = function(arr){
+      var w = 112, h = 34, max = Math.max(1, Math.max.apply(null, arr)), n = arr.length;
+      var pts = arr.map(function(v, i){ return [i / (n - 1) * (w - 6) + 3, h - 4 - v / max * (h - 10)]; });
+      var line = 'M' + pts.map(function(p){ return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' L'), last = pts[n - 1];
+      return '<svg class="k3-sp fg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true"><path class="f" d="' + line + ' L' + last[0].toFixed(1) + ',' + h + ' L3,' + h + ' Z"/><path class="l" d="' + line + '"/><circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="3"/></svg>';
+    };
+    var change = f30 - fPrev, chip = '<span class="k3-d ' + (change > 0 ? 'good' : change < 0 ? 'bad' : 'flat') + '">' + (change === 0 ? 'No change' : (change > 0 ? '+' : '') + change) + '</span>';
+    var fromWl = contacts.filter(function(c){ return c.from === 'Waitlist'; }).length;
+    var k3 = function(o){ return '<a class="k3' + (o.inv ? ' k3-inv' : '') + '" href="' + o.href + '"><span class="k3-h"><span class="k3-ic">' + RI.icon(o.icon, 'i-sm') + '</span>' + o.label + '</span><span class="k3-m"><b>' + o.value + '</b>' + (o.sp || '') + '</span><span class="k3-f">' + (o.chip || '') + '<span>' + o.foot + '</span></span></a>'; };
+    var kpis = '<div class="k3s fb-k">' +
+      k3({icon:'chat', label:'Feedback, 30 days', value:f30, sp:spark(weeks), chip:chip, foot:'vs the 30 days before', href:'#/feedback'}) +
+      k3({icon:'check', label:'Said it helped', value:(fb.length ? Math.round(yes / fb.length * 100) : 0) + '%', foot:yes + ' of ' + fb.length + ' answered Yes', href:'#/feedback?a=Yes'}) +
+      k3({icon:'user', label:'Contacts', value:contacts.length, foot:fromWl + ' from the waitlist, ' + (contacts.length - fromWl) + ' from sign up', href:'#/feedback?tab=contacts'}) +
+      k3({icon:'mail', label:'Updates list', value:updates.length, foot:'agreed to updates, ready to export', href:'#/feedback?tab=contacts&f=given', inv:true}) + '</div>';
 
     view.innerHTML = C.page({kicker:'Customers', title:'Contacts and feedback', sub:'Feedback from presentations, contacts with consent, the updates list, and the exports Sam uses in his own tool.',
-      actions:canExp ? '<button type="button" class="btn btn-secondary" id="fb-exp-ct" title="Everyone listed under Contacts, with their consent">' + RI.icon('file','i-sm') + 'Export contacts <span class="fb-n">' + contacts.length + '</span></button>' +
-        '<button type="button" class="btn btn-primary" id="fb-exp-up" title="Only the people who agreed to updates">' + RI.icon('file','i-sm') + 'Export the updates list <span class="fb-n">' + updates.length + '</span></button>' : '',
-      body:'<div class="fb-top">' + C.seg('fb-tab', [['feedback','Feedback',fb.length],['contacts','Contacts',contacts.length]], tab) + '<div id="fb-tools" class="us-bar"></div></div><div id="fb-body"></div>'});
+      actions:canExp ? '<button type="button" class="btn btn-secondary" id="fb-exp-ct" title="Everyone listed under Contacts, with their consent">' + RI.icon('download','i-sm') + 'Export contacts <span class="fb-n">' + contacts.length + '</span></button>' +
+        '<button type="button" class="btn btn-primary" id="fb-exp-up" title="Only the people who agreed to updates">' + RI.icon('download','i-sm') + 'Export the updates list <span class="fb-n">' + updates.length + '</span></button>' : '',
+      body:kpis + '<div class="fb-top">' + C.seg('fb-tab', [['feedback','Feedback',fb.length],['contacts','Contacts',contacts.length]], tab) + '<div id="fb-tools" class="us-bar"></div></div><div id="fb-body"></div>'});
 
     function consentLbl(c){
       if(c.consent === 'given') return '<span class="lb lb-pub">Agreed</span>';
@@ -124,8 +142,8 @@
       if(tab === 'feedback'){
         var cnt = function(v){ return fb.filter(function(f){ return f.v === v; }).length; }, shown = fb.filter(function(f){ return st.a === 'all' || f.v === st.a; });
         tools.innerHTML = '<label class="c-select us-pick"><span class="sr">Answer</span><select id="fb-a">' + [['all','All answers',fb.length],['Yes','Yes',cnt('Yes')],['Somewhat','Somewhat',cnt('Somewhat')],['No','No',cnt('No')]].map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === st.a ? ' selected' : '') + '>' + o[1] + ' (' + o[2] + ')</option>'; }).join('') + '</select></label>';
-        el.innerHTML = (fb.length ? '<div class="fb-sum"><div><b>' + yes + ' of ' + fb.length + '</b><span>said the presentation helped</span></div>' + ['Yes','Somewhat','No'].map(function(v){ var n = fb.filter(function(f){ return f.v === v; }).length; return '<div class="fb-b"><span>' + v + '</span><span class="ac-t"><i style="width:' + (fb.length ? n / fb.length * 100 : 0) + '%"></i></span><b>' + n + '</b></div>'; }).join('') + '</div>' : '') +
-          (shown.length ? '<ul class="fb-list">' + shown.map(function(f){ return '<li><span class="fb-v fb-' + f.v.toLowerCase() + '">' + f.v + '</span><div><p>' + (f.note ? '&ldquo;' + RI.esc(f.note) + '&rdquo;' : '<span class="muted">No comment</span>') + '</p>' +
+        /* The Said it helped card and the answer filter carry the summary, so it is not repeated here */
+        el.innerHTML = (shown.length ? '<ul class="fb-list">' + shown.map(function(f){ return '<li><span class="fb-v fb-' + f.v.toLowerCase() + '">' + f.v + '</span><div><p>' + (f.note ? '&ldquo;' + RI.esc(f.note) + '&rdquo;' : '<span class="muted">No comment</span>') + '</p>' +
             '<small>' + (f.who ? '<b class="fb-who">' + RI.esc(f.who) + '</b> &middot; ' : '') + RI.esc(f.house) + (f.pkg ? ' &middot; ' + f.pkg : '') + ' &middot; ' + C.ago(f.at) + '</small></div>' + (f.hid ? '<a class="small" href="#/houses/' + f.hid + '">House</a>' : '') + '</li>'; }).join('') + '</ul>' : '<div class="c-empty">' + RI.icon('info') + '<p>No feedback with this answer yet.</p></div>') +
           '<div class="c-mt">' + C.note('Rows with example.com addresses are examples. New feedback from presentations in this browser appears with them.') + '</div>';
         tools.querySelector('#fb-a').addEventListener('change', function(){ st.a = this.value; body(); doc.getElementById('fb-a').focus(); });

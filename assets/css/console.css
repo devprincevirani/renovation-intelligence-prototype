@@ -1890,3 +1890,10 @@ dialog.dlg.dlg-drawer[open]{display:flex;animation:ax-in var(--slow) var(--ease-
 .bt-set em{font-style:normal;font-weight:500;color:var(--muted);font-size:.82rem;margin-left:6px}
 .bt-set small{font-size:.8rem;color:var(--muted)}
 
+/* v77: headline cards on Contacts and feedback; the dark card marks the list Sam exports */
+.k3.k3-inv{border-color:var(--deep-forest);background:var(--deep-forest);color:#fff}
+.k3.k3-inv:hover{border-color:#2E4B48;background:#2E4B48}
+.k3.k3-inv .k3-ic{background:rgba(255,255,255,.12);color:#fff}
+.k3.k3-inv .k3-f{color:#D8C9B5}
+.k3.k3-inv:focus-visible{outline-color:var(--deep-forest)}
+@media (max-width:719px){.fb-k{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.fb-k .k3{gap:8px;padding:14px}.fb-k .k3-ic,.fb-k .k3-sp{display:none}.fb-k .k3-m b{font-size:1.75rem}.fb-k .k3-f{flex-wrap:wrap;gap:4px 8px}}
