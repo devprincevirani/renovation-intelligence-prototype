@@ -45,12 +45,12 @@ SIDE = lambda img, alt, text: f'<div class="auth-side"><img src="../assets/img/{
 
 pages = {}
 
-pages['waitlist'] = ('Join the waitlist for Metro Detroit renovation estimates | Renovation Intelligence',
- 'We open in Metro Detroit on April 1, 2027. Join the waitlist and we will write once, when you can enter your first house.',
+pages['waitlist'] = ('Join the waitlist for renovation estimates | Renovation Intelligence',
+ 'We open on April 1, 2027. Join the waitlist and we will write once, when you can enter your first house.',
  f'''<div class="auth auth2 auth-wl">
   <div class="auth-form"><div class="auth-inner" id="wl-panel">
     <form class="form-grid" id="wl-form" novalidate>
-      <div class="stack" style="gap:10px"><span class="open-chip"><i data-i="clock" class="i-sm"></i>Opening April 1, 2027 in Metro Detroit</span><h1>Join the waitlist</h1><p class="muted">We write once, when you can enter your first house. People Sam invites can start earlier, with a 15-day trial.</p></div>
+      <div class="stack" style="gap:10px"><span class="open-chip"><i data-i="clock" class="i-sm"></i>Opening April 1, 2027</span><h1>Join the waitlist</h1><p class="muted">We write once, when you can enter your first house. People Sam invites can start earlier, with a 15-day trial.</p></div>
       {field('wl-email','Email','email',ac='email',extra=' placeholder="name@example.com"')}
       <fieldset class="field tp-field"><legend class="flabel tp-head"><span>I am a</span><span class="tp-desc" id="wl-type-desc" aria-live="polite">Optional</span></legend>{type_chips('wl-type')}</fieldset>
       <button class="btn btn-primary btn-block btn-lg" type="submit">Join the waitlist <i data-i="arrow" class="i-arrow"></i></button>

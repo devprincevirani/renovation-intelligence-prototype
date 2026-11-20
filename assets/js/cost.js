@@ -75,7 +75,7 @@
       '<div class="page-head" style="border-bottom:0;padding-bottom:24px"><div class="wrap">' + crumbs([['Renovation cost','renovation-cost/'],[a.name + ', MI']]) +
       '<h1>Renovation cost in ' + a.name + ', MI</h1><p class="lede">Typical Low and High installed costs for the work ' + a.name + ' houses most often need, and a way to get a range for one specific house.</p><p class="small muted">' + a.county + ', Michigan <span class="state state-sample">Sample page content</span></p>' +
       (want ? '<p class="notice notice-info" style="display:flex;max-width:44rem">' + RI.icon('info') + '<span>Showing ' + a.name + ' for a <b>' + RI.TYPES[want].name.toLowerCase() + '</b>. Its drawing and typical work are highlighted below.</span></p>' : '') + '</div></div>' +
-      '<div class="wrap area-hero"><div class="ph"><img src="' + RI.img(a.img) + '" alt="' + a.alt + '" width="' + a.w + '" height="' + a.h + '" fetchpriority="high"></div><p class="credit">' + a.cap + ' <a href="' + R + 'photo-credits/">Photo credit</a></p></div>' +
+      '<div class="wrap area-hero"><div class="ph"><img src="' + RI.img(a.img) + '" alt="' + a.alt + '" width="' + a.w + '" height="' + a.h + '" fetchpriority="high"></div><p class="credit">' + a.cap + '</p></div>' +
       '<section style="padding-top:clamp(40px,5vw,64px)"><div class="wrap area-grid"><div class="stack" style="gap:56px;min-width:0">' +
         '<div class="prose"><h2>Houses in ' + a.name + '</h2>' + a.intro.map(function(p){ return '<p>' + p + '</p>'; }).join('') + '</div>' +
         '<div class="stack" style="gap:18px"><h2>House types common in ' + a.name + '</h2><div class="type-grid sm" id="ar-types">' + typesShown.map(function(k){ return typeCard(k, true); }).join('') + '</div></div>' +
@@ -100,12 +100,12 @@
     var areas = Object.keys(RI.AREAS).filter(function(k){ return RI.AREAS[k].types.indexOf(type) > -1; }).map(function(k){ return '<a href="' + R + 'renovation-cost/' + k + '/?type=' + type + '">' + RI.AREAS[k].name + '</a>'; }).join('');
     main.innerHTML =
       '<div class="page-head" style="border-bottom:0;padding-bottom:24px"><div class="wrap">' + crumbs([['Renovation cost','renovation-cost/'],['House types','renovation-cost/#types'],[t.name]]) +
-      '<h1>Cost to renovate a ' + t.name.toLowerCase() + '</h1><p class="lede">' + t.short + ' What these houses usually need, and typical Low and High costs in Metro Detroit.</p><p><span class="state state-sample">Sample page content</span></p></div></div>' +
+      '<h1>Cost to renovate a ' + t.name.toLowerCase() + '</h1><p class="lede">' + t.short + ' What these houses usually need, and typical Low and High costs.</p><p><span class="state state-sample">Sample page content</span></p></div></div>' +
       '<div class="wrap"><div class="type-hero">' + RI.Drawing.figure(type, {big:true}) +
         '<dl class="ht-facts"><div><dt>Built</dt><dd>' + t.era + '</dd></div><div><dt>Stories</dt><dd>' + t.stories + '</dd></div><div><dt>Basement</dt><dd>' + t.basement + '</dd></div><div><dt>Typical size</dt><dd>' + t.size + '</dd></div></dl></div></div>' +
       '<section style="padding-top:clamp(40px,5vw,64px)"><div class="wrap area-grid"><div class="stack" style="gap:56px;min-width:0">' +
         '<div class="prose"><h2>About the ' + t.name.toLowerCase() + '</h2>' + t.intro.map(function(p){ return '<p>' + p + '</p>'; }).join('') +
-        '<figure class="type-photo"><img src="' + RI.img(t.img) + '" alt="' + t.alt + '" loading="lazy"><figcaption class="credit">A ' + t.name.toLowerCase() + '. <a href="' + R + 'photo-credits/">Photo credit</a></figcaption></figure></div>' +
+        '<figure class="type-photo"><img src="' + RI.img(t.img) + '" alt="' + t.alt + '" loading="lazy"><figcaption class="credit">A ' + t.name.toLowerCase() + '.</figcaption></figure></div>' +
         block('Try a size, see the range', 'The work a ' + t.name.toLowerCase() + ' most often needs. Low and High only.', 'ty-rates') +
         block('A typical range is wide. Yours is not.', '', 'ty-tvy') +
         faq('Questions about the ' + t.name.toLowerCase(), t.faq) +

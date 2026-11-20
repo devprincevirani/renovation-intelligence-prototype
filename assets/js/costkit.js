@@ -103,7 +103,7 @@
           '<div class="field rx-size"><label for="rx-q-' + (opts.id || 'a') + '"><span class="rx-q-label">Size</span> <output class="rx-q-val"></output></label><input type="range" class="rx-range" id="rx-q-' + (opts.id || 'a') + '"></div>' +
           '<div class="rx-price"><span class="big-range"></span></div>' +
           '<div class="rx-line"><div class="rl thick" data-low="0" data-high="0"></div><div class="axis"></div></div>' +
-          '<p class="small muted rx-note">' + (opts.where ? 'Typical installed cost in ' + opts.where + '. ' : 'Typical installed cost in Metro Detroit. ') + 'Sample rates, dated November 2026. In the product these come from Sam\'s published rate library.</p>' +
+          '<p class="small muted rx-note">' + (opts.where ? 'Typical installed cost in ' + opts.where + '. ' : 'Typical installed cost. ') + 'Sample rates, dated November 2026. In the product these come from Sam\'s published rate library.</p>' +
           '<p class="rx-ev">' + RI.ev('reported') + '<span class="small muted">Your size, so only the rate varies. Your own estimate counts the real quantities from your photos.</span></p>' +
         '</div></div>';
       var range = host.querySelector('.rx-range'), out = host.querySelector('.rx-q-val'), rl = host.querySelector('.rl'), axis = host.querySelector('.axis'), lineWrap = host.querySelector('.rx-line');

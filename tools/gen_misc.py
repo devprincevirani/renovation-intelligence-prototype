@@ -5,7 +5,7 @@ from page import page
 
 DRAFT = '<div class="draft"><i data-i="warn"></i><span><b>Placeholder wording.</b> The final text comes from Sam (docs/SCOPE.md section 2: legal wording is supplied by the client). This draft shows the layout only.</span></div>'
 def toc(cur):
-    items=[('terms/','Terms of use','terms'),('privacy/','Privacy','privacy'),('disclaimer/','Estimate disclaimer','disclaimer'),('photo-credits/','Photo credits','credits')]
+    items=[('terms/','Terms of use','terms'),('privacy/','Privacy','privacy'),('disclaimer/','Estimate disclaimer','disclaimer')]
     return '<nav class="toc" aria-label="Legal pages"><span class="label">Legal</span>' + ''.join(f'<a href="../{h}"{" aria-current=\"page\"" if k==cur else ""}>{t}</a>' for h,t,k in items) + '</nav>'
 def legal(cur, h1, lede, articles, draft=True):
     return f'''<div class="page-head"><div class="wrap"><nav class="crumbs" aria-label="Breadcrumb"><a href="../">Home</a><span aria-hidden="true">/</span><span>{h1}</span></nav><h1>{h1}</h1><p class="lede">{lede}</p><p class="updated">Last updated: draft, November 2026</p></div></div>
@@ -61,7 +61,6 @@ out = {
  'terms': ('Terms of use | Renovation Intelligence','The terms of using Renovation Intelligence: your account, the photos you upload, free reports and payment.', legal('terms','Terms of use','The terms of using the site and the estimates.', terms)),
  'privacy': ('Privacy | Renovation Intelligence','How Renovation Intelligence handles your account, your houses and your photos.', legal('privacy','Privacy','What we collect, how your photos are kept, and your choices.', privacy)),
  'disclaimer': ('Estimate disclaimer | Renovation Intelligence','What a Renovation Intelligence estimate is and is not, and what it cannot see.', legal('disclaimer','Estimate disclaimer','What an estimate is, what it cannot see, and what we do not give.', disclaimer)),
- 'photo-credits': ('Photo credits | Renovation Intelligence','Credits and licenses for the photos used on this site.', legal('credits','Photo credits','Who took the photos on this site, and their licenses.', credits, draft=False)),
 }
 for k,(t,d,b) in out.items():
     os.makedirs(k, exist_ok=True)

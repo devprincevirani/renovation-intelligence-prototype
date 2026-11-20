@@ -105,7 +105,7 @@
 
   var LOGO = '<svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect x=".5" y=".5" width="33" height="33" rx="4" fill="none" stroke="currentColor" stroke-opacity=".35"/><path d="M8 17.5L17 10l9 7.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10.5 16v7.5h13V16" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 27.5h18" stroke="#C9A57F" stroke-width="1.6"/><path d="M8 25.5v4M26 25.5v4" stroke="#C9A57F" stroke-width="1.6"/></svg>';
   RI.LOGO = LOGO;
-  function brand(){ return '<a class="brand" href="' + RI.url('') + '" aria-label="Renovation Intelligence, home">' + LOGO + '<span><span class="bn">Renovation Intelligence</span><small>Metro Detroit</small></span></a>'; }
+  function brand(){ return '<a class="brand" href="' + RI.url('') + '" aria-label="Renovation Intelligence, home">' + LOGO + '<span><span class="bn">Renovation Intelligence</span></span></a>'; }
 
   /* ---------- Primary action, per site state (docs/APP_FLOW.md section 3) ---------- */
   function ctaFor(variant){
@@ -165,10 +165,10 @@
     var host = doc.getElementById('site-foot'); if(!host) return;
     var areas = RI.AREAS ? Object.keys(RI.AREAS).map(function(k){ return '<li><a href="' + RI.url('renovation-cost/' + k + '/') + '">' + RI.AREAS[k].name + '</a></li>'; }).join('') : '';
     host.outerHTML = '<footer class="site-foot"><div class="wrap"><div class="foot-grid">' +
-      '<div class="foot-brand">' + brand() + '<p>An estimate for one specific house in Metro Detroit, with a Low and a High under three goals, and every unknown named.</p><div><a class="btn btn-ivory btn-sm" data-cta></a></div></div>' +
+      '<div class="foot-brand">' + brand() + '<p>An estimate for one specific house, with a Low and a High under three goals, and every unknown named.</p><div><a class="btn btn-ivory btn-sm" data-cta></a></div></div>' +
       '<div><h4>Product</h4><ul><li><a href="' + RI.url('how-it-works/') + '">How it works</a></li><li><a href="' + RI.url('sample/') + '">Sample estimate</a></li><li><a href="' + RI.url('renovation-cost/') + '">Renovation cost</a></li><li><a href="' + RI.url('waitlist/') + '">Waitlist</a></li><li><a href="' + RI.url('login/') + '">Log in</a></li></ul></div>' +
       '<div><h4>Areas</h4><ul>' + areas + '</ul></div>' +
-      '<div><h4>Legal</h4><ul><li><a href="' + RI.url('terms/') + '">Terms of use</a></li><li><a href="' + RI.url('privacy/') + '">Privacy</a></li><li><a href="' + RI.url('disclaimer/') + '">Estimate disclaimer</a></li><li><a href="' + RI.url('photo-credits/') + '">Photo credits</a></li><li><a href="' + RI.url('contact/') + '">Contact</a></li></ul></div>' +
+      '<div><h4>Legal</h4><ul><li><a href="' + RI.url('terms/') + '">Terms of use</a></li><li><a href="' + RI.url('privacy/') + '">Privacy</a></li><li><a href="' + RI.url('disclaimer/') + '">Estimate disclaimer</a></li><li><a href="' + RI.url('contact/') + '">Contact</a></li></ul></div>' +
       '</div><div class="foot-bottom"><div class="disc"><p>Every figure is an estimate for planning, not a contractor\'s bid or a fixed price. Items we could not confirm are labeled and left out of the total. The roof, heating and cooling, water heater and electrical panel get guidance only, never a price.</p><p>Design prototype. Sample data. "Renovation Intelligence" is a working name.</p></div>' +
       '<div class="foot-state"><span class="xsmall">Demo: site state</span>' + modeSeg(true) + '</div></div></div></footer>';
   }
@@ -242,7 +242,7 @@
       ['Main pages', [['Home', '', 'The first screen a visitor sees', 'house'], ['How it works', 'how-it-works/', 'Eight steps, from photos to price', 'list'], ['Sample estimate', 'sample/', 'A full presentation for one house', 'file'], ['Renovation cost', 'renovation-cost/', 'Costs by area and house type', 'sliders']]],
       ['Area and house type', [['Area page: Livonia', 'renovation-cost/livonia/', 'Typical costs for one area', 'pin'], ['House type: brick ranch', 'renovation-cost/house-types/brick-ranch/', 'Typical costs for one house type', 'house']]],
       ['Waitlist and contact', [['Waitlist', 'waitlist/', 'Email and account type, before launch', 'mail'], ['Contact', 'contact/', 'A message form', 'mail']]],
-      ['Legal and other', [['Terms', 'terms/', 'Terms of use', 'file'], ['Privacy', 'privacy/', 'How data is handled', 'shield'], ['Disclaimer', 'disclaimer/', 'An estimate, not a bid', 'info'], ['Photo credits', 'photo-credits/', 'Sources of the photos', 'camera'], ['Page not found', '404.html', 'The 404 screen', 'warn']]]
+      ['Legal and other', [['Terms', 'terms/', 'Terms of use', 'file'], ['Privacy', 'privacy/', 'How data is handled', 'shield'], ['Disclaimer', 'disclaimer/', 'An estimate, not a bid', 'info'], ['Page not found', '404.html', 'The 404 screen', 'warn']]]
     ]},
     {key:'accounts', name:'Accounts', icon:'user', sections:[
       ['Sign up', [['Sign up', 'signup/', 'Before launch: closed, points to the waitlist', 'user'], ['Sign up from Sam\'s trial invite', 'signup/?invite=demo-trial', 'The invited path, with a 15-day trial', 'mail'], ['Check your email', 'verify-email/?email=homeowner@demo.ri', 'Confirm the address after sign up', 'mail'], ['Email link expired', 'verify-email/?email=homeowner@demo.ri&state=expired', 'The link is older than 24 hours', 'clock']]],

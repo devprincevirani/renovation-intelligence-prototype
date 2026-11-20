@@ -27,7 +27,7 @@ Open http://localhost:4173
 | Sign up, check your email | `/signup/`, `/verify-email/` |
 | Log in (with demo access) | `/login/` |
 | Forgot and reset password | `/forgot-password/`, `/reset-password/` |
-| Terms, privacy, disclaimer, photo credits | `/terms/`, `/privacy/`, `/disclaimer/`, `/photo-credits/` |
+| Terms, privacy, disclaimer | `/terms/`, `/privacy/`, `/disclaimer/` |
 | 404 | any unknown address |
 | User dashboard (phase 2) | `/app/` (My houses, intake, run, price, checkout, presentation, resources, account) |
 | Public share view | `/s/?t=<token>` |
@@ -104,6 +104,9 @@ Each named version is a full copy in `../prototype-versions/<name>/`. To go back
 | v42-before-admin-removal | Full copy of v41 (with the admin console), saved just before the console was taken out |
 | v43-no-admin | Admin console taken out for the client update: /admin/ is the placeholder again (as in v28), console files and the Pages menu console links removed, staff invite text as in v28. Everything else kept, including the DESIGN.md pass. To bring the console back: copy admin/index.html, assets/css/console.css, assets/js/console/, assets/js/site.js and assets/js/more.js from v42-before-admin-removal |
 | v44-how-it-works-simple | Client update: the method is no longer shown publicly. Home "How it works" and the How it works page are three picture-first steps (Add your house, We read it, See your price) with a few words each; the How it works page adds "What you get" (free price by package vs the full presentation, both drawn from the sample house) and "Honest numbers, or none". Removed: the who-does-what diagram, the eight internal steps, evidence and range, the seven checks, and how.js |
+| v45-no-photo-credits | Photo credits page removed, with its links in the Pages menu, footer, legal side menus, home page and area photo captions. The full credits list (needed by the CC BY-SA licenses) moved to CREDITS.md in the repository |
+| v46-global | (Not used) Removed the region entirely, including the city pages and area sections |
+| v47-no-metro-detroit | Current. Only the words "Metro Detroit" removed, from the logo tagline, page titles and copy (home, waitlist and its email, contact, cost hub, house type pages, rate notes). The five area pages, the home areas section, the cost hub map and area finder, and the footer Areas column all stay |
 | v6-cost | Redesigns the renovation cost section: finder and schematic area map, house type line drawings, rate explorer with a size slider, and "typical vs your house"; carried into area and house type pages |
 
 ## Folder layout
@@ -117,7 +120,7 @@ assets/js/materials.js  Material boards with drawn finish samples
 assets/js/compare.js    Before and after slider: your photo against your estimate
 assets/js/costkit.js    House drawings, area map, rate explorer, typical vs your house
 assets/js/*.js          One script per page type
-assets/img/             Photos (credits at /photo-credits/)
+assets/img/             Photos (credits in CREDITS.md)
 tools/                  Helpers that generated the account, legal and area pages (not needed to host)
 ```
 
@@ -147,6 +150,6 @@ In the Cloudflare dashboard, open Workers and Pages, then Create, then Pages, th
 
 ## Before it becomes the real product
 
-- Photos are from Wikimedia Commons under the licenses listed at `/photo-credits/`. Replace them with Sam's photography or licensed images.
+- Photos are from Wikimedia Commons under the licenses listed in `CREDITS.md`. Replace them with Sam's photography or licensed images.
 - Area text, rates, products, guidance and legal wording are samples. The real ones come from Sam.
 - In the real build, public pages are rendered on the server (docs/SEO_CONVERSION.md section 3); here, area and house type pages are filled in by JavaScript.

@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from page import page
 contact = '''<section style="padding-top:clamp(36px,6vw,80px)"><div class="wrap wl-grid">
 <div class="wl-copy"><nav class="crumbs" aria-label="Breadcrumb"><a href="../">Home</a><span aria-hidden="true">/</span><span>Contact</span></nav>
-<h1>Contact us</h1><p class="lede">A question about an estimate, a builder or agent account, or the Metro Detroit pilot. We reply by email.</p>
+<h1>Contact us</h1><p class="lede">A question about an estimate, a builder or agent account, or the pilot. We reply by email.</p>
 <div class="notice notice-quiet"><i data-i="info"></i><span>Sam's contact details and reply times are still to be confirmed. This form shows the layout.</span></div></div>
 <div class="panel"><form class="form-grid" id="ct-form" novalidate>
 <div class="field"><label for="ct-name">Your name</label><input class="input" id="ct-name" autocomplete="name"><span class="err"></span></div>
@@ -17,6 +17,6 @@ contact = '''<section style="padding-top:clamp(36px,6vw,80px)"><div class="wrap 
 </div></section>'''
 invite = '<div class="acc-center"><div class="acc-card" id="inv"></div></div>'
 os.makedirs('contact', exist_ok=True); os.makedirs('invite', exist_ok=True)
-open('contact/index.html','w').write(page('../','contact','Contact | Renovation Intelligence','Questions about an estimate, a builder or agent account, or the Metro Detroit pilot.',contact,('more',)))
+open('contact/index.html','w').write(page('../','contact','Contact | Renovation Intelligence','Questions about an estimate, a builder or agent account, or the pilot.',contact,('more',)))
 open('invite/index.html','w').write(page('../','invite','Accept your invite | Renovation Intelligence','Accept an invite to the Renovation Intelligence console.',invite,('more',),('', 'Back to the site'),True))
 print('ok')
