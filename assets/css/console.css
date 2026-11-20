@@ -1761,3 +1761,45 @@ dialog.dlg.dlg-drawer[open]{display:flex;animation:ax-in var(--slow) var(--ease-
   body:has(.us-head #us-bulk) .con-view{padding-bottom:96px}
   .con-view .c-page:has(.us-head #us-bulk){animation:none;transform:none}
 }
+
+/* ---------- Users and staff, mobile first ----------
+   Phone (under 600): one list. Each card: name with its action on the right, the email, the state, then the details.
+   The state badge moves into the card text, so the email keeps its width. Three equal tabs with short labels.
+   Tablet (600 to 899): the same cards, two to a row. 900 and up: the table. Invite staff shows only on the Staff tab
+   below 900, because that is where it belongs. */
+.us-pst{display:none}
+@media (max-width:899px){
+  .c-page[data-tab="users"] #inv-new,.c-page[data-tab="waitlist"] #inv-new{display:none}
+  .c-page[data-tab="users"] .c-actions,.c-page[data-tab="waitlist"] .c-actions{display:contents}
+  .us-cards .c-person{align-items:flex-start}
+  .us-cards .c-person>.c-av{margin-top:2px}
+  .c-tbl.us-cards tr{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"main act";align-items:start;gap:0 12px;padding:14px 16px}
+  .c-tbl.us-has-ck.us-cards tr{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"ck main act"}
+  .us-cards td[data-label="Person"],.us-cards td[data-label="Email"]{grid-area:main;flex:none;padding-right:0}
+  .us-cards td[data-label="State"],.us-cards td[data-label="Status"]{display:none}
+  .us-cards td[data-label=""]{grid-area:act;flex:none;margin:0;padding:0}
+  .us-users td[data-label=""],.us-staff td[data-label=""],.us-has-ck td[data-label=""]{margin-left:0}
+  .us-cards td.us-ckc{grid-area:ck;width:auto;padding:1px 12px 0 0}
+  .us-cards td[data-label=""] .us-act{min-height:40px;min-width:0;padding:0 12px}
+  .us-cards td[data-label=""] .linkbtn{display:inline-flex;align-items:center;min-height:40px}
+  .us-cards td[data-label=""] .linkbtn.danger{color:var(--muted);text-decoration-color:var(--border-strong)}
+  .us-cards td[data-label=""] .linkbtn.danger:hover,.us-cards td[data-label=""] .linkbtn.danger:focus-visible{color:var(--bad)}
+  .us-pst{display:block;margin-top:8px}
+  .us-pst .us-st{justify-content:flex-start}
+  .us-cards td[data-label="Email"] b{white-space:normal;overflow-wrap:anywhere}
+  .us-cards .c-person small{overflow-wrap:anywhere}
+}
+@media (max-width:599px){
+  .us-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0}
+  .us-tabs button{justify-content:center;padding:0 4px;gap:6px}
+  .ut-long,.us-long{display:none}
+  .us-top .us-bar .c-search{flex:1 1 auto}
+  .us-top .us-pick{flex:0 1 auto;max-width:48%}
+}
+@media (min-width:600px) and (max-width:899px){
+  .c-tbl-wrap:has(.us-cards){border:0;border-radius:0;background:none;overflow:visible}
+  .c-tbl.us-cards tbody{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .c-tbl.us-cards tr,.c-tbl.us-cards tr:last-child{border:1px solid var(--border);border-radius:8px;background:var(--raised)}
+  .c-tbl.us-cards tr.us-picked{background:#F7F3EC;border-color:var(--deep-forest)}
+}
+

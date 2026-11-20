@@ -127,7 +127,7 @@
 
     view.innerHTML = C.page({kicker:'Admin', title:'Users and staff', sub:'Users, account types, staff invites and permissions.',
       actions:sam ? '<div class="us-head" id="us-head" aria-live="polite"></div><button type="button" class="btn btn-primary" id="inv-new">' + RI.icon('user','i-sm') + 'Invite staff</button>' : '',
-      body:'<div class="us-top">' + '<div class="us-tabs" id="us-tab" role="tablist" aria-label="Sections">' + [['users', 'Users', U.length, 'user'], ['staff', 'Staff', staff.length + 1, 'key'], ['waitlist', 'Waitlist and trial', W.length, 'mail']].map(function(t){
+      body:'<div class="us-top">' + '<div class="us-tabs" id="us-tab" role="tablist" aria-label="Sections">' + [['users', 'Users', U.length, 'user'], ['staff', 'Staff', staff.length + 1, 'key'], ['waitlist', 'Waitlist<span class="ut-long"> and trial</span>', W.length, 'mail']].map(function(t){
         return '<button type="button" role="tab" data-v="' + t[0] + '" aria-selected="' + (t[0] === tab) + '"><span class="ut-ic">' + RI.icon(t[3], 'i-sm') + '</span><span class="ut-t">' + t[1] + '</span><span class="ut-n">' + t[2] + '</span></button>';
       }).join('') + '</div>' + '<div id="us-tools" class="us-bar"></div></div><div id="us-body"></div>'});
 
@@ -139,14 +139,14 @@
     function bodyUsers(el){
       var rows = U.filter(function(u){ return (st.uf === 'all' || userState(u) === st.uf) && (!st.uq || (u.name + ' ' + u.email).toLowerCase().indexOf(st.uq) > -1); });
       var tools = doc.getElementById('us-tools');
-      tools.innerHTML = C.search('us-uq', 'Search name or email', st.uq) +
+      tools.innerHTML = C.search('us-uq', 'Name or email', st.uq) +
         pick('us-uf', 'State', [['all','All states',U.length],['active','Active',count(U, userState, 'active')],['trial','On trial',count(U, userState, 'trial')],['unverified','Not verified',count(U, userState, 'unverified')],['disabled','Disabled',count(U, userState, 'disabled')]], st.uf);
       el.innerHTML =
         '<div class="c-mt">' + C.table({cls:'us-cards us-users', empty:'No account matches. Try another name, or show all.', cols:[{label:'Person'},{label:'Account type'},{label:'State'},{label:'Houses', num:true},{label:'Updates'},{label:'Joined', num:true},{label:''}],
           rows:rows.map(function(u){
             var act = '';
             if(sam && !u.demo) act = u.disabled ? '<button type="button" class="linkbtn small" data-en="' + RI.esc(u.email) + '">Enable</button>' : '<button type="button" class="linkbtn small danger" data-dis="' + RI.esc(u.email) + '">Disable</button>';
-            return {attr:u.disabled ? 'class="us-off"' : '', cells:['<span class="c-person">' + C.av(u.name) + '<span><span class="us-name"><b>' + RI.esc(u.name) + '</b>' + (u.demo ? DEMO_TAG : '') + '</span><small>' + RI.esc(u.email) + '</small>' + meta([RI.esc(u.type), u.houses + (u.houses === 1 ? ' house' : ' houses'), 'Joined ' + C.date(u.at)]) + '</span></span>',
+            return {attr:u.disabled ? 'class="us-off"' : '', cells:['<span class="c-person">' + C.av(u.name) + '<span><span class="us-name"><b>' + RI.esc(u.name) + '</b>' + (u.demo ? DEMO_TAG : '') + '</span><small>' + RI.esc(u.email) + '</small><span class="us-pst">' + stateLbl(u) + '</span>' + meta([RI.esc(u.type), u.houses + (u.houses === 1 ? ' house' : ' houses'), 'Joined ' + C.date(u.at)]) + '</span></span>',
               C.chip(RI.esc(u.type)), stateLbl(u), String(u.houses), u.news ? 'Yes' : '<span class="muted">No</span>', C.date(u.at), act]};
           })}) + '</div>' +
         '<div class="c-mt">' + C.note('Account type changes what a person sees, never what they may do. Disabling an account ends its sessions at once; its houses stay.') + '</div>';
@@ -169,14 +169,14 @@
       var cols = (canInvite ? [{label:'<span class="sr">Select</span><input type="checkbox" class="us-ck" id="us-all" aria-label="Select every waiting contact"' + (all ? ' checked' : '') + (waiting.length ? '' : ' disabled') + '>', cls:'us-ckc'}] : [])
         .concat([{label:'Email'},{label:'Account type'},{label:'From'},{label:'Joined', num:true},{label:'Status'},{label:'', cls:'us-actc'}]);
       var tools = doc.getElementById('us-tools');
-      tools.innerHTML = C.search('us-wq', 'Search by email', st.wq) +
+      tools.innerHTML = C.search('us-wq', 'Search email', st.wq) +
         pick('us-wf', 'Status', [['all','All statuses',W.length],['waiting','Waiting',count(W, function(w){ return w.status; }, 'waiting')],['invited','Invited',count(W, function(w){ return w.status; }, 'invited')],['trial','On trial',count(W, function(w){ return w.status; }, 'trial')]], st.wf);
       el.innerHTML =
         '<div class="c-mt">' + C.table({cls:'us-wl us-cards' + (canInvite ? ' us-has-ck' : ''), empty:'Nobody matches. Try another email, or show all.', cols:cols,
           rows:rows.map(function(w){
             var act = !canInvite ? '' : w.status === 'waiting' ? '<button type="button" class="us-act" data-trial="' + RI.esc(w.email) + '" aria-label="Invite ' + RI.esc(w.email) + ' to the trial">' + RI.icon('mail','i-sm') + 'Invite</button>' : w.status === 'invited' ? '<button type="button" class="us-act" data-trial="' + RI.esc(w.email) + '" data-again="1" title="Last sent ' + C.date(w.invitedAt) + '" aria-label="Resend the trial invite to ' + RI.esc(w.email) + '">' + RI.icon('refresh','i-sm') + 'Resend</button>' : '';
             var ck = canInvite ? [w.status === 'waiting' ? '<input type="checkbox" class="us-ck" data-pick="' + RI.esc(w.email) + '" aria-label="Select ' + RI.esc(w.email) + '"' + (st.pick.indexOf(w.email) > -1 ? ' checked' : '') + '>' : ''] : [];
-            return {attr:st.pick.indexOf(w.email) > -1 ? 'class="us-picked"' : '', cells:ck.concat(['<b>' + RI.esc(w.email) + '</b>' + meta([w.type ? cap(w.type) : '', w.source === 'home' ? 'Home page' : 'Waitlist page', 'Joined ' + C.date(w.at)]), w.type ? C.chip(cap(w.type)) : '<span class="muted">Not given</span>', w.source === 'home' ? 'Home page' : 'Waitlist page', C.date(w.at), wlStatus(w), act])};
+            return {attr:st.pick.indexOf(w.email) > -1 ? 'class="us-picked"' : '', cells:ck.concat(['<b>' + RI.esc(w.email) + '</b><span class="us-pst">' + wlStatus(w) + '</span>' + meta([w.type ? cap(w.type) : '', w.source === 'home' ? 'Home page' : 'Waitlist page', 'Joined ' + C.date(w.at)]), w.type ? C.chip(cap(w.type)) : '<span class="muted">Not given</span>', w.source === 'home' ? 'Home page' : 'Waitlist page', C.date(w.at), wlStatus(w), act])};
           })}) + '</div>' +
         '<div class="c-mt">' + C.note(!pre ? 'Trial invites are for the contacts Sam invites before launch. Export the list from Contacts and feedback.' : sam ? 'A trial invite emails a link to sign up for a 15-day trial. Export the list from Contacts and feedback.' : 'Only Sam invites contacts to the trial. Export the list from Contacts and feedback.') + '</div>';
       var ah = el.querySelector('#us-all'); if(ah) ah.indeterminate = st.pick.length > 0 && !all;
@@ -213,12 +213,12 @@
     }
 
     function bodyStaff(el){
-      var rows = [{cells:['<span class="c-person">' + C.av('Sam', 'sam') + '<span><b>Sam</b><small>admin@demo.ri</small>' + meta(['Super admin', 'Everything', 'Created on the server']) + '</span></span>', '<span class="c-chip sam">Super admin</span>', C.lbl('published').replace('Published', 'Active'), '<span class="ax-areas"><span class="c-chip sam">Everything</span></span>', '<span class="muted">Created on the server</span>', '']}];
+      var rows = [{cells:['<span class="c-person">' + C.av('Sam', 'sam') + '<span><b>Sam</b><small>admin@demo.ri</small><span class="us-pst">' + C.lbl('published').replace('Published', 'Active') + '</span>' + meta(['Super admin', 'Everything', 'Created on the server']) + '</span></span>', '<span class="c-chip sam">Super admin</span>', C.lbl('published').replace('Published', 'Active'), '<span class="ax-areas"><span class="c-chip sam">Everything</span></span>', '<span class="muted">Created on the server</span>', '']}];
       staff.forEach(function(x){
-        rows.push({attr:sam ? 'data-staff="' + RI.esc(x.email) + '"' : '', cells:['<span class="c-person">' + C.av(x.name || x.email) + '<span><b>' + RI.esc(x.name || 'Not accepted yet') + '</b><small>' + RI.esc(x.email) + '</small>' + meta(['Staff', x.status === 'invited' ? 'Invited ' + C.ago(x.invitedAt) : 'Joined ' + C.ago(x.joinedAt || x.invitedAt)]) + '</span></span>', '<span class="c-chip">Staff</span>',
+        rows.push({attr:sam ? 'data-staff="' + RI.esc(x.email) + '"' : '', cells:['<span class="c-person">' + C.av(x.name || x.email) + '<span><b>' + RI.esc(x.name || 'Not accepted yet') + '</b><small>' + RI.esc(x.email) + '</small><span class="us-pst">' + staffLbl(x) + '</span>' + meta(['Staff', x.status === 'invited' ? 'Invited ' + C.ago(x.invitedAt) : 'Joined ' + C.ago(x.joinedAt || x.invitedAt)]) + '</span></span>', '<span class="c-chip">Staff</span>',
           staffLbl(x),
           areaChips(x.perms), x.status === 'invited' ? 'Invited ' + C.ago(x.invitedAt) + ' · link works 7 days' : 'Joined ' + C.ago(x.joinedAt || x.invitedAt),
-          sam ? '<button type="button" class="us-act" data-staff="' + RI.esc(x.email) + '" aria-label="Manage access for ' + RI.esc(x.name || x.email) + '">' + RI.icon('key','i-sm') + 'Manage access</button>' : '']});
+          sam ? '<button type="button" class="us-act" data-staff="' + RI.esc(x.email) + '" aria-label="Manage access for ' + RI.esc(x.name || x.email) + '">' + RI.icon('key','i-sm') + 'Manage<span class="us-long"> access</span></button>' : '']});
       });
       el.innerHTML = C.table({cls:'us-cards us-staff', cols:[{label:'Person'},{label:'Role'},{label:'State'},{label:'Can work in'},{label:'Since'},{label:'', cls:'us-actc'}], rows:rows}) +
         '<div class="c-mt">' + C.note('Staff edit drafts. Only Sam publishes, and only Sam manages staff. A new staff member starts with no permissions.') + '</div>';
@@ -240,6 +240,7 @@
     }
     function body(){
       var el = doc.getElementById('us-body');
+      var pg = view.querySelector('.c-page'); if(pg) pg.setAttribute('data-tab', tab);
       doc.getElementById('us-tools').innerHTML = '';
       if(tab !== 'waitlist') st.pick = [];
       if(tab === 'users') bodyUsers(el);
