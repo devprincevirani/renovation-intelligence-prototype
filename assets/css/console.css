@@ -474,14 +474,36 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:.78rem}
 .cd-sb:last-child{border-left:1px solid var(--border-soft)}
 .cd-sb:hover{background:var(--sunken)}
 .cd-sb:focus-visible{outline:2px solid var(--deep-forest);outline-offset:-2px}
-.cd-chart{margin-top:30px;padding:0 10px}
-.cd-plot{position:relative;border-bottom:1px solid var(--border-strong)}
+.cd-legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin:14px 0 0;padding:0;list-style:none;font-size:.8rem;color:var(--text)}
+.cd-legend li{display:inline-flex;align-items:center;gap:7px}
+.cd-legend li[hidden]{display:none}
+.cd-lg-z{color:var(--muted)}
+.cd-sw{display:inline-block;width:12px;height:12px;border-radius:2px}
+.cd-sw.o{background:var(--deep-forest)}
+.cd-sw.u{background:var(--raised);border:1px dashed var(--muted)}
+.cd-sw.c{background:var(--bronze)}
+.cd-sw.z{width:18px;background:var(--sunken)}
+.cd-chart{margin-top:30px;padding:0 10px 0 36px}
+.cd-plot{position:relative;height:180px;border-bottom:1px solid var(--border-strong)}
 .cd-zone{position:absolute;top:0;bottom:0;left:0;overflow:hidden;background:var(--sunken);border-radius:4px 0 0 0}
-.cd-zone span,.cd-zok{position:absolute;top:8px;font-size:.66rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
-.cd-zone span{left:8px;color:var(--muted)}
-.cd-zok{right:0;color:var(--ok)}
-.cd-line{position:absolute;top:0;bottom:-1px;width:2px;margin-left:-1px;background:var(--deep-forest)}
-.cd-pub,.cd-ghost{position:absolute;top:-20px;bottom:0;border-left:1px dashed var(--border-strong)}
+.cd-line{position:absolute;z-index:3;top:0;bottom:-6px;width:2px;margin-left:-1px;background:var(--charcoal)}
+.cd-bars{position:absolute;z-index:2;left:0;right:0;bottom:0;top:26px}
+.cd-gl{position:absolute;left:0;right:0;height:0;border-top:1px solid rgba(136,127,114,.18)}
+.cd-gl span{position:absolute;right:calc(100% + 8px);top:-8px;font-size:.7rem;line-height:1;color:var(--muted);font-variant-numeric:tabular-nums}
+#cd-cols{position:absolute;inset:0}
+.cd-col{position:absolute;bottom:0;display:flex;flex-direction:column;gap:2px;width:min(24px,calc(9.09% - 8px));transform:translateX(-50%)}
+.cd-col::before{content:"";position:absolute;inset:-26px -10px 0}
+.cd-col i{position:relative;flex:1 1 0;min-height:3px}
+.cd-col i:first-of-type{border-radius:4px 4px 0 0}
+.cd-col i.o{background:var(--deep-forest)}
+.cd-col i.c{background:var(--bronze)}
+.cd-col i.u{background:var(--raised);border:1px dashed var(--muted)}
+.cd-col b{position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);font-size:.76rem;font-weight:600;line-height:1;color:var(--text);font-variant-numeric:tabular-nums}
+.cd-col:hover i{filter:brightness(1.15)}
+.cd-tip{position:absolute;z-index:6;max-width:240px;padding:7px 10px;border-radius:4px;background:var(--charcoal);color:#fff;font-size:.76rem;line-height:1.35;white-space:normal;width:max-content;pointer-events:none;box-shadow:0 10px 24px -12px rgba(0,0,0,.5)}
+.cd-tip[hidden]{display:none}
+.cd-xt{margin:2px 0 0;text-align:center;letter-spacing:.02em;font-size:.72rem;color:var(--muted)}
+.cd-pub,.cd-ghost{position:absolute;z-index:3;top:-20px;bottom:0;border-left:1px dashed var(--border-strong)}
 .cd-pub{display:none}
 .cd-pub.on{display:block}
 .cd-ghost{border-left-color:var(--bronze)}
@@ -491,10 +513,7 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:.78rem}
 .cd-ghost.r span{left:auto;right:5px}
 .cd-pub.l span{left:5px;right:auto}
 .cd-why b{font-family:var(--body);font-size:inherit;font-weight:700;color:inherit}
-.cd-dot{position:absolute;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--deep-forest);border:2px solid var(--deep-forest);transition:background var(--fast),border-color var(--fast)}
-.cd-dot.un{background:var(--raised);border-color:var(--muted)}
-.cd-dot.flip{box-shadow:0 0 0 3px var(--raised),0 0 0 5px var(--bronze)}
-.cd-range{-webkit-appearance:none;appearance:none;position:relative;z-index:2;display:block;width:calc(100% + 20px);height:24px;margin:-12px -10px 0;padding:0;background:transparent;cursor:pointer}
+.cd-range{-webkit-appearance:none;appearance:none;position:relative;z-index:4;display:block;width:calc(100% + 20px);height:24px;margin:-2px -10px 0;padding:0;background:transparent;cursor:pointer}
 .cd-range:disabled{cursor:default}
 .cd-range::-webkit-slider-runnable-track{height:24px;background:transparent}
 .cd-range::-moz-range-track{height:24px;background:transparent}

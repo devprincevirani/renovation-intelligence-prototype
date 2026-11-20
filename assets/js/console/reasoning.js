@@ -396,19 +396,27 @@
       var on = box.querySelector('.on'); if(on && box.scrollWidth > box.clientWidth) box.scrollLeft = on.offsetLeft - 8;
     }
 
-    function dots(fl){
-      var placed = [], top = 0;
-      var html = fl.map(function(l, k){ var c = Math.max(CD_LO, l.conf), lv = 0;
-        while(placed.some(function(p){ return p[1] === lv && Math.abs(p[0] - c) < 2; })) lv++;
-        placed.push([c, lv]); top = Math.max(top, lv);
-        return '<i class="cd-dot" data-k="' + k + '" style="left:' + cdPos(c) + ';bottom:' + (10 + lv * 16) + 'px" title="' + RI.esc(l.item.name + ', ' + l.room + ', ' + A.addr(l.h) + ': confidence ' + l.conf) + '"></i>'; }).join('');
-      return {html:html, h:Math.max(104, 58 + (top + 1) * 16)};
+    /* Histogram: one column per 5 points of confidence (90 to 95 is the last), each split into the lines that are
+       clear to price, the lines this edit would change, and the lines that are unverified */
+    var BINS = [40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90];
+    var binOf = function(c){ return Math.min(10, Math.max(0, Math.floor((c - CD_LO) / 5))); };
+    function yScale(fl){ var n = BINS.map(function(){ return 0; }); fl.forEach(function(l){ n[binOf(l.conf)]++; });
+      var mx = Math.max.apply(null, n.concat([1])), st = mx <= 4 ? 1 : mx <= 8 ? 2 : mx <= 20 ? 5 : 10; return {max:Math.ceil(mx / st) * st, step:st}; }
+    function grid(y){ var h = '<i class="cd-gl" style="bottom:0"><span>0</span></i>'; for(var v = y.step; v <= y.max; v += y.step) h += '<i class="cd-gl" style="bottom:' + (v / y.max * 100).toFixed(2) + '%"><span>' + v + '</span></i>'; return h; }
+    function cols(fl, t, live, y){
+      return BINS.map(function(b, i){
+        var inb = fl.filter(function(l){ return binOf(l.conf) === i; }); if(!inb.length) return '';
+        var ok = 0, un = 0, ch = 0; inb.forEach(function(l){ var u = l.conf < t; if(u !== (l.conf < live)) ch++; else if(u) un++; else ok++; });
+        var seg = function(n, c){ return n ? '<i class="' + c + '" style="flex-grow:' + n + '"></i>' : ''; };
+        var tip = 'Confidence ' + (i === 10 ? '90 and up' : b + ' to ' + (b + 4)) + ': ' + plural(inb.length, 'line') + '. ' + [ok ? ok + ' clear' : '', ch ? ch + ' would change' : '', un ? un + ' unverified' : ''].filter(Boolean).join(', ');
+        return '<div class="cd-col" style="left:' + cdPos(b + 2.5) + ';height:' + (inb.length / y.max * 100).toFixed(2) + '%" data-tip="' + RI.esc(tip) + '" role="img" aria-label="' + RI.esc(tip) + '"><b>' + inb.length + '</b>' + seg(un, 'u') + seg(ch, 'c') + seg(ok, 'o') + '</div>';
+      }).join('');
     }
 
     function mark(cls, v, label){ return '<div class="' + cls + (v > 80 ? ' r' : '') + (v < 52 ? ' l' : '') + '" style="left:' + cdPos(v) + '"><span>' + label + '</span></div>'; }
 
     function detail(){
-      var s = sheets[cur], dr = C.draftFor('sheets', cur), fl = of(cur), d = dots(fl), el = doc.getElementById('cd-detail');
+      var s = sheets[cur], dr = C.draftFor('sheets', cur), fl = of(cur), y = yScale(fl), el = doc.getElementById('cd-detail');
       el.innerHTML =
         '<header class="cd-head"><div><p class="c-kicker"><code>' + cur + '</code> · Condition sheet</p><h2>' + name(cur) + '</h2></div><span id="cd-state"></span></header>' +
         '<div class="cd-vers">' +
@@ -418,16 +426,18 @@
             : '<p class="cd-vnone">Nothing waiting. A change you save becomes a draft for Sam to publish.</p>') +
         '</div>' +
         '<section class="cd-card" aria-labelledby="cd-thr-h">' +
-          '<div class="cd-thr-top"><div><h3 class="cd-h" id="cd-thr-h">Confidence threshold</h3><p class="cd-p">' + (fl.length ? 'Each dot is one ' + name(cur).toLowerCase() + ' line in the current runs, placed at how sure its photo reading is. ' : '') + (canEdit ? 'Drag the handle or use the buttons to see what a change would do.' : 'You can read this sheet but not change it.') + '</p></div>' +
+          '<div class="cd-thr-top"><div><h3 class="cd-h" id="cd-thr-h">Confidence threshold</h3><p class="cd-p">' + (fl.length ? 'Each column counts the ' + name(cur).toLowerCase() + ' lines in the current runs by how sure the photo reading is. ' : '') + (canEdit ? 'Drag the handle or use the buttons to see what a change would do.' : 'You can read this sheet but not change it.') + '</p></div>' +
             '<div class="cd-step">' + (canEdit ? '<button type="button" class="cd-sb" data-step="-1" aria-label="Lower the threshold by one">' + RI.icon('minus') + '</button>' : '') + '<output id="cd-num" for="cd-r">' + s.threshold + '</output>' + (canEdit ? '<button type="button" class="cd-sb" data-step="1" aria-label="Raise the threshold by one">' + RI.icon('plus') + '</button>' : '') + '</div></div>' +
+          '<ul class="cd-legend"><li><i class="cd-sw o"></i>Clear to price</li><li><i class="cd-sw u"></i>Unverified</li><li id="cd-lg-c" hidden><i class="cd-sw c"></i>Changes with this edit</li><li class="cd-lg-z"><i class="cd-sw z"></i>Below the threshold</li></ul>' +
           '<div class="cd-chart">' +
-            '<div class="cd-plot" style="height:' + d.h + 'px">' +
-              '<div class="cd-zone" id="cd-zone"><span>Unverified</span></div><span class="cd-zok">Clear to price</span>' +
+            '<div class="cd-plot">' +
+              '<div class="cd-zone" id="cd-zone"></div>' +
               (dr ? mark('cd-ghost', dr.after.threshold, 'Queued ' + dr.after.threshold) : '') + mark('cd-pub', s.threshold, 'Live ' + s.threshold) +
-              '<div class="cd-line" id="cd-line"></div>' + d.html +
+              '<div class="cd-bars">' + grid(y) + '<div id="cd-cols"></div><div class="cd-tip" id="cd-tip" hidden></div></div>' +
+              '<div class="cd-line" id="cd-line"></div>' +
             '</div>' +
             '<input type="range" id="cd-r" class="cd-range" min="' + CD_LO + '" max="' + CD_HI + '" step="1" value="' + s.threshold + '"' + (canEdit ? '' : ' disabled') + ' aria-label="Confidence threshold" aria-describedby="cd-sum">' +
-            '<div class="cd-axis" aria-hidden="true">' + [40, 50, 60, 70, 80, 90].map(function(v){ return '<span style="left:' + cdPos(v) + '">' + v + '</span>'; }).join('') + '</div>' +
+            '<div class="cd-axis" aria-hidden="true">' + [40, 50, 60, 70, 80, 90].map(function(v){ return '<span style="left:' + cdPos(v) + '">' + v + '</span>'; }).join('') + '</div><p class="cd-xt">Photo reading confidence</p>' +
           '</div>' +
           '<dl class="cd-stats" id="cd-stats"></dl><p class="cd-sum" id="cd-sum" aria-live="polite"></p>' +
         '</section>' +
@@ -462,7 +472,7 @@
       var r = doc.getElementById('cd-r'); if(+r.value !== t) r.value = t;
       doc.getElementById('cd-zone').style.width = cdPos(t); doc.getElementById('cd-line').style.left = cdPos(t);
       view.querySelector('.cd-pub').classList.toggle('on', dirty);
-      view.querySelectorAll('.cd-dot').forEach(function(dt){ var l = fl[+dt.getAttribute('data-k')]; dt.classList.toggle('un', l.conf < t); dt.classList.toggle('flip', (l.conf < t) !== (l.conf < s.threshold)); });
+      doc.getElementById('cd-cols').innerHTML = cols(fl, t, s.threshold, yScale(fl)); doc.getElementById('cd-lg-c').hidden = !(dirty && delta);
       doc.getElementById('cd-stats').innerHTML = '<div><dt>Lines in current runs</dt><dd>' + fl.length + '</dd></div><div><dt>Clear to price</dt><dd>' + (fl.length - un) + '</dd></div>' +
         '<div class="u"><dt>Unverified</dt><dd>' + un + (dirty && delta ? '<small>' + (delta > 0 ? '+' : '') + delta + ' vs live</small>' : '') + '</dd></div>';
       doc.getElementById('cd-sum').innerHTML = !fl.length ? 'No line of this type in the current runs, so a change here shows no effect yet.'
@@ -474,6 +484,11 @@
       if(dirty && canEdit && !has) sv.innerHTML = C.saveBar('cd'); else if(!dirty && has) sv.innerHTML = '';
     }
 
+    view.addEventListener('mouseover', function(e){ var c = e.target.closest && e.target.closest('.cd-col'), tip = doc.getElementById('cd-tip'); if(!tip) return;
+      if(!c){ tip.hidden = true; return; } var x = parseFloat(c.style.left);
+      tip.textContent = c.getAttribute('data-tip'); tip.style.left = c.style.left; tip.style.bottom = 'calc(' + c.style.height + ' + 24px)';
+      tip.style.transform = x > 75 ? 'translateX(calc(-100% + 14px))' : x < 25 ? 'translateX(-14px)' : 'translateX(-50%)'; tip.hidden = false; });
+    view.addEventListener('mouseleave', function(){ var tip = doc.getElementById('cd-tip'); if(tip) tip.hidden = true; });
     view.addEventListener('input', function(e){ if(e.target.id !== 'cd-r') return; val = +e.target.value; update(); });
     view.addEventListener('click', function(e){
       var li = e.target.closest('[data-f]'); if(li){ if(val != null && val !== sheets[cur].threshold){ RI.toast('Save or undo your change first.', 'warn'); return; } cur = li.getAttribute('data-f'); val = null; more = false; history.replaceState(null, '', '#/condition-sheets?fam=' + cur); list(); detail(); return; }
