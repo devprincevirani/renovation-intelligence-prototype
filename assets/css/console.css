@@ -1747,3 +1747,17 @@ dialog.dlg.dlg-drawer[open]{display:flex;animation:ax-in var(--slow) var(--ease-
   .ut-ic{display:none}
 }
 
+/* v70: the bulk invite lives in the header cell above the Invite column on desktop */
+.us-wl thead th:last-child:has(.us-th-go){padding-block:6px;text-align:right}
+.us-th-go{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:100px;min-height:32px;padding:0 12px;border:1px solid var(--deep-forest);border-radius:4px;background:var(--deep-forest);color:#fff;font:600 .82rem var(--body);letter-spacing:0;text-transform:none;white-space:nowrap;cursor:pointer;transition:background var(--fast)}
+.us-th-go:hover{background:#2E4B48}
+.us-th-go:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2px}
+@media (min-width:900px){.us-head{display:none}}
+/* Phone and tablet: no table header, so the selection uses the bottom bar */
+@media (max-width:899px){
+  .us-head:has(#us-bulk){position:fixed;left:0;right:0;bottom:0;z-index:60;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:var(--raised);border-top:1px solid var(--border);box-shadow:0 -8px 24px rgba(32,59,56,.12)}
+  .us-head:has(#us-bulk) .us-selgrp{flex:1;height:48px}
+  .us-head:has(#us-bulk) .us-sg-go{margin-left:auto}
+  body:has(.us-head #us-bulk) .con-view{padding-bottom:96px}
+  .con-view .c-page:has(.us-head #us-bulk){animation:none;transform:none}
+}

@@ -180,13 +180,19 @@
           })}) + '</div>' +
         '<div class="c-mt">' + C.note(!pre ? 'Trial invites are for the contacts Sam invites before launch. Export the list from Contacts and feedback.' : sam ? 'A trial invite emails a link to sign up for a 15-day trial. Export the list from Contacts and feedback.' : 'Only Sam invites contacts to the trial. Export the list from Contacts and feedback.') + '</div>';
       var ah = el.querySelector('#us-all'); if(ah) ah.indeterminate = st.pick.length > 0 && !all;
+      /* Desktop: the bulk action sits right above the row Invite buttons, same width and place */
+      var th = el.querySelector('.us-wl thead th:last-child');
+      if(th && canInvite && st.pick.length){
+        th.innerHTML = '<button type="button" class="us-th-go" id="us-th-bulk" aria-label="Invite the ' + st.pick.length + ' selected contacts to the trial">' + RI.icon('mail','i-sm') + 'Invite ' + st.pick.length + '</button>';
+        th.querySelector('#us-th-bulk').addEventListener('click', function(){ trialDialog(st.pick.slice()); });
+      }
       RI.fillIcons(el);
       RI.fillIcons(tools);
       tools.querySelector('#us-wq').addEventListener('input', function(){ st.wq = this.value.trim().toLowerCase(); var p = this.selectionStart; bodyWaitlist(el); var n = doc.getElementById('us-wq'); n.focus(); n.setSelectionRange(p, p); });
       tools.querySelector('#us-wf').addEventListener('change', function(){ st.wf = this.value; bodyWaitlist(el); doc.getElementById('us-wf').focus(); });
       el.addEventListener('change', function onCk(e){
         var t = e.target; if(!t.classList.contains('us-ck')) return; el.removeEventListener('change', onCk);
-        if(t.id === 'us-all') st.pick = t.checked ? waiting.map(function(w){ return w.email; }) : [];
+        if(t.id === 'us-all') st.pick = st.pick.length ? [] : waiting.map(function(w){ return w.email; });
         else { var em = t.getAttribute('data-pick'); st.pick = t.checked ? st.pick.concat(em) : st.pick.filter(function(x){ return x !== em; }); }
         bodyWaitlist(el);
       });
@@ -227,9 +233,7 @@
       /* One control for the selection: the count, clear, and the action, joined; a divider keeps it apart from Invite staff */
       slot.innerHTML = !on ? '' : n ? '<div class="us-selgrp" role="group" aria-label="' + n + ' contacts selected"><span class="us-sg-n"><b>' + n + '</b>selected</span>' +
         '<button type="button" class="us-sg-x" id="us-clear" aria-label="Clear the selection" title="Clear the selection">' + RI.icon('x','i-sm') + '</button>' +
-        '<button type="button" class="us-sg-go" id="us-bulk">' + RI.icon('mail','i-sm') + 'Invite to the trial</button></div><span class="us-h-div" aria-hidden="true"></span>' :
-        '<span class="us-h-hint">Tick waiting contacts to invite several at once</span>';
-      if(staffBtn){ staffBtn.classList.toggle('btn-primary', !n); staffBtn.classList.toggle('btn-secondary', !!n); }
+        '<button type="button" class="us-sg-go" id="us-bulk">' + RI.icon('mail','i-sm') + 'Invite to the trial</button></div>' : '';
       RI.fillIcons(slot);
       var cl = slot.querySelector('#us-clear'); if(cl) cl.addEventListener('click', function(){ st.pick = []; bodyWaitlist(doc.getElementById('us-body')); });
       var bk = slot.querySelector('#us-bulk'); if(bk) bk.addEventListener('click', function(){ trialDialog(st.pick.slice()); });
