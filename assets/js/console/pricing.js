@@ -142,10 +142,11 @@
         '<div class="c-mt">' + C.note('Sample rates. Low and High only, never one number. Sam\'s rate library replaces them.') + '</div>'});
 
     function statusLbl(r, i){
-      var s = stateOf(r, i);
-      if(s === 'none') return '<span class="lb lb-off">No rate yet</span>';
-      if(s === 'queued') return '<span class="lb lb-queued">In the queue</span>';
-      return '<span class="lb lb-pub">Published v' + r.v + '</span>';
+      if(r.lo == null) return '<span class="lb lb-off">No rate yet</span>';
+      return '<span class="lb lb-pub">Published <span class="lb-v">v' + r.v + '</span></span>';
+    }
+    function queueLine(r, i){
+      return C.draftFor('rates', String(i)) ? '<span class="rlb-qline">' + RI.icon('clock', 'i-sm') + 'v' + ((r.v || 0) + 1) + ' in the queue</span>' : '';
     }
     function draw(){
       var q = st.q, rows = list.map(function(r, i){ return {r:r, i:i}; }).filter(function(x){ var r = x.r;
@@ -172,7 +173,7 @@
             '<span class="rlb-val">' + rtRange(r.lo, r.hi, r.unit) + '</span>' +
             '<span class="rlb-eff">' + (r.lo == null ? (d && d.after.eff ? '<span class="rlb-dv">' + C.date(d.after.eff) + '<small>Draft</small></span>' : '<span class="muted">&ndash;</span>') : C.date(r.at)) + '</span><span class="rlb-src">' + (r.src ? RI.esc(r.src) : '<span class="muted">&ndash;</span>') + '</span>' +
             '<span class="rlb-meta">' + (r.lo == null ? 'Waiting for Sam\'s Low and High' : 'Effective ' + rtShort(r.at) + ' &middot; ' + RI.esc(r.src)) + (d ? ' &middot; <b class="rlb-q">Draft: ' + rtMoney(d.after.lo) + ' to ' + rtMoney(d.after.hi) + '</b>' : '') + '</span>' +
-            '<span class="rlb-st">' + statusLbl(r, i) + '</span><span class="rlb-go">' + RI.icon('chev', 'i-sm') + '</span></button></li>';
+            '<span class="rlb-st">' + statusLbl(r, i) + queueLine(r, i) + '</span><span class="rlb-go">' + RI.icon('chev', 'i-sm') + '</span></button></li>';
         });
       });
       doc.getElementById('rlb-body').innerHTML = html + '</ul>' + C.pager({page:st.page, per:st.per, total:total, noun:'rates', perOpts:[10, 25, 50]});
@@ -192,7 +193,7 @@
     function openSheet(i){
       open = i; var r = list[i], d = C.draftFor('rates', String(i)), hist = rtHistory(r, i), ed = {lo:d ? d.after.lo : r.lo, hi:d ? d.after.hi : r.hi, src:(d && d.after.src) || r.src || '', eff:rtISO((d && d.after.eff) || Date.now())};
       sheet.innerHTML = '<div class="rlb-sh">' +
-        '<header class="rlb-sh-h"><button type="button" class="rlb-x" data-close aria-label="Close">' + RI.icon('x') + '</button><div><p class="rlb-code"><code>' + r.code + '</code> &middot; ' + r.trade + '</p><h2 id="rlb-h">' + RI.esc(r.name) + '</h2><p class="muted">' + RI.esc(r.desc) + '</p></div><span id="rlb-stl">' + statusLbl(r, i) + '</span></header>' +
+        '<header class="rlb-sh-h"><button type="button" class="rlb-x" data-close aria-label="Close">' + RI.icon('x') + '</button><div><p class="rlb-code"><code>' + r.code + '</code> &middot; ' + r.trade + '</p><h2 id="rlb-h">' + RI.esc(r.name) + '</h2><p class="muted">' + RI.esc(r.desc) + '</p></div><span id="rlb-stl">' + statusLbl(r, i) + queueLine(r, i) + '</span></header>' +
         '<div class="rlb-sh-b">' +
           '<section class="rlb-now"><div class="rlb-big">' + rtRange(r.lo, r.hi, r.unit) + '</div>' + (r.lo == null ? '<p class="rlb-why">Lines that use this activity show &ldquo;Not priced yet&rdquo; (check 4) until Sam publishes a Low and a High. Nothing is shown as zero.</p>' : '') +
             '<div id="rlb-bars">' + bars(r, ed.lo, ed.hi) + '</div>' +
@@ -232,7 +233,7 @@
         dl.textContent = msg; dl.classList.toggle('bad', bad);
         sheet.querySelector('#rlb-bars').innerHTML = bars(r, bad ? null : a, bad ? null : b);
         var changed = !bad && msg !== 'No change yet.', typed = lo.value !== String(ed.lo == null ? '' : ed.lo) || hi.value !== String(ed.hi == null ? '' : ed.hi) || src.value.trim() !== (ed.src || '') || eff.value !== ed.eff;
-        sheet.querySelector('#rlb-stl').innerHTML = typed ? C.lbl('draft', 'not saved') : statusLbl(r, i);
+        sheet.querySelector('#rlb-stl').innerHTML = typed ? C.lbl('draft', 'not saved') : statusLbl(r, i) + queueLine(r, i);
         return changed;
       }
       if(lo){ [lo, hi, src, eff].forEach(function(x){ x.addEventListener('input', live); x.addEventListener('change', live); }); live(); }

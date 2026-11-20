@@ -2235,3 +2235,10 @@ dialog.rlb-sheet::backdrop{background:rgba(24,38,36,.45)}
   .rlb-tools{grid-template-columns:minmax(240px,1fr) minmax(150px,190px) minmax(140px,170px) minmax(200px,250px)}
   .rlb-tools .c-search{grid-column:auto}
 }
+/* Rates (v100): the live status, with a waiting draft as a second line; the version keeps its lowercase v */
+.lb .lb-v{text-transform:none}
+.rlb-st{display:grid;justify-items:start;gap:4px}
+.rlb-qline{display:inline-flex;align-items:center;gap:4px;font-size:.74rem;font-weight:600;color:var(--warn);white-space:nowrap}
+.rlb-qline .i{width:13px;height:13px}
+#rlb-stl{display:grid;justify-items:start;gap:4px}
+@media (max-width:899px){.rlb-st{justify-items:end;text-align:right}}
