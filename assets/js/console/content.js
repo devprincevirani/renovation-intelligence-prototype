@@ -105,16 +105,20 @@
   var RI = window.RI, C = RI.Con, doc = document, DAY = 86400000;
   var I = function(n, c){ return RI.icon(n, c || ''); }, fmt = function(n){ return Math.round(n).toLocaleString('en-US'); };
   var pct = function(a, b){ return b ? a / b * 100 : 0; };
-  /* The path, with what makes people leave and what the screen does about it (APP_FLOW 3) */
+  /* The nine steps of APP_FLOW 3, with what makes people leave and what the screen does about it.
+     auto: the step follows on its own (the price arrives, the paid presentation opens), drawn lighter.
+     rank: counted among the drops worth acting on. Arriving to signing up is left out (before launch most visitors
+     join the waitlist instead), and so is sharing (it comes after payment). */
   var FLOW = [
-    {e:'signup_completed', l:'Signs up', s:'Sign up', why:'Too many fields', fix:'Email, password, account type. Nothing else'},
-    {e:'intake_started', l:'Starts the intake', s:'Intake wizard', why:'Long forms, lost progress', fix:'Fewest inputs, saved at every step, measurements optional'},
-    {e:'intake_submitted', l:'Submits the house', s:'Intake wizard', why:'Long forms, lost progress', fix:'Fewest inputs, saved at every step, measurements optional'},
-    {e:'price_ready', l:'Price ready', s:'House page', why:'Does not know if it is working', fix:'Live progress, and an email when the price is ready', sys:true},
-    {e:'price_viewed', l:'Sees the price', s:'House page', why:'Does not trust the number', fix:'Low and High, the "partial" label, what is unverified and why'},
-    {e:'checkout_started', l:'Starts to pay', s:'House page', why:'Does not know what the money buys', fix:'A clear list and preview of what the presentation holds'},
-    {e:'payment_completed', l:'Pays', s:'Stripe Checkout', why:'Payment friction', fix:'Stripe\'s own page; return straight into the presentation'},
-    {e:'presentation_opened', l:'Reads it', s:'Presentation', why:'Hard to read on a phone', fix:'Sticky package switch and total, rooms that open and close'}
+    {e:'page_view', l:'Arrives', s:'Home or area page', why:'Does not understand what it is in five seconds', fix:'One sentence, one button, a real presentation shown'},
+    {e:'signup_completed', l:'Starts', s:'Sign up', why:'Too many fields', fix:'Email, password, account type. Nothing else'},
+    {e:'intake_submitted', l:'Enters the house', s:'Intake wizard', why:'Long forms, lost progress', fix:'Fewest inputs, saved at every step, measurements optional', rank:true},
+    {e:'price_ready', l:'Waits', s:'House page', why:'Does not know if it is working', fix:'Live progress, and an email when the price is ready', auto:true},
+    {e:'price_viewed', l:'Sees the price', s:'House page', why:'Does not trust the number', fix:'Low and High, the "partial" label, what is unverified and why', rank:true},
+    {e:'checkout_started', l:'Decides to pay', s:'House page', why:'Does not know what the money buys', fix:'A clear list and preview of what the presentation holds', rank:true},
+    {e:'payment_completed', l:'Pays', s:'Stripe Checkout', why:'Payment friction', fix:'Stripe\'s own page; return straight into the presentation', rank:true},
+    {e:'presentation_opened', l:'Reads', s:'Presentation', why:'Hard to read on a phone', fix:'Sticky package switch and total, rooms that open and close', auto:true},
+    {e:'share_created', l:'Spreads it', s:'Share view', why:'Nothing to pass on', fix:'Share link and PDF on every presentation'}
   ];
   /* Sample month: invented numbers that show the layout, labelled as sample */
   var SAMPLE = {page_view:1840, waitlist_joined:212, signup_completed:96, intake_started:71, intake_submitted:52, price_ready:51, price_viewed:49, checkout_started:21, payment_completed:14, presentation_opened:14, share_created:6, share_viewed:23, feedback_sent:5};
@@ -132,27 +136,6 @@
     return '<span class="k3-d ' + (d === 0 ? 'flat' : d > 0 ? 'good' : 'bad') + '">' + txt + '</span>';
   }
 
-
-  /* The funnel as one ribbon that narrows from step to step. Drawn in a 1000 x 200 box and stretched to the card;
-     the biggest drop is the bronze stretch. Labels sit in an HTML grid of the same columns, so text never stretches. */
-  function ribbon(steps, top, big){
-    var W = 1000, H = 200, n = steps.length, pad = 6, hmin = 4;
-    var hs = steps.map(function(x){ return Math.max(hmin, x.v / top * (H - pad * 2)); });
-    var xs = steps.map(function(x, i){ return (i + 0.5) / n * W; });
-    var X = [0].concat(xs, [W]), Hh = [hs[0]].concat(hs, [hs[n - 1]]);
-    function shape(a, b){
-      var y = function(h, dn){ return ((H + (dn ? h : -h)) / 2).toFixed(1); }, d = 'M' + X[a].toFixed(1) + ',' + y(Hh[a]), i, m;
-      for(i = a + 1; i <= b; i++){ m = (X[i - 1] + X[i]) / 2; d += ' C' + m.toFixed(1) + ',' + y(Hh[i - 1]) + ' ' + m.toFixed(1) + ',' + y(Hh[i]) + ' ' + X[i].toFixed(1) + ',' + y(Hh[i]); }
-      d += ' L' + X[b].toFixed(1) + ',' + y(Hh[b], 1);
-      for(i = b; i > a; i--){ m = (X[i - 1] + X[i]) / 2; d += ' C' + m.toFixed(1) + ',' + y(Hh[i], 1) + ' ' + m.toFixed(1) + ',' + y(Hh[i - 1], 1) + ' ' + X[i - 1].toFixed(1) + ',' + y(Hh[i - 1], 1); }
-      return d + ' Z';
-    }
-    var bi = big ? steps.indexOf(big) : -1;
-    return '<svg class="rb-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true">' +
-      '<path class="rb-body" d="' + shape(0, n + 1) + '"/>' +
-      (bi > 0 ? '<path class="rb-big" d="' + shape(bi, bi + 1) + '"/>' : '') +
-      xs.map(function(x, i){ return '<line class="rb-tick" x1="' + x.toFixed(1) + '" x2="' + x.toFixed(1) + '" y1="' + ((H - hs[i]) / 2).toFixed(1) + '" y2="' + ((H + hs[i]) / 2).toFixed(1) + '" vector-effect="non-scaling-stroke"/>'; }).join('') + '</svg>';
-  }
 
   C.route('/funnel', function(view){
     var mode = C.query().mode || 'sample', ev = RI.store.get('events', []);
@@ -180,34 +163,28 @@
       var kpis = '<div class="k3s fn-k">' + kpi('house', 'Houses submitted', 'intake_submitted', 'In this browser') + kpi('eye', 'Free price views', 'price_viewed', 'In this browser') +
         kpi('file', 'Paid presentations', 'payment_completed', 'In this browser') + kpi('share', 'Shares', 'share_created', 'In this browser') + '</div>';
 
-      /* ---------- From sign up to a paid presentation ---------- */
+      /* ---------- From visit to share ----------
+         One bar per step on a square-root scale, so the later steps stay readable next to the visitors.
+         Bronze: the step keeps under 30% of the one before. Lighter: the step follows on its own.
+         The three biggest drops worth acting on carry 1 to 3, matching the list below. */
       var top = Math.max.apply(null, [1].concat(FLOW.map(function(s){ return n(s.e); }))), steps = FLOW.map(function(s, i){ var v = n(s.e), p = i ? n(FLOW[i - 1].e) : null; return {s:s, v:v, p:p, keep:p ? v / p : null, lost:p ? Math.max(0, p - v) : 0}; });
-      var leaks = steps.filter(function(x){ return x.p && !x.s.sys && x.lost > 0; }).sort(function(a, b){ return (1 - a.keep) - (1 - b.keep); }).reverse();
-      var big = leaks[0];
-      var paidRate = pct(n('payment_completed'), n('signup_completed'));
-      var chart = '<ol class="fn" aria-label="People at each step">' + steps.map(function(x, i){
-        var k = pct(x.v, top), p = x.p != null ? pct(x.p, top) : k, isBig = big && x === big;
-        return '<li class="fn-s' + (isBig ? ' big' : '') + '" style="--k:' + k.toFixed(1) + '%;--p:' + p.toFixed(1) + '%;--pf:' + (p / 100).toFixed(3) + '">' +
-          '<span class="fn-bar" aria-hidden="true"><i class="fn-lost"></i><i class="fn-kept"></i></span>' +
-          '<span class="fn-v"><b>' + fmt(x.v) + '</b>' + (x.lost ? '<small>' + fmt(x.lost) + ' left</small>' : '') + '</span>' +
-          '<span class="fn-l"><b>' + x.s.l + '</b><small>' + x.s.s + '</small></span>' +
-          '<span class="fn-c">' + (x.keep == null ? '<span class="fn-first">Start</span>' : '<span class="fn-chip' + (isBig ? ' big' : '') + '">' + Math.round(x.keep * 100) + '% kept</span>') + '</span>' +
-          '<span class="sr">' + x.s.l + ': ' + fmt(x.v) + (x.keep != null ? ', ' + Math.round(x.keep * 100) + '% of the step before' : '') + '.</span></li>';
-      }).join('') + '</ol>';
+      var leaks = steps.filter(function(x){ return x.p && x.s.rank && x.lost > 0; }).sort(function(a, b){ return a.keep - b.keep; });
       var rank = {}; leaks.slice(0, 3).forEach(function(x, i){ rank[steps.indexOf(x)] = i + 1; });
-      var bi = big ? steps.indexOf(big) : -1, N = steps.length;
-      var rb = '<div class="rb" style="--n:' + N + '">' +
-        '<ol class="rb-top" aria-hidden="true">' + steps.map(function(x){ return '<li><b>' + fmt(x.v) + '</b>' + (x.lost ? '<small>' + fmt(x.lost) + ' left</small>' : '<small>&nbsp;</small>') + '</li>'; }).join('') + '</ol>' +
-        '<div class="rb-band" aria-hidden="true">' + ribbon(steps, top, big) +
-          steps.map(function(x, i){ if(!i || x.keep == null) return ''; var r = rank[i]; return '<span class="rb-chip' + (i === bi ? ' big' : '') + '" style="left:calc(' + i + ' / ' + N + ' * 100%)">' + (r ? '<i>' + r + '</i>' : '') + Math.round(x.keep * 100) + '%</span>'; }).join('') +
-          (bi > 0 ? '<span class="rb-call" style="left:calc(' + bi + ' / ' + N + ' * 100%)">Biggest drop: ' + Math.round((1 - big.keep) * 100) + '% leave</span>' : '') + '</div>' +
-        '<ol class="rb-bot" aria-hidden="true">' + steps.map(function(x){ return '<li><b>' + x.s.l + '</b><small>' + x.s.s + '</small></li>'; }).join('') + '</ol></div>';
-      var path = card({id:'path', cls:'fn-card', title:'From sign up to a paid presentation', sub:'How many reached each step, and the share kept from the step before',
+      var paidRate = pct(n('payment_completed'), n('signup_completed'));
+      var chart = '<ol class="vb" aria-label="People at each step">' + steps.map(function(x, i){
+        var w = Math.sqrt(x.v / top) * 100, lo = x.keep != null && x.keep < 0.3, r = rank[i];
+        return '<li class="vb-s' + (lo ? ' vb-lo' : '') + (x.s.auto ? ' vb-auto' : '') + '">' +
+          '<span class="vb-l"><b>' + (i + 1) + '. ' + x.s.l + '</b><small>' + x.s.e + '</small></span>' +
+          '<span class="vb-t" aria-hidden="true"><span class="vb-b" style="width:' + w.toFixed(2) + '%"><b>' + fmt(x.v) + '</b></span></span>' +
+          '<span class="vb-k">' + (r ? '<i aria-hidden="true">' + r + '</i>' : '') + (x.keep != null ? (x.keep * 100).toFixed(1) + '%' : '') + '</span>' +
+          '<span class="sr">' + fmt(x.v) + ' people' + (x.keep != null ? ', ' + (x.keep * 100).toFixed(1) + '% of the step before' : '') + (lo ? ', keeps under 30%' : '') + (r ? ', drop ' + r + ' in the list below' : '') + '.</span></li>';
+      }).join('') + '</ol>';
+      var path = card({id:'path', cls:'fn-card', title:'From visit to share', sub:'Bar length on a square-root scale, so the later steps stay readable. Bronze marks a step that keeps under 30%.',
         aside:'<div class="fn-head"><b>' + paidRate.toFixed(1) + '%</b><span>of sign ups pay</span></div>',
-        body:'<div class="c3-b">' + rb + chart + '<div class="fn-key" aria-hidden="true"><span><i class="k"></i>People at the step</span><span><i class="b"></i>Biggest drop</span><span><i class="r">1</i>Matches the list below</span></div></div>'});
+        body:'<div class="c3-b">' + chart + '<div class="fn-key" aria-hidden="true"><span><i class="k"></i>People at the step</span><span><i class="a"></i>Follows on its own</span><span><i class="b"></i>Keeps under 30%</span><span><i class="r">1</i>Matches the list below</span><span class="fn-key-r">Right: share of the step before</span></div></div>'});
 
       /* ---------- Where people leave, and what each screen does about it ---------- */
-      var leave = card({id:'leave', cls:'lk-card', title:'Where people leave', sub:'The three biggest drops, marked 1 to 3 on the funnel, and what the screen does about each',
+      var leave = card({id:'leave', cls:'lk-card', title:'Where people leave', sub:'The three biggest drops after sign up, marked 1 to 3 on the chart, and what the screen does about each',
         body:leaks.length ? '<ol class="lk">' + leaks.slice(0, 3).map(function(x, i){
           var gone = Math.round((1 - x.keep) * 100);
           return '<li><span class="lk-n">' + (i + 1) + '</span><div class="lk-b"><p class="lk-t">' + FLOW[FLOW.indexOf(x.s) - 1].l + ' ' + I('arrow', 'i-sm') + ' ' + x.s.l + '</p>' +

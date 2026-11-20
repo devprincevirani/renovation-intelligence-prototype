@@ -1449,42 +1449,9 @@ a.au-what:focus-visible{outline:2px solid var(--accent);outline-offset:2px;borde
 .fn-head{display:grid;justify-items:end;line-height:1.1}
 .fn-head b{font-family:var(--display);font-weight:500;font-size:2rem;color:var(--deep-forest);font-variant-numeric:tabular-nums}
 .fn-head span{font-size:.78rem;color:var(--muted)}
-.fn{list-style:none;margin:0;padding:0;display:grid;gap:14px}
-.fn-s{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto auto;grid-template-areas:"l c v" "bar bar bar";align-items:center;gap:6px 10px}
-.fn-bar{grid-area:bar;position:relative;display:block;height:12px;border-radius:2px;background:var(--sunken);overflow:hidden}
-.fn-bar i{position:absolute;left:0;top:0;bottom:0}
-.fn-lost{width:var(--p);background:rgba(161,125,88,.28)}
-.fn-kept{width:var(--k);background:var(--deep-forest)}
-.fn-s.big .fn-lost{background:rgba(161,125,88,.62)}
-.fn-v{grid-area:v;display:flex;align-items:baseline;gap:8px;justify-content:flex-end}
-.fn-v b{font-family:var(--display);font-weight:500;font-size:1.25rem;font-variant-numeric:tabular-nums}
-.fn-v small{font-size:.74rem;color:var(--muted);white-space:nowrap}
-.fn-l{grid-area:l;display:grid;line-height:1.3;min-width:0}
-.fn-l b{font-weight:600;font-size:.9rem}
-.fn-l small{font-size:.74rem;color:var(--muted)}
-.fn-c{grid-area:c}
-.fn-chip{display:inline-block;padding:2px 7px;border-radius:2px;font-size:.72rem;font-weight:600;background:var(--sunken);color:var(--muted);font-variant-numeric:tabular-nums}
-.fn-chip.big{background:var(--warn-bg);color:var(--warn)}
-.fn-first{font-size:.72rem;color:var(--muted)}
 .fn-key{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border-soft);font-size:.78rem;color:var(--muted)}
 .fn-key span{display:inline-flex;align-items:center;gap:7px}
 .fn-key i{width:11px;height:11px;border-radius:2px}
-.fn-key .k{background:var(--deep-forest)}.fn-key .l{background:rgba(161,125,88,.28)}.fn-key .b{background:rgba(161,125,88,.62)}
-/* Wider: one column per step, the bars grow up */
-@media (min-width:760px){
-  .fn{grid-template-columns:repeat(8,minmax(0,1fr));gap:0;align-items:stretch;padding-top:46px}
-  .fn-s{grid-template-columns:1fr;grid-template-areas:"bar" "l" "c";gap:0;padding:0 6px;text-align:center}
-  .fn-s+.fn-s{border-left:1px solid var(--border-soft)}
-  .fn-bar{height:220px;background:none;overflow:visible;margin:0 8px}
-  .fn-bar i{top:auto;left:0;right:0;width:auto;border-radius:2px 2px 0 0}
-  .fn-lost{height:var(--p)}
-  .fn-kept{height:var(--k)}
-  .fn-v{position:absolute;left:0;right:0;top:calc(220px * (1 - var(--pf)) - 44px);flex-direction:column;align-items:center;gap:1px;line-height:1.15}
-  .fn-l{margin-top:12px;justify-items:center;text-align:center;padding:0 2px}
-  .fn-l b{font-size:.82rem;line-height:1.25}
-  .fn-s{grid-template-rows:auto 1fr auto}
-  .fn-c{margin-top:8px;align-self:end}
-}
 /* Where people leave */
 .lk{list-style:none;margin:0;padding:6px 22px 10px}
 .lk li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;padding:16px 0;border-bottom:1px solid var(--border-soft)}
@@ -1520,36 +1487,35 @@ a.au-what:focus-visible{outline:2px solid var(--accent);outline-offset:2px;borde
   .fn-k .k3-h{font-size:.78rem}
   .fn-k .k3-m b{font-size:1.9rem}
   .fn-k .k3-f{flex-wrap:wrap;gap:4px 6px;font-size:.72rem}
-  .fn-v{flex-direction:column;align-items:flex-end;gap:0;line-height:1.15}
   .fn-head{justify-items:start}
 }
 
-/* ---------- Funnel, version 3: the ribbon (v56) ----------
-   Wide screens: one Deep Forest ribbon that narrows step by step, the biggest drop in bronze, the share kept on each
-   narrowing and the three biggest leaks numbered to match the cards below. Phones keep the bar list (.fn). */
-.rb{display:none}
-.rb-top,.rb-bot{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));text-align:center}
-.rb-top li{display:grid;line-height:1.15}
-.rb-top b{font-family:var(--display);font-weight:500;font-size:1.55rem;font-variant-numeric:tabular-nums}
-.rb-top small{font-size:.74rem;color:var(--muted)}
-.rb-band{position:relative;height:210px;margin:14px 0}
-.rb-svg{display:block;width:100%;height:100%}
-.rb-body{fill:var(--deep-forest)}
-.rb-big{fill:var(--bronze)}
-.rb-tick{stroke:rgba(245,242,236,.32);stroke-width:1}
-.rb-chip{position:absolute;top:50%;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border:1px solid var(--border);border-radius:2px;background:var(--raised);font-size:.74rem;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap}
-.rb-chip i{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;background:var(--deep-forest);color:var(--on-accent);font-style:normal;font-size:.64rem;font-weight:700}
-.rb-chip.big{background:var(--warn-bg);border-color:#D9BF95;color:var(--warn)}
-.rb-chip.big i{background:var(--warn)}
-.rb-call{position:absolute;bottom:0;transform:translateX(-50%);font-size:.74rem;font-weight:600;color:#815E3A;white-space:nowrap}
-.rb-bot li{display:grid;line-height:1.25;padding:0 4px}
-.rb-bot b{font-size:.82rem;font-weight:600}
-.rb-bot small{font-size:.72rem;color:var(--muted)}
-.fn-key .b{background:var(--bronze)}
+/* ---------- Funnel, version 4: from visit to share (v58) ----------
+   One bar per step of APP_FLOW 3 on a square-root scale, the count inside the bar, the share kept on the right.
+   Bronze (#815E3A, white text 5.6:1) keeps under 30%; a lighter forest follows on its own. */
+.vb{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.vb-s{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr) 76px;align-items:center;gap:8px 24px}
+.vb-l{display:grid;line-height:1.3;min-width:0}
+.vb-l b{font-weight:600;font-size:.92rem}
+.vb-l small{font-size:.74rem;color:var(--muted);overflow-wrap:anywhere}
+.vb-t{display:block;height:36px;border-radius:4px;background:var(--sunken)}
+.vb-b{display:flex;align-items:center;height:100%;min-width:48px;padding:0 12px;border-radius:4px;background:var(--deep-forest);color:var(--on-accent);font-size:.8rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.vb-b b{font-weight:600}
+.vb-s.vb-auto .vb-b{background:#3A5753}
+.vb-s.vb-lo .vb-b{background:#815E3A}
+.vb-k{display:flex;align-items:center;justify-content:flex-end;gap:8px;font-size:.88rem;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.vb-s.vb-lo .vb-k{color:#815E3A}
+.vb-k i{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:var(--deep-forest);color:var(--on-accent);font-style:normal;font-size:.66rem;font-weight:700}
+.fn-key .k{background:var(--deep-forest)}
+.fn-key .a{background:#3A5753}
+.fn-key .b{background:#815E3A}
 .fn-key i.r{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;background:var(--deep-forest);color:var(--on-accent);font-style:normal;font-size:.62rem;font-weight:700}
-@media (min-width:760px){
-  .rb{display:block}
-  .fn-card .fn{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+.fn-key-r{margin-left:auto}
+@media (max-width:719px){
+  .vb{gap:16px}
+  .vb-s{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"l k" "t t";gap:6px 12px}
+  .vb-l{grid-area:l}.vb-k{grid-area:k}.vb-t{grid-area:t;height:30px}
+  .fn-key-r{margin-left:0}
 }
 /* Where people leave: three in a row on wide screens */
 .lk-card{margin-bottom:20px}
