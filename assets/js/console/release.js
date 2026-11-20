@@ -11,6 +11,14 @@
   function rnd(seed){ var h = 0; for(var i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0; return function(){ h = (h * 1103515245 + 12345) >>> 0; return (h >>> 8) / 16777216; }; }
   /* The back-test set (TESTING): the lab houses, plus every priced house Sam supplies. Sam's own houses are the lab houses */
   C.LAB_OWNER = 'admin@demo.ri';
+  /* Properties Sam supplied for the back-test set. They are replayed like any house but are not users' houses,
+     so they have no house page. Each borrows the rooms of a priced house, scaled to its size */
+  var SUPPLIED = [['1124 Linden Ave', 'Royal Oak, MI 48067', .82], ['3307 Grove St', 'Ferndale, MI 48220', .74], ['560 Birchwood Dr', 'Troy, MI 48083', 1.28], ['8812 Elm Ct', 'Warren, MI 48089', .9],
+    ['2045 Oakview Rd', 'Livonia, MI 48154', 1.06], ['17 Harbor Ln', 'Clinton Township, MI 48038', 1.18], ['4410 Ridgeway Ave', 'Sterling Heights, MI 48313', .96], ['921 Cedar Point Dr', 'Novi, MI 48375', 1.4],
+    ['6630 Willow Bend', 'Canton, MI 48187', 1.12], ['1502 Maple Hollow', 'Southfield, MI 48075', .88], ['39 Pine Crest Ct', 'Rochester Hills, MI 48307', 1.34], ['7718 Fairway Dr', 'Westland, MI 48185', .78],
+    ['2290 Lakeview Ter', 'Shelby Township, MI 48315', 1.22], ['505 Brookside Ave', 'Dearborn, MI 48124', .86], ['1848 Hawthorne St', 'Madison Heights, MI 48071', .8]];
+  C.BT_SUPPLIED = SUPPLIED;
+  C.btCount = function(set){ return C.btHouses(set).length + (set === 'lab' ? 0 : SUPPLIED.length); };
   C.btHouses = function(set){ return A.all().filter(function(h){ return A.status(h) !== 'draft' && (set !== 'lab' || h.owner === C.LAB_OWNER); }); };
   /* Published versions (SCHEMA: versions tested). Each starts at the version live when the console opened and
      moves up by one for every draft of its area that Sam publishes; a run keeps the versions it was measured against */
@@ -22,6 +30,8 @@
   var PKS = [['E', 'Essential'], ['S', 'Standard'], ['P', 'Premium']];
   C.BT_PKS = PKS;
   function totals(est){ var t = {E:[0, 0], S:[0, 0], P:[0, 0]}; est.rooms.forEach(function(r){ r.items.forEach(function(it){ PKS.forEach(function(k){ var p = it.pk && it.pk[k[0]]; if(p && p[1]){ t[k[0]][0] += p[1]; t[k[0]][1] += p[2]; } }); }); }); return t; }
+  var CYC = [['Kitchen cabinets', 'Countertop', 'Each waited on the other; the engine stopped after 3 passes'], ['Vanity and faucet', 'Bathroom floor', 'The floor waited for the vanity size, the vanity for the floor height'],
+    ['Exterior paint', 'Siding repair', 'Paint waited on the siding decision and the reverse; stopped after 3 passes'], ['Furnace', 'Ductwork', 'Each needed the other\'s size first; stopped after 3 passes']];
   var CLASH = [['Remove and dispose of the old countertop', ['Countertops', 'Cabinets']], ['Patch and paint around the new vanity', ['Bathroom', 'Painting']], ['Shut off and cap the water line', ['Plumbing', 'Kitchen']]];
   var FAIL = ['A photo could not be read again', 'The run stopped at the quantity step', 'A product in the draft has no price'];
   /* Accepted alternatives are Sam's "Valid alternative" grades on lab-house decisions (PDF glossary, 34) */
@@ -57,22 +67,26 @@
     o = o || {}; var set = o.set === 'lab' ? 'lab' : 'all', r = rnd(seedStr), at = o.at || Date.now(), prof = o.profile || '';
     var P = prof === 'clean' ? {fail:0, find:.45, bad:0, cyc:0, clash:.15} : prof === 'rich' ? {fail:.25, find:.95, bad:.55, cyc:.2, clash:.4} : {fail:.08, find:.55, bad:.3, cyc:.06, clash:.2};
     var hs = C.btHouses(set), houses = [], f = [], cycles = [], clashes = [], alts = [];
+    var units = hs.map(function(h){ return {hid:h.id, addr:A.addr(h), place:A.place(h), lab:h.owner === C.LAB_OWNER, est:A.estimate(h), k:1}; });
+    if(set === 'all' && hs.length) SUPPLIED.forEach(function(x, i){ units.push({hid:null, addr:x[0], place:x[1], lab:false, supplied:true, est:A.estimate(hs[i % hs.length]), k:x[2]}); });
+    var sc = function(v, k){ return Math.round(v * k / 10) * 10; };
     var bad = [['skip','Skipped part'],['dbl','Double charge'],['broken','Broken link']];
-    hs.forEach(function(h){
-      var est = A.estimate(h), tot = totals(est), lab = h.owner === C.LAB_OWNER;
-      var row = {hid:h.id, addr:A.addr(h), place:A.place(h), lab:lab, before:tot, after:JSON.parse(JSON.stringify(tot)), result:'same', n:0};
+    units.forEach(function(u){
+      var h = {id:u.hid}, est = u.est, tot = totals(est), lab = u.lab;
+      PKS.forEach(function(q){ tot[q[0]] = [sc(tot[q[0]][0], u.k), sc(tot[q[0]][1], u.k)]; });
+      var row = {hid:u.hid, addr:u.addr, place:u.place, lab:lab, supplied:!!u.supplied, before:tot, after:JSON.parse(JSON.stringify(tot)), result:'same', n:0};
       if(!lab && r() < P.fail){ row.result = 'failed'; row.reason = FAIL[Math.floor(r() * FAIL.length)]; row.after = null; houses.push(row); return; }
       var k = 0, max = prof === 'rich' ? 3 : 2;
       while(k < max && r() < (k ? P.find * .5 : P.find)){
         k++;
         var isBad = r() < P.bad, t = isBad ? bad[Math.floor(r() * bad.length)] : ['changed', 'Total changed'];
         var room = est.rooms[Math.floor(r() * est.rooms.length)], it = room.items[Math.floor(r() * room.items.length)];
-        var pk = PKS[r() < .25 ? 0 : r() < .6 ? 1 : 2][0], p = (it.pk && it.pk[pk]) || [0, 600, 1100], lo = p[1] || 600, hi = p[2] || 1100;
+        var pk = PKS[r() < .25 ? 0 : r() < .6 ? 1 : 2][0], p = (it.pk && it.pk[pk]) || [0, 600, 1100], lo = sc(p[1] || 600, u.k), hi = sc(p[2] || 1100, u.k);
         var d = Math.round((r() - .3) * (pk === 'P' ? 1400 : 700) / 10) * 10 || 40;
         f.push({type:t[0], label:t[1], house:row.addr, hid:h.id, line:it.name, pk:pk, before:[lo, hi], after:[lo + d, hi + d]});
         if(t[0] === 'changed'){ row.after[pk] = [row.after[pk][0] + d, row.after[pk][1] + d]; if(row.result === 'same') row.result = 'changed'; } else { row.result = 'problem'; row.n++; }
       }
-      if(r() < P.cyc) cycles.push({house:row.addr, hid:h.id, rule:'DP-010', a:'Kitchen cabinets', b:'Countertop', note:'Each waited on the other; the engine stopped after 3 passes'});
+      if(r() < P.cyc){ var cy = CYC[Math.floor(r() * CYC.length)]; cycles.push({house:row.addr, hid:h.id, rule:'DP-010', a:cy[0], b:cy[1], note:cy[2]}); }
       if(r() < P.clash){ var cl = CLASH[Math.floor(r() * CLASH.length)]; clashes.push({house:row.addr, hid:h.id, task:cl[0], types:cl[1], kept:'Kept once, under ' + cl[1][0]}); }
       houses.push(row);
     });
@@ -86,8 +100,8 @@
     var res = {changed:0, skip:0, dbl:0, broken:0}; f.forEach(function(x){ res[x.type]++; });
     res.failed = houses.filter(function(h){ return h.result === 'failed'; }).length; res.cycles = cycles.length; res.clash = clashes.length; res.alt = alts.length;
     var order = {failed:0, problem:1, changed:2, same:3}; houses.sort(function(a, b){ return order[a.result] - order[b.result]; });
-    var dur = o.instant ? 0 : Math.max(4000, houses.length * 700);
-    return {v:3, id:C.uid('bt'), at:at, doneAt:at + dur, by:o.by || (C.me() || {}).name || 'Sam', set:set, versions:C.versionsAt(at), drafts:draftIds || [], houses:houses.length, list:houses, res:res, findings:f, cycles:cycles, clashes:clashes, alts:alts};
+    var dur = o.instant ? 0 : o.dur || Math.max(4000, houses.length * 400);
+    return {v:4, id:C.uid('bt'), at:at, doneAt:at + dur, by:o.by || (C.me() || {}).name || 'Sam', set:set, versions:C.versionsAt(at), drafts:draftIds || [], houses:houses.length, list:houses, res:res, findings:f, cycles:cycles, clashes:clashes, alts:alts};
   };
   /* Clean: no double charges, nothing skipped, links intact (the milestone gate), no failed house and no cycle */
   C.btClean = function(b){ var r = b.res; return !r.dbl && !r.skip && !r.broken && !r.failed && !r.cycles; };
@@ -100,19 +114,28 @@
     return {pass:!badN, n:lab.length, ok:lab.length - badN};
   };
   C.btLine = function(b){ var r = b.res; return b.houses + ' houses · ' + (r.failed ? r.failed + ' failed · ' : '') + (r.dbl ? r.dbl + ' double charge' + (r.dbl > 1 ? 's' : '') : 'no double charges') + ' · ' + (r.skip ? r.skip + ' skipped' : 'nothing skipped') + ' · ' + (r.broken ? r.broken + ' broken link' + (r.broken > 1 ? 's' : '') : 'no broken links') + ' · ' + r.changed + ' total' + (r.changed === 1 ? '' : 's') + ' changed'; };
-  /* Sample history: seven runs over two weeks by Sam and two staff, oldest first so alternatives count their wins */
+  /* Sample history: fifteen runs over thirty days by Sam and two staff, oldest first so alternatives count their wins,
+     and one still replaying the full set in the background */
   function samples(){
     var ds = C.drafts(), find = function(re){ var d = ds.filter(function(x){ return re.test(x.title); })[0]; return d ? [d.id] : []; };
     var plan = [
+      [29 * DAY + 2 * 3600000, 'lab', [], 'clean', 'Sam'],
+      [27 * DAY + 5 * 3600000, 'all', [], '', 'Sam'],
+      [24 * DAY + 3 * 3600000, 'all', [], 'rich', 'Dana Reyes'],
+      [21 * DAY + 6 * 3600000, 'lab', [], '', 'Marcus Hill'],
+      [18 * DAY + 4 * 3600000, 'all', [], 'clean', 'Sam'],
+      [15 * DAY + 2 * 3600000, 'all', [], '', 'Marcus Hill'],
       [12 * DAY + 3 * 3600000, 'all', find(/Roof/), '', 'Sam'],
+      [10 * DAY + 7 * 3600000, 'lab', find(/Roof/), 'clean', 'Dana Reyes'],
       [8 * DAY + 5 * 3600000, 'lab', [], 'rich', 'Sam'],
       [5 * DAY + 2 * 3600000, 'all', [], '', 'Dana Reyes'],
       [3 * DAY + 4 * 3600000, 'lab', find(/Room template: Kitchen/), 'clean', 'Sam'],
       [DAY + 6 * 3600000, 'lab', find(/Cabinetry threshold/), 'clean', 'Sam'],
       [3 * 3600000, 'all', find(/Cabinetry threshold/), '', 'Sam'],
-      [25 * 60000, 'all', find(/LVP flooring/), 'rich', 'Marcus Hill']
+      [25 * 60000, 'all', find(/LVP flooring/), 'rich', 'Marcus Hill'],
+      [150000, 'all', find(/Water heater/), '', 'Marcus Hill', 22 * 60000]
     ], out = [], t0 = Date.now();
-    plan.forEach(function(x, i){ out.push(C.backtest('sample-' + i, x[2], {set:x[1], at:t0 - x[0], instant:true, by:x[4], profile:x[3], prior:out.slice()})); });
+    plan.forEach(function(x, i){ out.push(C.backtest('sample-' + i, x[2], {set:x[1], at:t0 - x[0], instant:!x[5], dur:x[5], by:x[4], profile:x[3], prior:out.slice()})); });
     /* The drafts in the queue show their latest run */
     ds.forEach(function(d){ var run = out.filter(function(b){ return b.drafts.indexOf(d.id) > -1; }).pop(); if(run && d.status === 'queued') C.setDraft(d.id, {bt:{id:run.id, at:run.doneAt, clean:C.btClean(run), line:C.btLine(run)}}); });
     return out.reverse();
@@ -120,7 +143,7 @@
   /* Runs saved before this version are replaced by the sample history */
   C.backtests = function(){
     var l = C.get('backtests', []) || [];
-    if(l.some(function(b){ return b.v === 3; })) return l;
+    if(l.some(function(b){ return b.v === 4; })) return l;
     C.btEnsureAltGrades();
     var out = samples();
     out.sort(function(a, b){ return b.at - a.at; });
@@ -170,7 +193,7 @@
       var dis = e.target.closest('[data-discard]'); if(dis){ decide(dis.getAttribute('data-discard'), false); }
     });
     function runFor(id, btn){
-      var card = btn.closest('.pq-card'), box = card.querySelector('.pq-bt'), houses = C.btHouses('all').length, i = 0;
+      var card = btn.closest('.pq-card'), box = card.querySelector('.pq-bt'), houses = C.btCount('all'), i = 0;
       box.className = 'pq-bt run'; box.innerHTML = '<span class="pq-spin" aria-hidden="true"></span><span><b>Replaying houses…</b><br><small id="pq-n">0 of ' + houses + '</small></span><span class="pq-bar"><i></i></span>';
       var bar = box.querySelector('.pq-bar i'), n = box.querySelector('#pq-n');
       var t = C.every(function(){ i++; n.textContent = i + ' of ' + houses; bar.style.width = (i / houses * 100) + '%'; if(i >= houses){ clearInterval(t);
@@ -197,7 +220,7 @@
      Report: the verdict and the lab-house gate first, then the counts, every house with its Standard total before
      and after, the findings, what the engine rejected (cycles, clashing tasks), and accepted alternatives. */
   var TYPE = {failed:['Failed houses','The replay stopped for this house; the others continued'], dbl:['Double charges','The same task counted twice across work types'], skip:['Skipped parts','A part the template expects that got no decision'], broken:['Broken links','A dependency that points to nothing'], changed:['Changed totals','A package total that moved, with the line that moved it'], alt:['Accepted alternatives','A different answer Sam already accepts for a lab house']};
-  var SETS = {lab:['Lab houses', 'Sam\'s lab houses: the milestone check'], all:['Every priced house', 'Lab houses and every priced house']};
+  var SETS = {lab:['Lab houses', 'Sam\'s lab houses: the milestone check'], all:['Full set', 'Lab houses, priced houses and the properties Sam supplied']};
   var money = function(v){ return v ? C.range(v[0], v[1]) : '<span class="muted">No result</span>'; };
   function verdict(b){
     var g = C.btGate(b), clean = C.btClean(b);
@@ -210,7 +233,7 @@
       (drafts.length ? drafts.map(function(d){ return '<span class="bt-chip draft">Draft: ' + RI.esc(d.title) + '</span>'; }).join('') : '<span class="bt-chip off">No drafts: published versions only</span>') + '</div>';
   }
   function resultChips(b){
-    if(C.btRunning(b)){ var d = C.btDone(b); return '<span class="bt-live"><span class="pq-spin" aria-hidden="true"></span>Running · ' + d + ' of ' + b.houses + '<span class="pq-bar"><i style="width:' + (d / b.houses * 100).toFixed(0) + '%"></i></span></span>'; }
+    if(C.btRunning(b)){ var d = C.btDone(b); return '<span class="bt-live" data-run="' + b.id + '"><span class="pq-spin" aria-hidden="true"></span><span class="bt-live-t">Running · ' + d + ' of ' + b.houses + '</span><span class="pq-bar"><i style="width:' + (d / b.houses * 100).toFixed(0) + '%"></i></span></span>'; }
     var r = b.res;
     return '<span class="bt-f">' + (C.btClean(b) ? '<span class="rel rel-ok">Clean</span>' : '') + (r.failed ? '<span class="bt-n bad">' + r.failed + ' failed</span>' : '') + (r.dbl ? '<span class="bt-n bad">' + r.dbl + ' double</span>' : '') + (r.skip ? '<span class="bt-n bad">' + r.skip + ' skipped</span>' : '') + (r.broken ? '<span class="bt-n bad">' + r.broken + ' broken</span>' : '') + (r.cycles ? '<span class="bt-n bad">' + r.cycles + ' cycle' + (r.cycles > 1 ? 's' : '') + '</span>' : '') + '<span class="bt-n">' + r.changed + ' changed</span></span>';
   }
@@ -220,10 +243,13 @@
     view.innerHTML = C.page({kicker:'Changes', title:'Back-tests', sub:'Replay many houses with draft versions before Sam publishes. The report shows double charges, skipped parts, broken links and the before and after. A failed house is marked; the others continue.',
       actions:C.can('backtests.run') ? '<button type="button" class="btn btn-primary" id="bt-new">' + RI.icon('refresh','i-sm') + 'Start a back-test</button>' : '',
       body:'<div id="bt-list"></div>' + '<div class="c-mt">' + C.note('A back-test runs in the background. You can leave this page; the run keeps going and its report is here when it is done.') + '</div>'});
+    var st = {page:0, per:C.get('bt.per', 10)};
     function draw(){
       var el = view.querySelector('#bt-list'); if(!el) return;
+      var pages = Math.max(1, Math.ceil(list.length / st.per)); st.page = Math.min(st.page, pages - 1);
+      var shown = list.slice(st.page * st.per, st.page * st.per + st.per);
       el.innerHTML = C.table({cls:'bt-tbl', empty:'No back-tests yet. Start one to replay houses with a draft.', cols:[{label:'Started'},{label:'House set'},{label:'Tested'},{label:'Result'},{label:'', cls:'bt-actc'}],
-        rows:list.map(function(b){
+        rows:shown.map(function(b){
           var g = C.btRunning(b) ? null : C.btGate(b);
           return {attr:'data-go="#/backtests/' + b.id + '"', cells:[
             '<span class="bt-when"><b>' + C.time(b.at) + '</b><small>' + RI.esc(b.by) + '</small></span>',
@@ -231,16 +257,27 @@
             '<span class="bt-when"><b>' + (b.drafts.length ? b.drafts.length + ' draft' + (b.drafts.length > 1 ? 's' : '') : 'Published only') + '</b><small>' + b.versions.map(function(v){ return v[0].split(' ')[0] + ' ' + v[1]; }).slice(0, 2).join(' · ') + ' · …</small></span>',
             resultChips(b), '<button type="button" class="us-act" data-go="#/backtests/' + b.id + '" aria-label="' + (C.btRunning(b) ? 'Watch the back-test of ' : 'Open the report of ') + C.time(b.at) + '">' + RI.icon(C.btRunning(b) ? 'eye' : 'file', 'i-sm') + (C.btRunning(b) ? 'Watch' : 'Report') + '</button>']};
         })});
+      if(list.length) el.innerHTML += C.pager({page:st.page, per:st.per, total:list.length, noun:list.length === 1 ? 'run' : 'runs', perOpts:[10, 25, 50]});
       RI.fillIcons(el);
     }
     draw();
     /* While a run is going, the list updates by itself (APP_FLOW rule 3) */
-    if(list.some(C.btRunning)) var t = C.every(function(){ draw(); if(!list.some(C.btRunning)) clearInterval(t); }, 400);
-    view.addEventListener('click', function(e){ var r = e.target.closest('[data-go]'); if(r) C.go(r.getAttribute('data-go')); });
+    /* While a run is going, only its progress updates (focus and hover stay put); the row redraws when it ends */
+    if(list.some(C.btRunning)) var t = C.every(function(){
+      if(!view.querySelector('#bt-list')) return clearInterval(t);
+      if(!list.some(C.btRunning)){ clearInterval(t); draw(); return; }
+      view.querySelectorAll('[data-run]').forEach(function(x){ var b = list.filter(function(y){ return y.id === x.getAttribute('data-run'); })[0]; if(!b) return; var d = C.btDone(b); x.querySelector('.bt-live-t').textContent = 'Running · ' + d + ' of ' + b.houses; x.querySelector('.pq-bar i').style.width = (d / b.houses * 100).toFixed(0) + '%'; });
+    }, 1000);
+    view.addEventListener('click', function(e){
+      var pg = e.target.closest('[data-pg]');
+      if(pg){ if(pg.disabled) return; st.page = +pg.getAttribute('data-pg'); draw(); var top = view.querySelector('#bt-list').getBoundingClientRect().top; if(top < 80) window.scrollTo({top:window.scrollY + top - 96, behavior:'smooth'}); return; }
+      var r = e.target.closest('[data-go]'); if(r) C.go(r.getAttribute('data-go'));
+    });
+    view.addEventListener('change', function(e){ if(!e.target.matches('[data-per]')) return; st.per = C.set('bt.per', +e.target.value); st.page = 0; draw(); });
     view.addEventListener('keydown', function(e){ var r = e.target.closest('[data-go]'); if(r && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); C.go(r.getAttribute('data-go')); } });
     var nb = view.querySelector('#bt-new'); if(nb) nb.addEventListener('click', function(){
-      var q = C.queued(), nLab = C.btHouses('lab').length, nAll = C.btHouses('all').length;
-      var opt = function(v, n, on){ return '<label class="bt-set"><input type="radio" name="bt-set" value="' + v + '"' + (on ? ' checked' : '') + '><span><b>' + SETS[v][0] + ' <em>' + n + ' houses</em></b><small>' + (v === 'lab' ? 'The milestone check: zero double charges, nothing skipped, links intact.' : 'The lab houses plus every priced house. Slower, and shows the effect everywhere.') + '</small></span></label>'; };
+      var q = C.queued(), nLab = C.btCount('lab'), nAll = C.btCount('all');
+      var opt = function(v, n, on){ return '<label class="bt-set"><input type="radio" name="bt-set" value="' + v + '"' + (on ? ' checked' : '') + '><span><b>' + SETS[v][0] + ' <em>' + n + ' houses</em></b><small>' + (v === 'lab' ? 'The milestone check: zero double charges, nothing skipped, links intact.' : 'Lab houses, every priced house and the properties Sam supplied. Slower, and shows the effect everywhere.') + '</small></span></label>'; };
       var d = C.dialog('Start a back-test', '<fieldset class="bt-sets"><legend class="flabel">Houses to replay</legend>' + opt('lab', nLab, false) + opt('all', nAll, true) + '</fieldset>' +
         '<fieldset class="perm-list"><legend class="flabel">Drafts to include</legend>' + (q.length ? q.map(function(x){ return '<label class="perm"><input type="checkbox" value="' + x.id + '" checked><span><b>' + RI.esc(x.title) + '</b><small>' + RI.esc(x.summary || '') + '</small></span></label>'; }).join('') : '<p class="small muted">No drafts waiting: this replays the published versions only.</p>') + '</fieldset>' +
         '<p class="small muted">Every run is measured against the published versions: ' + C.versionsAt(Date.now()).map(function(v){ return v[0] + ' ' + v[1]; }).join(', ') + '. It runs in the background.</p>' +
@@ -283,15 +320,15 @@
       return C.table({cls:'bt-hs', cols:[{label:'House'},{label:'Result'},{label:pkName[pk] + ', before', num:true},{label:'After', num:true},{label:'Change', num:true}],
         rows:b.list.map(function(h){
           var bf = h.before && (h.before[pk] || h.before), af = h.after && (h.after[pk] || h.after), dl = af && bf ? af[0] - bf[0] : null;
-          return {attr:'data-go="#/houses/' + h.hid + '" tabindex="0" role="link"' + (h.result === 'failed' ? ' class="bt-failed"' : ''), cells:[
-            '<span class="bt-when"><b>' + RI.esc(h.addr) + (h.lab ? ' <span class="bt-lab">Lab</span>' : '') + '</b><small>' + RI.esc(h.place) + '</small></span>',
+          return {attr:(h.hid ? 'data-go="#/houses/' + h.hid + '" tabindex="0" role="link"' : '') + (h.result === 'failed' ? ' class="bt-failed"' : ''), cells:[
+            '<span class="bt-when"><b>' + RI.esc(h.addr) + (h.lab ? ' <span class="bt-lab">Lab</span>' : '') + (h.supplied ? ' <span class="bt-lab" style="background:var(--sunken);color:var(--muted)">Supplied</span>' : '') + '</b><small>' + RI.esc(h.place) + '</small></span>',
             '<span class="bt-res ' + RES[h.result][1] + '">' + RES[h.result][0] + (h.result === 'problem' ? ', ' + h.n : '') + '</span>' + (h.reason ? '<small class="bt-why">' + RI.esc(h.reason) + '</small>' : ''),
             money(bf), money(af), dl == null ? '<span class="muted">–</span>' : dl === 0 ? '<span class="muted">No change</span>' : '<span class="bt-dl ' + (dl > 0 ? 'up' : 'down') + '">' + (dl > 0 ? '+' : '−') + RI.money(Math.abs(dl)) + '</span>']};
         })});
     }
     var pkSwitch = '<div class="au-period" id="bt-pk" role="radiogroup" aria-label="Package">' + PKS.map(function(k){ return '<button type="button" role="radio" data-v="' + k[0] + '" aria-checked="' + (k[0] === curPk) + '" tabindex="' + (k[0] === curPk ? 0 : -1) + '">' + k[1] + (moved[k[0]] ? ' · ' + moved[k[0]] : '') + '</button>'; }).join('') + '</div>';
     var findings = b.findings.length ? C.table({cols:[{label:'Finding'},{label:'House'},{label:'Line'},{label:'Package'},{label:'Before', num:true},{label:'After', num:true}],
-      rows:b.findings.map(function(f){ return {attr:'data-go="#/houses/' + f.hid + '" tabindex="0" role="link"', cells:['<span class="bt-n' + (f.type === 'changed' ? '' : ' bad') + '">' + f.label + '</span>', RI.esc(f.house), RI.esc(f.line), pkName[f.pk || 'S'], C.range(f.before[0], f.before[1]), f.type === 'changed' ? C.range(f.after[0], f.after[1]) : '<span class="muted">Not priced</span>']}; })})
+      rows:b.findings.map(function(f){ return {attr:f.hid ? 'data-go="#/houses/' + f.hid + '" tabindex="0" role="link"' : '', cells:['<span class="bt-n' + (f.type === 'changed' ? '' : ' bad') + '">' + f.label + '</span>', RI.esc(f.house), RI.esc(f.line), pkName[f.pk || 'S'], C.range(f.before[0], f.before[1]), f.type === 'changed' ? C.range(f.after[0], f.after[1]) : '<span class="muted">Not priced</span>']}; })})
       : '<div class="c-empty">' + RI.icon('check') + '<p>No findings: every line came out the same.</p></div>';
     var engine = '<div class="bt-eng">' +
       '<section class="c-card"><header><h3>Dependency cycles <span class="bt-n' + (b.cycles.length ? ' bad' : '') + '">' + b.cycles.length + '</span></h3><p class="small muted">Rule DP-010 rejects a cycle and logs it.</p></header>' +
