@@ -493,6 +493,8 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:.78rem}
 .cd-what-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px;font-size:.88rem}
 .cd-what-h b{font-weight:600}
 .cd-what-h span{font-size:.78rem;color:var(--muted)}
+@media (hover:none){ .cd-hv{display:none} }
+@media (hover:hover){ .cd-tc{display:none} }
 .cd-chart{margin-top:30px;padding:0 10px 0 30px}
 .cd-plot{position:relative;height:160px;border-bottom:1px solid var(--border-strong)}
 .cd-plot.edit{cursor:pointer}

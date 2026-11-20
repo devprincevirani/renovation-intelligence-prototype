@@ -425,7 +425,7 @@
           '<div class="cd-thr-top"><div><h3 class="cd-h" id="cd-thr-h">Confidence threshold</h3><p class="cd-p">' + 'A photo reading below this number shows as unverified instead of being priced. ' + (canEdit ? 'Drag the handle, use the buttons or click the chart to try a value.' : 'You can read this sheet but not change it.') + '</p></div>' +
             '<div class="cd-step">' + (canEdit ? '<button type="button" class="cd-sb" data-step="-1" aria-label="Lower the threshold by one">' + RI.icon('minus') + '</button>' : '') + '<output id="cd-num" for="cd-r">' + s.threshold + '</output>' + (canEdit ? '<button type="button" class="cd-sb" data-step="1" aria-label="Raise the threshold by one">' + RI.icon('plus') + '</button>' : '') + '</div></div>' +
           '<div class="cd-meter" id="cd-meter"></div>' +
-          '<div class="cd-what"><div class="cd-what-h"><b>Unverified lines at each threshold</b><span>' + (canEdit ? 'Hover to read a value, click to set it' : 'Hover to read a value') + '</span></div>' +
+          '<div class="cd-what"><div class="cd-what-h"><b>Unverified lines at each threshold</b><span class="cd-hv">' + (canEdit ? 'Hover to read a value, click to set it' : 'Hover to read a value') + '</span>' + (canEdit ? '<span class="cd-tc">Tap the chart to set a value</span>' : '') + '</div>' +
           '<div class="cd-chart">' +
             '<div class="cd-plot' + (canEdit ? ' edit' : '') + '" id="cd-plot">' + yGrid(fl.length) + curve(fl) +
               '<div class="cd-hair" id="cd-hair" hidden><span></span></div><div class="cd-line" id="cd-line"></div>' +
