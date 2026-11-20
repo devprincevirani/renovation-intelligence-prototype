@@ -2173,3 +2173,18 @@ dialog.rlb-sheet::backdrop{background:rgba(24,38,36,.45)}
   .rlb-sh-f .btn{flex:none}
   .rlb-sh-b{padding:20px}
 }
+/* Rates (v92): back-test state of a waiting draft, Sam's publish note, whose draft a save replaces, the pager */
+.rlb-queue .rlb-bt{display:inline-flex;align-items:center;gap:6px;width:max-content;max-width:100%;margin-top:4px;padding:3px 8px;border-radius:2px;font-size:.78rem;font-weight:600}
+.rlb-bt.todo{background:var(--raised);color:var(--text);border:1px dashed var(--border-strong)}
+.rlb-bt.ok{background:var(--ok-bg);color:var(--ok)}
+.rlb-bt.bad{background:var(--bad-bg);color:var(--bad)}
+.rlb-qa{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:4px}
+.rlb-qa a{font-weight:600;color:var(--deep-forest)}
+.rlb-replace{display:flex;align-items:flex-start;gap:6px;margin:8px 0 0;padding:8px 10px;border-radius:4px;background:var(--sunken);font-size:.82rem;color:var(--text)}
+.rlb-replace .i{flex:none;margin-top:2px}
+.rlb-hv .rlb-note{display:flex;align-items:flex-start;gap:6px;margin-top:4px;font-size:.8rem;color:var(--muted)}
+.rlb-hv .rlb-note .i{flex:none;margin-top:2px;color:var(--ok)}
+.rlb-hv .rlb-note b{font-weight:600;color:var(--text)}
+#rlb-body .c-pager{margin-top:12px}
+#rlb-stl{grid-column:2;justify-self:start}
+.rlb-go .i{transform:rotate(-90deg)}
