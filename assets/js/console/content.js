@@ -132,6 +132,28 @@
     return '<span class="k3-d ' + (d === 0 ? 'flat' : d > 0 ? 'good' : 'bad') + '">' + txt + '</span>';
   }
 
+
+  /* The funnel as one ribbon that narrows from step to step. Drawn in a 1000 x 200 box and stretched to the card;
+     the biggest drop is the bronze stretch. Labels sit in an HTML grid of the same columns, so text never stretches. */
+  function ribbon(steps, top, big){
+    var W = 1000, H = 200, n = steps.length, pad = 6, hmin = 4;
+    var hs = steps.map(function(x){ return Math.max(hmin, x.v / top * (H - pad * 2)); });
+    var xs = steps.map(function(x, i){ return (i + 0.5) / n * W; });
+    var X = [0].concat(xs, [W]), Hh = [hs[0]].concat(hs, [hs[n - 1]]);
+    function shape(a, b){
+      var y = function(h, dn){ return ((H + (dn ? h : -h)) / 2).toFixed(1); }, d = 'M' + X[a].toFixed(1) + ',' + y(Hh[a]), i, m;
+      for(i = a + 1; i <= b; i++){ m = (X[i - 1] + X[i]) / 2; d += ' C' + m.toFixed(1) + ',' + y(Hh[i - 1]) + ' ' + m.toFixed(1) + ',' + y(Hh[i]) + ' ' + X[i].toFixed(1) + ',' + y(Hh[i]); }
+      d += ' L' + X[b].toFixed(1) + ',' + y(Hh[b], 1);
+      for(i = b; i > a; i--){ m = (X[i - 1] + X[i]) / 2; d += ' C' + m.toFixed(1) + ',' + y(Hh[i], 1) + ' ' + m.toFixed(1) + ',' + y(Hh[i - 1], 1) + ' ' + X[i - 1].toFixed(1) + ',' + y(Hh[i - 1], 1); }
+      return d + ' Z';
+    }
+    var bi = big ? steps.indexOf(big) : -1;
+    return '<svg class="rb-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true">' +
+      '<path class="rb-body" d="' + shape(0, n + 1) + '"/>' +
+      (bi > 0 ? '<path class="rb-big" d="' + shape(bi, bi + 1) + '"/>' : '') +
+      xs.map(function(x, i){ return '<line class="rb-tick" x1="' + x.toFixed(1) + '" x2="' + x.toFixed(1) + '" y1="' + ((H - hs[i]) / 2).toFixed(1) + '" y2="' + ((H + hs[i]) / 2).toFixed(1) + '" vector-effect="non-scaling-stroke"/>'; }).join('') + '</svg>';
+  }
+
   C.route('/funnel', function(view){
     var mode = C.query().mode || 'sample', ev = RI.store.get('events', []);
     var today = new Date(); today.setHours(0, 0, 0, 0);
@@ -172,12 +194,20 @@
           '<span class="fn-c">' + (x.keep == null ? '<span class="fn-first">Start</span>' : '<span class="fn-chip' + (isBig ? ' big' : '') + '">' + Math.round(x.keep * 100) + '% kept</span>') + '</span>' +
           '<span class="sr">' + x.s.l + ': ' + fmt(x.v) + (x.keep != null ? ', ' + Math.round(x.keep * 100) + '% of the step before' : '') + '.</span></li>';
       }).join('') + '</ol>';
-      var path = card({id:'path', cls:'fn-card', title:'From sign up to a paid presentation', sub:'People who reached each step. The light part is who left at that step.',
+      var rank = {}; leaks.slice(0, 3).forEach(function(x, i){ rank[steps.indexOf(x)] = i + 1; });
+      var bi = big ? steps.indexOf(big) : -1, N = steps.length;
+      var rb = '<div class="rb" style="--n:' + N + '">' +
+        '<ol class="rb-top" aria-hidden="true">' + steps.map(function(x){ return '<li><b>' + fmt(x.v) + '</b>' + (x.lost ? '<small>' + fmt(x.lost) + ' left</small>' : '<small>&nbsp;</small>') + '</li>'; }).join('') + '</ol>' +
+        '<div class="rb-band" aria-hidden="true">' + ribbon(steps, top, big) +
+          steps.map(function(x, i){ if(!i || x.keep == null) return ''; var r = rank[i]; return '<span class="rb-chip' + (i === bi ? ' big' : '') + '" style="left:calc(' + i + ' / ' + N + ' * 100%)">' + (r ? '<i>' + r + '</i>' : '') + Math.round(x.keep * 100) + '%</span>'; }).join('') +
+          (bi > 0 ? '<span class="rb-call" style="left:calc(' + bi + ' / ' + N + ' * 100%)">Biggest drop: ' + Math.round((1 - big.keep) * 100) + '% leave</span>' : '') + '</div>' +
+        '<ol class="rb-bot" aria-hidden="true">' + steps.map(function(x){ return '<li><b>' + x.s.l + '</b><small>' + x.s.s + '</small></li>'; }).join('') + '</ol></div>';
+      var path = card({id:'path', cls:'fn-card', title:'From sign up to a paid presentation', sub:'How many reached each step, and the share kept from the step before',
         aside:'<div class="fn-head"><b>' + paidRate.toFixed(1) + '%</b><span>of sign ups pay</span></div>',
-        body:'<div class="c3-b">' + chart + '<div class="fn-key" aria-hidden="true"><span><i class="k"></i>Reached the step</span><span><i class="l"></i>Left at the step</span>' + (big ? '<span><i class="b"></i>Biggest drop</span>' : '') + '</div></div>'});
+        body:'<div class="c3-b">' + rb + chart + '<div class="fn-key" aria-hidden="true"><span><i class="k"></i>People at the step</span><span><i class="b"></i>Biggest drop</span><span><i class="r">1</i>Matches the list below</span></div></div>'});
 
       /* ---------- Where people leave, and what each screen does about it ---------- */
-      var leave = card({id:'leave', title:'Where people leave', sub:'The three biggest drops, and what the screen does about each',
+      var leave = card({id:'leave', cls:'lk-card', title:'Where people leave', sub:'The three biggest drops, marked 1 to 3 on the funnel, and what the screen does about each',
         body:leaks.length ? '<ol class="lk">' + leaks.slice(0, 3).map(function(x, i){
           var gone = Math.round((1 - x.keep) * 100);
           return '<li><span class="lk-n">' + (i + 1) + '</span><div class="lk-b"><p class="lk-t">' + FLOW[FLOW.indexOf(x.s) - 1].l + ' ' + I('arrow', 'i-sm') + ' ' + x.s.l + '</p>' +
@@ -192,7 +222,7 @@
       var post = card({id:'post', title:'After paying', sub:'Reading, passing it on, and telling Sam',
         body:flow([['file', 'Read the presentation', n('presentation_opened'), Math.round(pct(n('presentation_opened'), n('payment_completed'))) + '% of payers'], ['share', 'Shared a link', n('share_created'), Math.round(pct(n('share_created'), n('presentation_opened'))) + '% of readers'], ['eye', 'Share views', n('share_viewed'), n('share_created') ? (n('share_viewed') / n('share_created')).toFixed(1) + ' views per link' : ''], ['mail', 'Sent feedback', n('feedback_sent'), '']])});
 
-      doc.getElementById('fu-body').innerHTML = kpis + path + '<div class="o3-g fn-r2">' + leave + '<div class="o3-col">' + pre + post + '</div></div>' +
+      doc.getElementById('fu-body').innerHTML = kpis + path + leave + '<div class="o3-g fn-r3">' + pre + post + '</div>' +
         C.note('Counted on our own server, one event per step, not by an ad tracker (SEO_CONVERSION 9).');
       RI.fillIcons(doc.getElementById('fu-body'));
     }
