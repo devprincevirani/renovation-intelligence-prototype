@@ -190,6 +190,34 @@
       '<div class="iv-tabs" role="tablist" aria-label="Inspector sections">' + tabs.map(function(t){ return '<button type="button" role="tab" id="ivt-' + t[0] + '" aria-controls="in-body" data-v="' + t[0] + '" aria-selected="' + (t[0] === tab) + '" tabindex="' + (t[0] === tab ? 0 : -1) + '">' + t[1] + (t[2] != null ? '<span class="iv-n' + (t[3] ? ' ' + t[3] : '') + '"' + (t[0] === 'checks' ? ' title="Lines held by a check"' : '') + '>' + t[2] + '</span>' : '') + '</button>'; }).join('') + '</div>') +
       '<div id="in-body" class="iv-body" role="tabpanel" tabindex="-1"></div></div>';
     C.crumb(A.addr(h));
+    /* Every photo in one numbered list, room by room. A photo is flagged when a part of its room could not be read
+       from it (check 3, condition clear); rooms with no photo are named, so nothing unverified is hidden (DESIGN 0) */
+    function photoList(){
+      var list = [], rooms = A.roomsFor(h), unclear = {};
+      if(m && ready) m.lines.forEach(function(l){ if(l.checks[2] === false) (unclear[l.roomKey] = unclear[l.roomKey] || []).push(l.item.name.toLowerCase()); });
+      rooms.forEach(function(r){
+        (h.photos[r[0]] || []).filter(function(x){ return x.state === 'done'; }).forEach(function(x){ list.push({src:x.src, room:r[1], key:r[0], flags:x.flags || [], why:[]}); });
+      });
+      Object.keys(unclear).forEach(function(k){
+        for(var i = list.length - 1; i >= 0; i--) if(list[i].key === k || list[i].key.indexOf(k + '-') === 0){ list[i].why = unclear[k]; break; }
+      });
+      list.forEach(function(x, i){ x.n = i + 1; });
+      return {list:list, miss:rooms.filter(function(r){ return r[0] !== 'other' && !A.photoCount(h, r[0]); })};
+    }
+    /* A larger view of one photo, with the previous and next */
+    function openPhoto(i){
+      var P = photoList().list, d = C.dialog('Photo', '<div id="iv-lb"></div>', {wide:true});
+      function draw(){
+        var x = P[i], why = x.why.length ? 'Too unclear to read the ' + RI.esc(x.why.join(' and the ')) : (x.flags || []).length ? RI.esc(x.flags.join(', ')) : '';
+        d.querySelector('.dlg-head h2').textContent = 'Photo ' + x.n + ' of ' + P.length + ', ' + x.room;
+        d.querySelector('#iv-lb').innerHTML = '<figure class="iv-lb"><img src="' + x.src + '" alt="' + RI.esc(x.room) + ', photo ' + x.n + '">' + (why ? '<figcaption>' + (x.why.length ? stateLbl('Unverified') : '') + '<span>' + why + '</span></figcaption>' : '') + '</figure>' +
+          '<div class="iv-lb-nav"><button type="button" class="btn btn-secondary" data-lb="-1"' + (i ? '' : ' disabled') + '>' + RI.icon('arrow','i-sm flip') + 'Previous</button><span class="muted small">' + x.n + ' of ' + P.length + '</span><button type="button" class="btn btn-secondary" data-lb="1"' + (i < P.length - 1 ? '' : ' disabled') + '>Next' + RI.icon('arrow','i-sm') + '</button></div>';
+        RI.fillIcons(d);
+      }
+      d.addEventListener('click', function(e){ var b = e.target.closest('[data-lb]'); if(b && !b.disabled){ i += +b.getAttribute('data-lb'); draw(); } });
+      d.addEventListener('keydown', function(e){ if(e.key === 'ArrowRight' && i < P.length - 1){ i++; draw(); } if(e.key === 'ArrowLeft' && i > 0){ i--; draw(); } });
+      draw();
+    }
     function sec(title, hint, inner, aside){ return '<section class="iv-sec"><header><div><h2>' + title + '</h2>' + (hint ? '<p class="iv-hint">' + hint + '</p>' : '') + '</div>' + (aside || '') + '</header>' + inner + '</section>'; }
     function body(){
       var el = doc.getElementById('in-body'), html = '';
@@ -199,11 +227,15 @@
         html = '<div class="iv-ov' + (m ? '' : ' no-run') + '">' + main + factsCard(h) + (m ? runCard(h, m, ready) : '') + consentCard(h, st) + '</div>';
       }
       if(tab === 'photos'){
-        var rooms = A.roomsFor(h), miss = rooms.filter(function(r){ return r[0] !== 'other' && !A.photoCount(h, r[0]); });
-        html = rooms.filter(function(r){ return A.photoCount(h, r[0]); }).map(function(r){ var ps = (h.photos[r[0]] || []).filter(function(x){ return x.state === 'done'; });
-          return '<section class="iv-room"><h2>' + r[1] + ' <span class="iv-n">' + ps.length + '</span></h2><div class="iv-ph">' + ps.map(function(x){ return '<figure><img src="' + x.src + '" alt="' + RI.esc(r[1]) + ' photo" loading="lazy">' + ((x.flags || []).length ? '<figcaption>' + RI.esc(x.flags.join(', ')) + '</figcaption>' : '') + '</figure>'; }).join('') + '</div></section>';
-        }).join('') || '<div class="c-empty">' + RI.icon('camera') + '<p>No photos yet. They appear here as the owner adds them.</p></div>';
-        if(miss.length) html += '<section class="iv-room"><h2>Rooms without photos <span class="iv-n warn">' + miss.length + '</span></h2><ul class="iv-miss">' + miss.map(function(r){ return '<li><span>' + r[1] + '</span>' + stateLbl('Unverified') + '</li>'; }).join('') + '</ul></section>';
+        var P = photoList(), notes = [];
+        P.miss.forEach(function(r){ notes.push('No photo shows the ' + RI.esc(r[1].toLowerCase()) + ', so its parts stay unverified.'); });
+        P.list.forEach(function(x){ (x.why || []).forEach(function(w){ notes.push('Photo ' + x.n + ' is too unclear to read the ' + RI.esc(w) + ', so that part stays unverified.'); }); });
+        html = P.list.length ? '<section class="c-card iv-phs"><div class="iv-ph">' + P.list.map(function(x, i){
+            var flag = x.why.length || (x.flags || []).length;
+            return '<button type="button" class="iv-tile" data-ph="' + i + '" aria-label="Open photo ' + x.n + ', ' + RI.esc(x.room) + (flag ? ', unverified' : '') + '"><img src="' + x.src + '" alt="" loading="lazy">' +
+              '<span class="iv-tile-l">' + x.n + '. ' + RI.esc(x.room) + '</span>' + (flag ? '<span class="iv-tile-f"><i aria-hidden="true"></i>' + (x.why.length ? 'Unverified' : RI.esc(x.flags[0])) + '</span>' : '') + '</button>';
+          }).join('') + '</div>' + (notes.length ? '<ul class="iv-phn">' + notes.map(function(t){ return '<li>' + t + '</li>'; }).join('') + '</ul>' : (ready ? '<p class="iv-phn">Every room has a photo, and every part could be read from them.</p>' : '')) + '</section>'
+          : '<div class="c-empty">' + RI.icon('camera') + '<p>No photos yet. They appear here as the owner adds them.</p></div>';
       }
       if(tab === 'obs') html = sec('Observations', 'What the photos show for each part, on four separate scales: a part can be sound and still look dated (PDF section 33). Open a line to follow it in the decision tree.',
         C.table({cls:'iv-tbl', cols:[{label:'Component'},{label:'Evidence'},{label:'Condition'},{label:'Modernisation'},{label:'Character'},{label:'Function'},{label:'Severity'},{label:'Confidence'}],
@@ -252,6 +284,7 @@
     view.addEventListener('click', function(e){
       var t = e.target.closest('[data-tab]'); if(t){ show(t.getAttribute('data-tab')); tl.scrollIntoView({block:'nearest'}); return; }
       var s = e.target.closest('#iv-qpk [data-v]'); if(s){ qpk = s.getAttribute('data-v'); body(); return; }
+      var ph = e.target.closest('[data-ph]'); if(ph){ openPhoto(+ph.getAttribute('data-ph')); return; }
       var r = e.target.closest('[data-go]'); if(r) C.go(r.getAttribute('data-go'));
     });
     view.addEventListener('keydown', function(e){ var r = e.target.closest('[data-go]'); if(r && e.key === 'Enter') C.go(r.getAttribute('data-go')); });
