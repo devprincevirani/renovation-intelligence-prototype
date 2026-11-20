@@ -80,10 +80,42 @@
     {email:'sara.l@example.com', type:'buyer', from:'Waitlist', consent:'given', v:1, at:now - 10 * DAY},
     {email:'oscar.b@example.com', type:'builder', from:'Waitlist', consent:'none', at:now - 3 * DAY},
     {email:'j.carter@example.com', type:'buyer', from:'Sign up', consent:'none', at:now - 13 * DAY},
-    {email:'hannah.price@example.com', type:'homeowner', from:'Sign up', consent:'withdrawn', v:1, at:now - 29 * DAY, off:now - 12 * DAY}
+    {email:'hannah.price@example.com', type:'homeowner', from:'Sign up', consent:'withdrawn', v:1, at:now - 29 * DAY, off:now - 12 * DAY},
+    {email:'t.nowak@example.com', type:'seller', from:'Sign up', consent:'none', at:now - DAY},
+    {email:'n.patel@example.com', type:'agent', from:'Waitlist', consent:'given', v:1, at:now - 5 * DAY},
+    {email:'rosa.vega@example.com', type:'builder', from:'Waitlist', consent:'given', v:1, at:now - 7 * DAY},
+    {email:'kai.tan@example.com', type:'homeowner', from:'Waitlist', consent:'given', v:1, at:now - 9 * DAY},
+    {email:'elif.kaya@example.com', type:'seller', from:'Waitlist', consent:'none', at:now - 12 * DAY},
+    {email:'priya.shah@example.com', type:'homeowner', from:'Sign up', consent:'given', v:1, at:now - 14 * DAY},
+    {email:'will.ade@example.com', type:'agent', from:'Waitlist', consent:'given', v:1, at:now - 15 * DAY},
+    {email:'ben.okafor@example.com', type:'buyer', from:'Sign up', consent:'none', at:now - 17 * DAY},
+    {email:'lena.fischer@example.com', type:'seller', from:'Sign up', consent:'given', v:1, at:now - 20 * DAY},
+    {email:'lee.morgan@example.com', type:'other', from:'Waitlist', consent:'none', at:now - 22 * DAY},
+    {email:'carlos.mena@example.com', type:'homeowner', from:'Sign up', consent:'given', v:1, at:now - 24 * DAY},
+    {email:'nina.petrov@example.com', type:'homeowner', from:'Sign up', consent:'withdrawn', v:1, at:now - 28 * DAY, off:now - 6 * DAY},
+    {email:'tom.becker@example.com', type:'builder', from:'Sign up', consent:'given', v:1, at:now - 34 * DAY},
+    {email:'grace.liu@example.com', type:'agent', from:'Sign up', consent:'none', at:now - 39 * DAY},
+    {email:'omar.haddad@example.com', type:'homeowner', from:'Sign up', consent:'given', v:1, at:now - 45 * DAY},
+    {email:'ivy.chen@example.com', type:'buyer', from:'Sign up', consent:'given', v:1, at:now - 52 * DAY},
+    {email:'dwallace@example.com', type:'builder', from:'Sign up', consent:'given', v:1, at:now - 63 * DAY}
   ];
-  var FB_PKG = {'18450 Maple Ridge Dr':'Standard', '15520 Fairfield St':'Premium', '4227 Hampton Dr':'Essential'};
-  var FB_PEOPLE = {'18450 Maple Ridge Dr':'maria.lopez@example.com', '15520 Fairfield St':'aisha.khan@example.com', '4227 Hampton Dr':'j.carter@example.com'};
+  /* Example feedback over seven weeks: every answer, every package, comments and a few without one */
+  var SAMPLE_FEEDBACK = [
+    ['18450 Maple Ridge Dr', 'Standard', 'Yes', 'The unverified list told me exactly what to photograph.', 'maria.lopez', 2],
+    ['15520 Fairfield St', 'Premium', 'Somewhat', 'I expected the roof to be priced.', 'aisha.khan', 4],
+    ['4227 Hampton Dr', 'Essential', 'Yes', '', 'j.carter', 6],
+    ['912 Linden Ave', 'Standard', 'Yes', 'Room by room made it easy to talk it through with my contractor.', 'dwallace', 8],
+    ['3307 Birchwood Ct', 'Premium', 'No', 'I wanted one number. The range was wider than I hoped.', 't.nowak', 11],
+    ['77 Orchard Ln', 'Standard', 'Yes', 'Shared it with my agent the same day.', 'priya.shah', 13],
+    ['5610 Cedar Ridge Rd', 'Essential', 'Somewhat', 'The kitchen photo was too dark and it said unverified. Fair, but tell me sooner.', 'ben.okafor', 16],
+    ['1440 Westview Dr', 'Standard', 'Yes', 'Seeing what Essential leaves out helped us choose.', 'lena.fischer', 19],
+    ['286 Harbor St', 'Premium', 'Yes', 'The product list saved me a weekend of browsing.', 'carlos.mena', 23],
+    ['9021 Elm Grove Rd', 'Standard', 'No', 'The basement was marked unknown. I know it needs work; let me say so.', 'nina.petrov', 27],
+    ['640 Willow Bend', 'Essential', 'Yes', '', 'tom.becker', 33],
+    ['1188 Ridgeline Dr', 'Standard', 'Somewhat', 'Good detail. The PDF was long to read on a phone.', 'grace.liu', 38],
+    ['52 Meadow Ct', 'Premium', 'Yes', 'The split by trade is what my builder asked for.', 'omar.haddad', 44],
+    ['2705 Lakeshore Dr', 'Standard', 'Yes', 'Clear about what it could not see.', 'ivy.chen', 51]
+  ].map(function(x){ return {house:x[0], pkg:x[1], v:x[2], note:x[3], who:x[4] + '@example.com', at:now - x[5] * DAY}; });
   /* A cell that starts with =, +, - or @ is written so a spreadsheet does not run it (SECURITY 11) */
   function cell(v){ v = String(v == null ? '' : v); if(/^[=+\-@\t\r]/.test(v)) v = "'" + v; return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
   function csv(head, rows){ return [head].concat(rows).map(function(r){ return r.map(cell).join(','); }).join('\n'); }
@@ -94,7 +126,7 @@
     var q0 = C.query(), tab = q0.tab === 'contacts' ? 'contacts' : 'feedback', st = {q:'', f:q0.f || 'all', a:q0.a || 'all'}, canExp = C.can('contacts.export');
     var pkgName = function(k){ var p = (RI.PACKAGES || []).filter(function(x){ return x.key === k; })[0]; return p ? p.name : ''; };
     var fb = A.all().filter(function(h){ return h.feedback; }).map(function(h){ return {house:A.addr(h), hid:h.id, who:h.owner || '', pkg:pkgName(h.pk), v:h.feedback.v, note:h.feedback.note || '', at:h.feedback.at || h.updated}; })
-      .concat(C.get('feedbackSeed', []).map(function(f){ return Object.assign({who:FB_PEOPLE[f.house] || '', pkg:FB_PKG[f.house] || ''}, f); }));
+      .concat(SAMPLE_FEEDBACK);
     /* Everyone who left an email: accounts and the waitlist, each with the state of their updates consent */
     var users = RI.users.all(), contacts = Object.keys(users).map(function(k){ return users[k]; }).filter(function(u){ return u.role !== 'staff'; })
       .map(function(u){ return {email:u.email, type:u.type, from:'Sign up', consent:u.news ? 'given' : 'none', v:1, at:u.at}; })
