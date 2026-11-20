@@ -3090,6 +3090,40 @@ button.bim-c:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2
 .iv-grade-b i{position:absolute;left:0;top:0;bottom:0;background:var(--deep-forest)}
 .iv-grade-r>span{font-size:.86rem;color:var(--muted)}
 .iv-grade-r>span b{color:var(--text)}
+/* Range chart: one row per item, a band from Low to High on a shared scale, numbers beside the band */
+.iv-ptools{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+.iv-rch{display:grid}
+.iv-rch-ax,.iv-rch-r{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.iv-rch-ax>span{display:none}
+.iv-rch-ax{padding:6px 0;border-bottom:1px solid var(--border)}
+.iv-rch-sc{position:relative;height:16px;font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.iv-rch-sc span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
+.iv-rch-sc span:first-child{transform:none}
+.iv-rch-sc span:last-child{transform:translateX(-100%)}
+.iv-rch-r{padding:14px 0 12px;border-bottom:1px solid var(--border-soft);align-items:center}
+.iv-rch-n{display:grid;gap:2px;min-width:0}
+.iv-rch-n>b{font-size:.95rem;font-weight:600}
+.iv-rch-n small{font-size:.76rem;color:var(--muted)}
+.iv-rch-n .iv-rch-m{font-size:.74rem}
+.iv-rch-t{position:relative;height:44px}
+.iv-g{position:absolute;top:0;bottom:0;width:0;border-left:1px solid var(--border-soft)}
+.iv-g:first-child{border-left-color:var(--border-strong)}
+.iv-band{position:absolute;top:8px;height:14px;min-width:6px;border:1.5px solid var(--bronze);border-radius:2px;background:rgba(161,125,88,.5)}
+.iv-band.partial{border-style:dashed;background:rgba(161,125,88,.22)}
+.iv-bl{position:absolute;top:15px;transform:translateY(-50%);white-space:nowrap;font-size:.92rem;font-weight:600;font-variant-numeric:tabular-nums;color:var(--text)}
+.iv-bl.under{top:26px;transform:none}
+.iv-bl-none{left:0;font-size:.84rem;font-weight:500;color:var(--muted)}
+.iv-rch-tot{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding-top:14px;font-size:.9rem}
+.iv-rch-tot>span:first-child{color:var(--muted)}
+.iv-rch-tot b{font-size:1.02rem}
+.iv-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:14px 0 0;font-size:.78rem;color:var(--muted)}
+.iv-key{display:inline-block;width:22px;height:10px;border:1.5px solid var(--bronze);border-radius:2px;background:rgba(161,125,88,.5)}
+.iv-key.partial{margin-left:10px;border-style:dashed;background:rgba(161,125,88,.22)}
+@media (max-width:639px){ .iv-rch-r{padding-top:12px} .iv-rch-t{height:46px} .iv-bl,.iv-bl.under{left:6px!important;right:auto!important;top:27px;transform:none} }
+@media (min-width:640px){
+  .iv-rch-ax,.iv-rch-r{grid-template-columns:180px minmax(0,1fr);gap:20px}
+  .iv-rch-ax>span{display:block}
+}
 /* Observations: filters, rows grouped by room, each scale drawn as a position on its own scale */
 .iv-obsf{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:12px}
 .iv-obsf button{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 12px;border:1px solid var(--border);border-radius:4px;background:var(--raised);font:inherit;font-size:.84rem;font-weight:500;color:var(--text);cursor:pointer;transition:border-color var(--fast),box-shadow var(--fast)}
