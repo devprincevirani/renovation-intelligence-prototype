@@ -98,7 +98,7 @@
 })();
 
 /* ---------- Funnel (APP_FLOW 3, BACKLOG M4-19, SEO_CONVERSION 9) ----------
-   Shows the sample month. Four headline numbers (intakes, free views, paid presentations, shares),
+   Sample data for the last 7, 30 or 90 days. Four headline numbers (intakes, free views, paid presentations, shares),
    the nine steps from visit to share, where people leave and what each screen does about it, then before sign up
    and after paying. */
 (function(){
@@ -121,9 +121,18 @@
     {e:'share_created', l:'Spreads it', s:'Share view', why:'Nothing to pass on', fix:'Share link and PDF on every presentation'}
   ];
   /* Sample month: invented numbers that show the layout, labelled as sample */
-  var SAMPLE = {page_view:1840, waitlist_joined:212, signup_completed:96, intake_started:71, intake_submitted:52, price_ready:51, price_viewed:49, checkout_started:21, payment_completed:14, presentation_opened:14, share_created:6, share_viewed:23, feedback_sent:5};
-  var BEFORE = {intake_submitted:44, price_viewed:41, payment_completed:10, share_created:4};
-  var SERIES = {intake_submitted:[4,5,6,6,7,7,8,9], price_viewed:[4,4,5,6,7,7,8,8], payment_completed:[1,1,1,2,2,2,2,3], share_created:[0,1,0,1,1,1,1,1]};
+  /* Sample data for each period: counts per event, the period before (for the change on the cards), and a trend line */
+  var SETS = {
+    7:{c:{page_view:468, waitlist_joined:51, signup_completed:24, intake_started:19, intake_submitted:14, price_ready:14, price_viewed:13, checkout_started:6, payment_completed:4, presentation_opened:4, share_created:2, share_viewed:7, feedback_sent:1},
+      before:{intake_submitted:11, price_viewed:10, payment_completed:3, share_created:1},
+      series:{intake_submitted:[1,2,2,2,2,2,3], price_viewed:[1,1,2,2,2,2,3], payment_completed:[0,1,0,1,0,1,1], share_created:[0,0,1,0,0,0,1]}},
+    30:{c:{page_view:1840, waitlist_joined:212, signup_completed:96, intake_started:71, intake_submitted:52, price_ready:51, price_viewed:49, checkout_started:21, payment_completed:14, presentation_opened:14, share_created:6, share_viewed:23, feedback_sent:5},
+      before:{intake_submitted:44, price_viewed:41, payment_completed:10, share_created:4},
+      series:{intake_submitted:[4,5,6,6,7,7,8,9], price_viewed:[4,4,5,6,7,7,8,8], payment_completed:[1,1,1,2,2,2,2,3], share_created:[0,1,0,1,1,1,1,1]}},
+    90:{c:{page_view:4920, waitlist_joined:566, signup_completed:241, intake_started:176, intake_submitted:128, price_ready:125, price_viewed:119, checkout_started:47, payment_completed:31, presentation_opened:31, share_created:12, share_viewed:44, feedback_sent:11},
+      before:{intake_submitted:97, price_viewed:90, payment_completed:22, share_created:9},
+      series:{intake_submitted:[10,11,12,13,14,15,16,18,19], price_viewed:[9,10,11,12,13,14,15,17,18], payment_completed:[2,2,3,3,3,4,4,5,5], share_created:[1,1,1,1,1,2,1,2,2]}}
+  };
 
   function spark(arr, tone){
     var w = 112, h = 34, max = Math.max(1, Math.max.apply(null, arr)), n = arr.length;
@@ -139,22 +148,24 @@
 
   C.route('/funnel', function(view){
     var today = new Date(); today.setHours(0, 0, 0, 0);
-    var from = new Date(+today - 29 * DAY), md = function(d){ return d.toLocaleDateString('en-US', {month:'short', day:'numeric'}); };
-    var range = md(from) + ' to ' + md(today) + ', ' + today.getFullYear();
-
-    /* Always the sample month. Real counts come from the funnel events on the server (M4-19) */
-    view.innerHTML = C.page({kicker:'Customers', title:'Funnel', sub:'Last 30 days, ' + range + '. Invented numbers.', body:'<div id="fu-body"></div>'});
+    var md = function(d){ return d.toLocaleDateString('en-US', {month:'short', day:'numeric'}); };
+    var days = [7, 30, 90].indexOf(+C.query().days) > -1 ? +C.query().days : 30;
+    function sub(){ var from = new Date(+today - (days - 1) * DAY); return 'Last ' + days + ' days, ' + md(from) + ' to ' + md(today) + ', ' + today.getFullYear() + '. Invented numbers.'; }
+    /* The period: the same joined buttons as the audit log, a radio group with arrow keys */
+    var per = '<div class="au-period" id="fu-days" role="radiogroup" aria-label="Period">' + [7, 30, 90].map(function(d){ return '<button type="button" role="radio" data-v="' + d + '" aria-checked="' + (d === days) + '" tabindex="' + (d === days ? 0 : -1) + '">' + d + ' days</button>'; }).join('') + '</div>';
+    view.innerHTML = C.page({kicker:'Customers', title:'Funnel', sub:sub(), actions:per, body:'<div id="fu-body"></div>'});
 
     function card(o){ return '<section class="c3' + (o.cls ? ' ' + o.cls : '') + '" aria-labelledby="fn-' + o.id + '"><header class="c3-h"><div><h2 id="fn-' + o.id + '">' + o.title + '</h2>' + (o.sub ? '<p>' + o.sub + '</p>' : '') + '</div>' + (o.aside || '') + '</header>' + o.body + (o.foot ? '<footer class="c3-f sp">' + o.foot + '</footer>' : '') + '</section>'; }
 
     function body(){
-      var n = function(e){ return SAMPLE[e] || 0; };
+      var D = SETS[days], n = function(e){ return D.c[e] || 0; };
+      view.querySelector('.c-sub').textContent = sub();
 
       /* ---------- Four headline numbers (BACKLOG M4-19) ---------- */
       var kpi = function(icon, label, e){
         var v = n(e);
-        return '<div class="k3"><span class="k3-h"><span class="k3-ic">' + I(icon, 'i-sm') + '</span>' + label + '</span><span class="k3-m"><b>' + fmt(v) + '</b>' + spark(SERIES[e], 'fg') + '</span>' +
-          '<span class="k3-f">' + delta(v, BEFORE[e]) + '<span>vs the 30 days before</span></span></div>';
+        return '<div class="k3"><span class="k3-h"><span class="k3-ic">' + I(icon, 'i-sm') + '</span>' + label + '</span><span class="k3-m"><b>' + fmt(v) + '</b>' + spark(D.series[e], 'fg') + '</span>' +
+          '<span class="k3-f">' + delta(v, D.before[e]) + '<span>vs the ' + days + ' days before</span></span></div>';
       };
       var kpis = '<div class="k3s fn-k">' + kpi('house', 'Houses submitted', 'intake_submitted') + kpi('eye', 'Free price views', 'price_viewed') +
         kpi('file', 'Paid presentations', 'payment_completed') + kpi('share', 'Shares', 'share_created') + '</div>';
@@ -199,6 +210,10 @@
         C.note('Counted on our own server, one event per step, not by an ad tracker (SEO_CONVERSION 9).');
       RI.fillIcons(doc.getElementById('fu-body'));
     }
+    var grp = view.querySelector('#fu-days');
+    function setDays(v){ days = +v; grp.querySelectorAll('[data-v]').forEach(function(x){ var on = +x.getAttribute('data-v') === days; x.setAttribute('aria-checked', on); x.tabIndex = on ? 0 : -1; }); history.replaceState(null, '', '#/funnel' + (days === 30 ? '' : '?days=' + days)); body(); }
+    grp.addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if(b) setDays(b.getAttribute('data-v')); });
+    grp.addEventListener('keydown', function(e){ var bs = [].slice.call(grp.querySelectorAll('[data-v]')), i = bs.indexOf(e.target); if(i < 0) return; var k = e.key, j = k === 'ArrowRight' || k === 'ArrowDown' ? (i + 1) % bs.length : k === 'ArrowLeft' || k === 'ArrowUp' ? (i - 1 + bs.length) % bs.length : k === 'Home' ? 0 : k === 'End' ? bs.length - 1 : -1; if(j < 0) return; e.preventDefault(); setDays(bs[j].getAttribute('data-v')); bs[j].focus(); });
     body();
   }, {nav:'funnel', perm:'funnel.view'});
 })();
