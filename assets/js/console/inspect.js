@@ -42,27 +42,29 @@
     if(h.trialOpen) return 'Trial';
     return isReady(st) ? 'Price only' : 'No price yet';
   }
-  /* The house statuses of APP_FLOW 9, in order. "Taking longer" replaces the working step it belongs to */
-  function track(h){
+  /* Status as one compact meter: the five house statuses of APP_FLOW 9, the current one named.
+     "Taking longer" replaces the working step it belongs to */
+  function statusCell(h){
     var st = A.status(h), rs = A.runState(h), keys = TRACK.map(function(t){ return t[0]; });
-    var cur = st === 'open' ? 4 : Math.max(0, keys.indexOf(st));
-    return '<ol class="iv-track" aria-label="House status">' + TRACK.map(function(t, i){
-      var now = i === cur, label = now && rs.slow ? 'Taking longer' : t[1];
-      return '<li class="' + (i < cur ? 'done' : now ? 'now' : '') + '"' + (now ? ' aria-current="step"' : '') + '><i aria-hidden="true"></i><span>' + label + '</span></li>';
-    }).join('') + '</ol>';
+    var cur = st === 'open' ? 4 : Math.max(0, keys.indexOf(st)), label = rs.slow ? 'Taking longer' : TRACK[cur][1];
+    return '<span class="iv-status"><b>' + label + '</b><small>Step ' + (cur + 1) + ' of 5</small><span class="iv-seg" aria-hidden="true" title="' + TRACK.map(function(t){ return t[1]; }).join(', then ') + '">' +
+      TRACK.map(function(t, i){ return '<i class="' + (i <= cur ? 'on' : '') + '"></i>'; }).join('') + '</span></span>';
   }
-  function head(h, active, m){
+  /* The house record: photo, who and where, the four facts staff look for first, and the tabs as the card's lower edge */
+  function head(h, active, m, tabs){
     var st = A.status(h), o = C.owner(h.owner), cov = A.cover(h), ready = isReady(st), held = heldLines(m).length;
     var rel = st === 'draft' ? '<span class="muted">Not run yet</span>' : !ready ? '<span class="muted">When the run finishes</span>' : held ? stateLbl('Partial planning estimate') : '<span class="rel rel-ok">Complete planning estimate</span>';
     var act = active === 'tree' ? '<a class="btn btn-secondary" href="#/houses/' + h.id + '">' + RI.icon('list','i-sm') + 'Back to the inspector</a>'
       : m && ready ? '<a class="btn btn-primary" href="#/houses/' + h.id + '/tree">' + RI.icon('sliders','i-sm') + 'Open the decision tree</a>' : '';
+    var run = m ? '<code>' + m.run + '</code><small>v' + (h.version || 1) + ', started ' + C.date(m.at) + '</small>' : '<span class="muted">None yet</span><small>v' + (h.version || 1) + '</small>';
     return '<a class="c-back" href="#/houses">' + RI.icon('arrow','i-sm flip') + 'House list</a>' +
-      '<header class="iv-head">' + (cov ? '<img class="iv-cover" src="' + cov + '" alt="Front of ' + RI.esc(A.addr(h)) + '">' : '<span class="iv-cover iv-nocover">' + RI.icon('house') + '</span>') +
-        '<div class="iv-id"><p class="c-kicker">' + (active === 'tree' ? 'Decision tree' : 'House inspector') + '</p><h1>' + RI.esc(A.addr(h)) + '</h1>' +
-        '<p class="iv-sub"><span>' + RI.esc(A.place(h)) + '</span><span>' + RI.esc(o.name) + ', ' + RI.esc(o.type) + '</span>' + (h.client ? '<span>Client ' + RI.esc(h.client) + '</span>' : '') + '</p></div>' +
-        (act ? '<div class="iv-act">' + act + '</div>' : '') + '</header>' +
-      '<div class="iv-meta">' + track(h) +
-        '<dl class="iv-facts"><div><dt>Release</dt><dd>' + rel + '</dd></div><div><dt>Run</dt><dd>' + (m ? '<code>' + m.run + '</code>' : 'None yet') + '</dd></div><div><dt>Version</dt><dd>v' + (h.version || 1) + '</dd></div><div><dt>Presentation</dt><dd>' + access(h, st) + '</dd></div></dl></div>';
+      '<header class="iv-rec' + (tabs ? ' has-tabs' : '') + '">' +
+        (cov ? '<img class="iv-cover" src="' + cov + '" alt="Front of ' + RI.esc(A.addr(h)) + '">' : '<span class="iv-cover iv-nocover">' + RI.icon('house') + '</span>') +
+        '<div class="iv-main"><div class="iv-top"><div class="iv-id"><p class="c-kicker">' + (active === 'tree' ? 'Decision tree' : 'House inspector') + '</p><h1>' + RI.esc(A.addr(h)) + '</h1>' +
+          '<p class="iv-sub"><span>' + RI.esc(A.place(h)) + '</span><span>' + RI.esc(o.name) + ', ' + RI.esc(o.type) + '</span>' + (h.client ? '<span>Client ' + RI.esc(h.client) + '</span>' : '') + '</p></div>' +
+          (act ? '<div class="iv-act">' + act + '</div>' : '') + '</div>' +
+          '<dl class="iv-facts"><div><dt>Status</dt><dd>' + statusCell(h) + '</dd></div><div><dt>Release</dt><dd>' + rel + '</dd></div><div><dt>Presentation</dt><dd>' + access(h, st) + '</dd></div><div><dt>Run</dt><dd>' + run + '</dd></div></dl></div>' +
+        (tabs || '') + '</header>';
   }
 
   /* ---------- Overview cards ---------- */
@@ -184,8 +186,8 @@
     var tabs = [['overview','Overview'],['photos','Photos',A.photoCount(h)]];
     if(m && ready) tabs = tabs.concat([['obs','Observations',m.lines.length],['dec','Decisions'],['qty','Quantities and prices'],['checks','Checks',held, held ? 'warn' : ''],['ledger','Ledger']]);
     if(!tabs.some(function(t){ return t[0] === tab; })) tab = 'overview';
-    view.innerHTML = '<div class="c-page iv">' + head(h, 'inspector', m) +
-      '<div class="iv-tabs" role="tablist" aria-label="Inspector sections">' + tabs.map(function(t){ return '<button type="button" role="tab" id="ivt-' + t[0] + '" aria-controls="in-body" data-v="' + t[0] + '" aria-selected="' + (t[0] === tab) + '" tabindex="' + (t[0] === tab ? 0 : -1) + '">' + t[1] + (t[2] != null ? '<span class="iv-n' + (t[3] ? ' ' + t[3] : '') + '"' + (t[0] === 'checks' ? ' title="Lines held by a check"' : '') + '>' + t[2] + '</span>' : '') + '</button>'; }).join('') + '</div>' +
+    view.innerHTML = '<div class="c-page iv">' + head(h, 'inspector', m,
+      '<div class="iv-tabs" role="tablist" aria-label="Inspector sections">' + tabs.map(function(t){ return '<button type="button" role="tab" id="ivt-' + t[0] + '" aria-controls="in-body" data-v="' + t[0] + '" aria-selected="' + (t[0] === tab) + '" tabindex="' + (t[0] === tab ? 0 : -1) + '">' + t[1] + (t[2] != null ? '<span class="iv-n' + (t[3] ? ' ' + t[3] : '') + '"' + (t[0] === 'checks' ? ' title="Lines held by a check"' : '') + '>' + t[2] + '</span>' : '') + '</button>'; }).join('') + '</div>') +
       '<div id="in-body" class="iv-body" role="tabpanel" tabindex="-1"></div></div>';
     C.crumb(A.addr(h));
     function sec(title, hint, inner, aside){ return '<section class="iv-sec"><header><div><h2>' + title + '</h2>' + (hint ? '<p class="iv-hint">' + hint + '</p>' : '') + '</div>' + (aside || '') + '</header>' + inner + '</section>'; }

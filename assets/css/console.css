@@ -2784,50 +2784,45 @@ button.bim-c:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2
 .iv-state{display:inline-flex;align-items:center;font-size:.74rem;font-weight:600;line-height:1.3;padding:2px 8px;border:1px dashed var(--border-strong);border-radius:2px;color:var(--text);background:transparent;white-space:nowrap}
 .iv-n{display:inline-grid;place-items:center;min-width:22px;height:20px;padding:0 6px;border-radius:2px;background:var(--sunken);color:var(--muted);font-size:.72rem;font-weight:600;font-variant-numeric:tabular-nums}
 .iv-n.warn{background:transparent;color:var(--text);border:1px dashed var(--border-strong)}
-/* Head: the house record */
-.iv-head{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px 18px;align-items:center}
-.iv-cover{width:96px;height:72px;border-radius:8px;object-fit:cover;background:var(--sunken);display:grid;place-items:center;color:var(--muted)}
+/* Head: one house record card. Photo, identity, four facts, then the tabs as its lower edge */
+.iv-rec{display:grid;border:1px solid var(--border);border-radius:8px;background:var(--raised);overflow:hidden}
+.iv-rec:not(.has-tabs){margin-bottom:16px}
+.iv-cover{display:grid;place-items:center;width:100%;aspect-ratio:16/7;object-fit:cover;background:var(--sunken);color:var(--muted)}
+.iv-main{display:grid;gap:16px;padding:16px;min-width:0}
+.iv-top{display:grid;gap:14px}
 .iv-id{display:grid;gap:4px;min-width:0}
-.iv-id h1{font-family:var(--display);font-weight:500;font-size:clamp(1.45rem,1.2rem + 1vw,2rem);line-height:1.1;margin:0}
-.iv-sub{margin:0;display:flex;flex-wrap:wrap;gap:2px 0;font-size:.9rem;color:var(--muted)}
-.iv-sub span+span::before{content:"·";padding:0 8px;color:var(--border-strong)}
-.iv-act{grid-column:1/-1}
+.iv-id h1{font-family:var(--display);font-weight:500;font-size:clamp(1.5rem,1.2rem + 1vw,2.05rem);line-height:1.1;margin:0}
+.iv-sub{margin:0;display:grid;gap:2px;font-size:.9rem;color:var(--muted)}
 .iv-act .btn{width:100%;justify-content:center}
+.iv-facts{margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;padding-top:14px;border-top:1px solid var(--border-soft)}
+.iv-facts>div{display:grid;gap:5px;align-content:start;min-width:0}
+.iv-facts dt{font-size:.66rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.iv-facts dd{margin:0;display:grid;gap:2px;justify-items:start;font-size:.9rem;font-weight:600;min-width:0}
+.iv-facts dd small{font-size:.74rem;font-weight:400;color:var(--muted)}
+.iv-facts code{font-size:.82rem;font-weight:500;overflow-wrap:anywhere}
+.iv-facts dd>.iv-status{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;width:100%}
+.iv-status small{font-size:.74rem;font-weight:400;color:var(--muted)}
+.iv-seg{flex-basis:100%;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;max-width:200px;margin-top:6px}
+.iv-seg i{height:4px;border-radius:2px;background:var(--border)}
+.iv-seg i.on{background:var(--deep-forest)}
+@media (min-width:600px){
+  .iv-sub{display:flex;flex-wrap:wrap;gap:2px 0}
+  .iv-sub span+span::before{content:"·";padding:0 8px;color:var(--border-strong)}
+}
 @media (min-width:760px){
-  .iv-head{grid-template-columns:auto minmax(0,1fr) auto}
-  .iv-cover{width:136px;height:100px}
-  .iv-act{grid-column:auto}.iv-act .btn{width:auto}
+  .iv-rec{grid-template-columns:minmax(200px,26%) minmax(0,1fr)}
+  .iv-cover{aspect-ratio:auto;height:100%;min-height:190px}
+  .iv-main{padding:20px 24px;gap:18px}
+  .iv-top{grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:20px}
+  .iv-act .btn{width:auto}
 }
-/* Status track and key facts */
-.iv-meta{display:grid;gap:14px;margin-top:18px;padding:14px 16px;border:1px solid var(--border);border-radius:8px;background:var(--raised)}
-.iv-track{list-style:none;margin:0;padding:0;display:flex}
-.iv-track li{position:relative;flex:1;display:grid;justify-items:center;gap:6px;text-align:center;font-size:.76rem;color:var(--muted);min-width:0}
-.iv-track li::before{content:"";position:absolute;top:6px;right:50%;width:100%;border-top:1px dotted var(--border-strong)}
-.iv-track li:first-child::before{display:none}
-.iv-track li.done::before,.iv-track li.now::before{border-top:2px solid var(--deep-forest);top:5px}
-.iv-track i{position:relative;z-index:1;width:13px;height:13px;border-radius:50%;background:var(--raised);border:1px solid var(--border-strong)}
-.iv-track li.done i{background:var(--deep-forest);border-color:var(--deep-forest)}
-.iv-track li.now i{border:3px solid var(--deep-forest);background:var(--raised)}
-.iv-track li.now span{color:var(--deep-forest);font-weight:600}
-.iv-track span{padding:0 4px;line-height:1.25}
-.iv-facts{margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;padding-top:12px;border-top:1px solid var(--border-soft)}
-.iv-facts dt{font-size:.66rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.iv-facts dd{margin:3px 0 0;font-size:.88rem;font-weight:600;min-width:0}
-.iv-facts code{font-size:.8rem;font-weight:500}
-@media (max-width:599px){
-  .iv-track li span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-  .iv-track li.now span{position:static;width:auto;height:auto;clip:auto;white-space:nowrap}
-  .iv-track li.now{flex:2.2}
-}
-@media (min-width:600px){ .iv-facts{grid-template-columns:repeat(4,minmax(0,auto));justify-content:space-between} }
-@media (min-width:1200px){
-  .iv-meta{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);align-items:center;gap:24px;padding:16px 20px}
-  .iv-facts{padding:0 0 0 24px;border-top:0;border-left:1px solid var(--border-soft)}
-}
-/* Tabs: underline, as on Users and staff */
+@media (min-width:1100px){ .iv-facts{grid-template-columns:minmax(0,1.15fr) minmax(0,1.2fr) minmax(0,.8fr) minmax(0,1fr)} .iv-facts>div+div{padding-left:20px;border-left:1px solid var(--border-soft)} }
+/* Tabs: underline, as on Users and staff; inside the record they form its lower edge */
 .iv-tabs{display:flex;gap:2px;margin-top:22px;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;scroll-snap-type:x proximity}
+.iv-rec>.iv-tabs{grid-column:1/-1;margin:0;padding:0 12px;border-bottom:0;border-top:1px solid var(--border);background:#FCFBF8}
 .iv-tabs::-webkit-scrollbar{display:none}
-.iv-tabs button{flex:none;display:inline-flex;align-items:center;gap:8px;min-height:46px;padding:0 14px;margin-bottom:-1px;border:0;border-bottom:2px solid transparent;border-radius:4px 4px 0 0;background:none;font:inherit;font-size:.9rem;font-weight:500;color:var(--muted);white-space:nowrap;cursor:pointer;scroll-snap-align:start;transition:color var(--fast),background var(--fast),border-color var(--fast)}
+.iv-tabs button{flex:none;display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:0 14px;margin-bottom:-1px;border:0;border-bottom:2px solid transparent;border-radius:0;background:none;font:inherit;font-size:.9rem;font-weight:500;color:var(--muted);white-space:nowrap;cursor:pointer;scroll-snap-align:start;transition:color var(--fast),background var(--fast),border-color var(--fast)}
+.iv-rec>.iv-tabs button{margin-bottom:0}
 .iv-tabs button:hover{color:var(--text);background:rgba(32,59,56,.04)}
 .iv-tabs button[aria-selected="true"]{color:var(--deep-forest);font-weight:600;border-bottom-color:var(--deep-forest);background:none}
 .iv-tabs button[aria-selected="true"] .iv-n:not(.warn){background:var(--deep-forest);color:var(--on-accent,#fff)}
@@ -2839,7 +2834,6 @@ button.bim-c:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2
 .iv-ov>*{min-width:0}
 @media (min-width:760px){ .iv-ov{grid-template-columns:repeat(2,minmax(0,1fr))} .iv-wide,.iv-ov>.c-card:last-child{grid-column:1/-1} }
 @media (min-width:1100px){ .iv-ov{grid-template-columns:repeat(3,minmax(0,1fr))} .iv-ov>.c-card:last-child:not(.iv-wide){grid-column:auto} }
-@media (max-width:599px){ .iv-sub{display:grid;gap:2px} .iv-sub span+span::before{content:none} }
 @media (min-width:760px){ .iv-ov.no-run>.c-card:last-child{grid-column:auto} }
 /* Price by package on one shared scale (DESIGN 8.1, 8.4) */
 .iv-pks{display:grid}
