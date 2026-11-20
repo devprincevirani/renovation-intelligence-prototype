@@ -81,6 +81,8 @@
   var SAM_ONLY = ['Publish or discard a draft', 'Invite staff and set permissions', 'Invite contacts to the trial', 'Disable an account'];
   /* Demo access logins: a note on where the row comes from, not a state, so it is quiet and sits by the name */
   var DEMO_TAG = '<span class="lb lb-sample" title="A Demo access login for trying the prototype. It cannot be disabled.">Demo</span>';
+  /* Phones and tablets: the details collapse into one quiet line under the name */
+  function meta(parts){ return '<small class="us-meta">' + parts.filter(Boolean).map(function(p){ return '<span>' + p + '</span>'; }).join(' &middot; ') + '</small>'; }
   var cap = function(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; };
   function daysLeft(u){ return TRIAL_DAYS - Math.floor((now - u.at) / DAY); }
   function userState(u){
@@ -126,7 +128,7 @@
     var U = users(), W = waitlist(), staff = staffList();
 
     view.innerHTML = C.page({kicker:'Admin', title:'Users and staff', sub:'Users, account types, staff invites and permissions.',
-      actions:sam ? '<button type="button" class="btn btn-primary" id="inv-new">' + RI.icon('mail','i-sm') + 'Invite staff</button>' : '',
+      actions:sam ? '<div class="us-head" id="us-head" aria-live="polite"></div><button type="button" class="btn btn-primary" id="inv-new">' + RI.icon('mail','i-sm') + 'Invite staff</button>' : '',
       body:'<div class="us-top">' + C.seg('us-tab', [['users','Users',U.length],['staff','Staff',staff.length + 1],['waitlist','Waitlist and trial',W.length]], tab) + '<div id="us-tools" class="us-bar"></div></div><div id="us-body"></div>'});
 
     function count(list, fn, v){ return list.filter(function(x){ return fn(x) === v; }).length; }
@@ -140,11 +142,11 @@
       tools.innerHTML = C.search('us-uq', 'Search name or email', st.uq) +
         pick('us-uf', 'State', [['all','All states',U.length],['active','Active',count(U, userState, 'active')],['trial','On trial',count(U, userState, 'trial')],['unverified','Not verified',count(U, userState, 'unverified')],['disabled','Disabled',count(U, userState, 'disabled')]], st.uf);
       el.innerHTML =
-        '<div class="c-mt">' + C.table({empty:'No account matches. Try another name, or show all.', cols:[{label:'Person'},{label:'Account type'},{label:'State'},{label:'Houses', num:true},{label:'Updates'},{label:'Joined', num:true},{label:''}],
+        '<div class="c-mt">' + C.table({cls:'us-cards us-users', empty:'No account matches. Try another name, or show all.', cols:[{label:'Person'},{label:'Account type'},{label:'State'},{label:'Houses', num:true},{label:'Updates'},{label:'Joined', num:true},{label:''}],
           rows:rows.map(function(u){
             var act = '';
             if(sam && !u.demo) act = u.disabled ? '<button type="button" class="linkbtn small" data-en="' + RI.esc(u.email) + '">Enable</button>' : '<button type="button" class="linkbtn small danger" data-dis="' + RI.esc(u.email) + '">Disable</button>';
-            return {attr:u.disabled ? 'class="us-off"' : '', cells:['<span class="c-person">' + C.av(u.name) + '<span><span class="us-name"><b>' + RI.esc(u.name) + '</b>' + (u.demo ? DEMO_TAG : '') + '</span><small>' + RI.esc(u.email) + '</small></span></span>',
+            return {attr:u.disabled ? 'class="us-off"' : '', cells:['<span class="c-person">' + C.av(u.name) + '<span><span class="us-name"><b>' + RI.esc(u.name) + '</b>' + (u.demo ? DEMO_TAG : '') + '</span><small>' + RI.esc(u.email) + '</small>' + meta([RI.esc(u.type), u.houses + (u.houses === 1 ? ' house' : ' houses'), 'Joined ' + C.date(u.at)]) + '</span></span>',
               C.chip(RI.esc(u.type)), stateLbl(u), String(u.houses), u.news ? 'Yes' : '<span class="muted">No</span>', C.date(u.at), act]};
           })}) + '</div>' +
         '<div class="c-mt">' + C.note('Account type changes what a person sees, never what they may do. Disabling an account ends its sessions at once; its houses stay.') + '</div>';
@@ -170,14 +172,12 @@
       tools.innerHTML = C.search('us-wq', 'Search by email', st.wq) +
         pick('us-wf', 'Status', [['all','All statuses',W.length],['waiting','Waiting',count(W, function(w){ return w.status; }, 'waiting')],['invited','Invited',count(W, function(w){ return w.status; }, 'invited')],['trial','On trial',count(W, function(w){ return w.status; }, 'trial')]], st.wf);
       el.innerHTML =
-        '<div class="c-mt">' + C.table({cls:'us-wl', empty:'Nobody matches. Try another email, or show all.', cols:cols,
+        '<div class="c-mt">' + C.table({cls:'us-wl us-cards' + (canInvite ? ' us-has-ck' : ''), empty:'Nobody matches. Try another email, or show all.', cols:cols,
           rows:rows.map(function(w){
             var act = !canInvite ? '' : w.status === 'waiting' ? '<button type="button" class="us-act" data-trial="' + RI.esc(w.email) + '" aria-label="Invite ' + RI.esc(w.email) + ' to the trial">' + RI.icon('mail','i-sm') + 'Invite</button>' : w.status === 'invited' ? '<button type="button" class="us-act" data-trial="' + RI.esc(w.email) + '" data-again="1" title="Last sent ' + C.date(w.invitedAt) + '" aria-label="Resend the trial invite to ' + RI.esc(w.email) + '">' + RI.icon('refresh','i-sm') + 'Resend</button>' : '';
             var ck = canInvite ? [w.status === 'waiting' ? '<input type="checkbox" class="us-ck" data-pick="' + RI.esc(w.email) + '" aria-label="Select ' + RI.esc(w.email) + '"' + (st.pick.indexOf(w.email) > -1 ? ' checked' : '') + '>' : ''] : [];
-            return {attr:st.pick.indexOf(w.email) > -1 ? 'class="us-picked"' : '', cells:ck.concat(['<b>' + RI.esc(w.email) + '</b>', w.type ? C.chip(cap(w.type)) : '<span class="muted">Not given</span>', w.source === 'home' ? 'Home page' : 'Waitlist page', C.date(w.at), wlStatus(w), act])};
+            return {attr:st.pick.indexOf(w.email) > -1 ? 'class="us-picked"' : '', cells:ck.concat(['<b>' + RI.esc(w.email) + '</b>' + meta([w.type ? cap(w.type) : '', w.source === 'home' ? 'Home page' : 'Waitlist page', 'Joined ' + C.date(w.at)]), w.type ? C.chip(cap(w.type)) : '<span class="muted">Not given</span>', w.source === 'home' ? 'Home page' : 'Waitlist page', C.date(w.at), wlStatus(w), act])};
           })}) + '</div>' +
-        (canInvite && st.pick.length ? '<div class="us-float-wrap"><div class="us-float" role="region" aria-label="Selected contacts"><span class="us-f-n">' + st.pick.length + '</span><span>selected</span><button type="button" class="us-f-clear" id="us-clear">Clear</button><span class="us-f-sep" aria-hidden="true"></span>' +
-          '<button type="button" class="us-f-go" id="us-bulk">' + RI.icon('mail','i-sm') + 'Invite ' + st.pick.length + ' to the trial</button></div></div>' : '') +
         '<div class="c-mt">' + C.note(!pre ? 'Trial invites are for the contacts Sam invites before launch. Export the list from Contacts and feedback.' : sam ? 'A trial invite emails a link to sign up for a 15-day trial. Export the list from Contacts and feedback.' : 'Only Sam invites contacts to the trial. Export the list from Contacts and feedback.') + '</div>';
       var ah = el.querySelector('#us-all'); if(ah) ah.indeterminate = st.pick.length > 0 && !all;
       RI.fillIcons(el);
@@ -190,8 +190,7 @@
         else { var em = t.getAttribute('data-pick'); st.pick = t.checked ? st.pick.concat(em) : st.pick.filter(function(x){ return x !== em; }); }
         bodyWaitlist(el);
       });
-      var cl = el.querySelector('#us-clear'); if(cl) cl.addEventListener('click', function(){ st.pick = []; bodyWaitlist(el); });
-      var bk = el.querySelector('#us-bulk'); if(bk) bk.addEventListener('click', function(){ trialDialog(st.pick.slice()); });
+      headActs();
     }
     function trialDialog(emails, again){
       var one = emails.length === 1;
@@ -229,24 +228,39 @@
         '<div class="pg-wrap"><table class="pg-tbl"><caption class="sr">Permissions for each staff member</caption><thead>' + head + '</thead><tbody>' + rows + '</tbody></table></div></section>';
     }
     function bodyStaff(el){
-      var rows = [{cells:['<span class="c-person">' + C.av('Sam', 'sam') + '<span><b>Sam</b><small>admin@demo.ri</small></span></span>', '<span class="c-chip sam">Super admin</span>', C.lbl('published').replace('Published', 'Active'), '<span class="ax-areas"><span class="c-chip sam">Everything</span></span>', '<span class="muted">Created on the server</span>', '']}];
+      var rows = [{cells:['<span class="c-person">' + C.av('Sam', 'sam') + '<span><b>Sam</b><small>admin@demo.ri</small>' + meta(['Super admin', 'Everything', 'Created on the server']) + '</span></span>', '<span class="c-chip sam">Super admin</span>', C.lbl('published').replace('Published', 'Active'), '<span class="ax-areas"><span class="c-chip sam">Everything</span></span>', '<span class="muted">Created on the server</span>', '']}];
       staff.forEach(function(x){
-        rows.push({attr:sam ? 'data-staff="' + RI.esc(x.email) + '" tabindex="0" role="button"' : '', cells:['<span class="c-person">' + C.av(x.name || x.email) + '<span><b>' + RI.esc(x.name || 'Not accepted yet') + '</b><small>' + RI.esc(x.email) + '</small></span></span>', '<span class="c-chip">Staff</span>',
+        rows.push({attr:sam ? 'data-staff="' + RI.esc(x.email) + '" tabindex="0" role="button"' : '', cells:['<span class="c-person">' + C.av(x.name || x.email) + '<span><b>' + RI.esc(x.name || 'Not accepted yet') + '</b><small>' + RI.esc(x.email) + '</small>' + meta(['Staff', x.status === 'invited' ? 'Invited ' + C.ago(x.invitedAt) : 'Joined ' + C.ago(x.joinedAt || x.invitedAt)]) + '</span></span>', '<span class="c-chip">Staff</span>',
           staffLbl(x),
           areaChips(x.perms), x.status === 'invited' ? 'Invited ' + C.ago(x.invitedAt) + ' · link works 7 days' : 'Joined ' + C.ago(x.joinedAt || x.invitedAt),
           sam ? '<span class="linkbtn small">Manage access</span>' : '']});
       });
-      el.innerHTML = C.table({cols:[{label:'Person'},{label:'Role'},{label:'State'},{label:'Can work in'},{label:'Since'},{label:''}], rows:rows}) + permGrid() +
+      el.innerHTML = C.table({cls:'us-cards us-staff', cols:[{label:'Person'},{label:'Role'},{label:'State'},{label:'Can work in'},{label:'Since'},{label:''}], rows:rows}) + permGrid() +
         '<div class="c-mt">' + C.note('Staff edit drafts. Only Sam publishes, and only Sam manages staff. A new staff member starts with no permissions.') + '</div>';
       RI.fillIcons(el);
     }
 
+    /* Beside Invite staff: the waitlist selection. While contacts are ticked, inviting them is the main action,
+       so Invite staff steps down to a secondary button */
+    function headActs(){
+      var slot = doc.getElementById('us-head'), staffBtn = doc.getElementById('inv-new'); if(!slot) return;
+      var on = tab === 'waitlist' && canInvite, n = on ? st.pick.length : 0;
+      slot.innerHTML = !on ? '' : n ? '<span class="us-h-sel"><b>' + n + ' selected</b><button type="button" class="us-ghost" id="us-clear">Clear</button></span>' +
+        '<button type="button" class="btn btn-primary" id="us-bulk">' + RI.icon('mail','i-sm') + 'Invite ' + n + ' to the trial</button>' :
+        '<span class="us-h-hint">Tick waiting contacts to invite several at once</span>';
+      if(staffBtn){ staffBtn.classList.toggle('btn-primary', !n); staffBtn.classList.toggle('btn-secondary', !!n); }
+      RI.fillIcons(slot);
+      var cl = slot.querySelector('#us-clear'); if(cl) cl.addEventListener('click', function(){ st.pick = []; bodyWaitlist(doc.getElementById('us-body')); });
+      var bk = slot.querySelector('#us-bulk'); if(bk) bk.addEventListener('click', function(){ trialDialog(st.pick.slice()); });
+    }
     function body(){
       var el = doc.getElementById('us-body');
       doc.getElementById('us-tools').innerHTML = '';
+      if(tab !== 'waitlist') st.pick = [];
       if(tab === 'users') bodyUsers(el);
       if(tab === 'staff') bodyStaff(el);
       if(tab === 'waitlist') bodyWaitlist(el);
+      headActs();
     }
     view.querySelector('#us-tab').addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if(!b) return; tab = b.getAttribute('data-v'); view.querySelectorAll('#us-tab [data-v]').forEach(function(x){ x.setAttribute('aria-selected', x === b); }); history.replaceState(null, '', '#/users?tab=' + tab); body(); });
     view.addEventListener('click', function(e){
