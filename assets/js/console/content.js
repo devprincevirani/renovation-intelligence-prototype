@@ -69,29 +69,90 @@
       C.addDraft({area:'resources', ref:id, title:'Builder document: ' + f.name, summary:'New document, ' + Math.round(f.size / 1024) + ' KB', why:''}); RI.toast('Uploaded. It waits in the publish queue.', 'check'); C.render(); });
   }, {nav:'resources', perm:'content.edit'});
 
-  /* ---------- Contacts and feedback ---------- */
+  /* ---------- Contacts and feedback ----------
+     APP_FLOW 7: feedback from presentations; export of contacts and the updates list. SECURITY 3.2 (contacts.export),
+     6.3 (consent with time and wording version), 11 (exports are formula-safe), 15 (exports are logged). RUNBOOK: the product
+     exports the waitlist (it is part of Export contacts); Sam writes from his own tool. */
+  var SAMPLE_CONTACTS = [
+    {email:'maria.lopez@example.com', type:'homeowner', from:'Sign up', consent:'given', v:1, at:now - 49 * DAY},
+    {email:'aisha.khan@example.com', type:'agent', from:'Sign up', consent:'given', v:1, at:now - 9 * DAY},
+    {email:'kim.tran@example.com', type:'homeowner', from:'Waitlist', consent:'given', v:1, at:now - 2 * DAY},
+    {email:'sara.l@example.com', type:'buyer', from:'Waitlist', consent:'given', v:1, at:now - 10 * DAY},
+    {email:'oscar.b@example.com', type:'builder', from:'Waitlist', consent:'none', at:now - 3 * DAY},
+    {email:'j.carter@example.com', type:'buyer', from:'Sign up', consent:'none', at:now - 13 * DAY},
+    {email:'hannah.price@example.com', type:'homeowner', from:'Sign up', consent:'withdrawn', v:1, at:now - 29 * DAY, off:now - 12 * DAY}
+  ];
+  var FB_PKG = {'18450 Maple Ridge Dr':'Standard', '15520 Fairfield St':'Premium', '4227 Hampton Dr':'Essential'};
+  var FB_PEOPLE = {'18450 Maple Ridge Dr':'maria.lopez@example.com', '15520 Fairfield St':'aisha.khan@example.com', '4227 Hampton Dr':'j.carter@example.com'};
+  /* A cell that starts with =, +, - or @ is written so a spreadsheet does not run it (SECURITY 11) */
+  function cell(v){ v = String(v == null ? '' : v); if(/^[=+\-@\t\r]/.test(v)) v = "'" + v; return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+  function csv(head, rows){ return [head].concat(rows).map(function(r){ return r.map(cell).join(','); }).join('\n'); }
+  function save(name, text){ var a = doc.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type:'text/csv'})); a.download = name; a.click(); }
+  var capT = function(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; };
+
   C.route('/feedback', function(view){
-    var tab = C.query().tab || 'feedback';
-    var fb = A.all().filter(function(h){ return h.feedback; }).map(function(h){ return {house:A.addr(h), hid:h.id, v:h.feedback.v, note:h.feedback.note || '', at:h.feedback.at || h.updated}; }).concat(C.get('feedbackSeed', []));
-    var users = RI.users.all(), contacts = Object.keys(users).map(function(k){ return users[k]; }).filter(function(u){ return u.news; }).map(function(u){ return {email:u.email, type:u.type, from:'Sign up', at:u.at}; })
-      .concat(RI.store.get('waitlist', []).filter(function(w){ return w.news; }).map(function(w){ return {email:w.email, type:w.type, from:'Waitlist', at:w.at}; }));
+    var tab = C.query().tab === 'contacts' ? 'contacts' : 'feedback', st = {q:'', f:'all', a:'all'}, canExp = C.can('contacts.export');
+    var pkgName = function(k){ var p = (RI.PACKAGES || []).filter(function(x){ return x.key === k; })[0]; return p ? p.name : ''; };
+    var fb = A.all().filter(function(h){ return h.feedback; }).map(function(h){ return {house:A.addr(h), hid:h.id, who:h.owner || '', pkg:pkgName(h.pk), v:h.feedback.v, note:h.feedback.note || '', at:h.feedback.at || h.updated}; })
+      .concat(C.get('feedbackSeed', []).map(function(f){ return Object.assign({who:FB_PEOPLE[f.house] || '', pkg:FB_PKG[f.house] || ''}, f); }));
+    /* Everyone who left an email: accounts and the waitlist, each with the state of their updates consent */
+    var users = RI.users.all(), contacts = Object.keys(users).map(function(k){ return users[k]; }).filter(function(u){ return u.role !== 'staff'; })
+      .map(function(u){ return {email:u.email, type:u.type, from:'Sign up', consent:u.news ? 'given' : 'none', v:1, at:u.at}; })
+      .concat(RI.store.get('waitlist', []).map(function(w){ return {email:w.email, type:w.type, from:'Waitlist', consent:w.news ? 'given' : 'none', v:1, at:w.at}; }));
+    SAMPLE_CONTACTS.forEach(function(s){ if(!contacts.some(function(c){ return c.email === s.email; })) contacts.push(s); });
+    contacts.sort(function(a, b){ return b.at - a.at; });
+    var updates = contacts.filter(function(c){ return c.consent === 'given'; });
     var yes = fb.filter(function(f){ return f.v === 'Yes'; }).length;
-    view.innerHTML = C.page({kicker:'Customers', title:'Contacts and feedback', sub:'What people said after reading a presentation, and the contacts who agreed to hear from Sam. Only contacts with consent are listed.',
-      actions:C.can('contacts.export') ? '<button type="button" class="btn btn-secondary" id="fb-exp">' + RI.icon('file','i-sm') + 'Export contacts</button>' : '',
-      body:C.seg('fb-tab', [['feedback','Feedback',fb.length],['contacts','Updates list',contacts.length]], tab) + '<div id="fb-body" class="c-mt"></div>'});
+
+    view.innerHTML = C.page({kicker:'Customers', title:'Contacts and feedback', sub:'Feedback from presentations, contacts with consent, the updates list, and the exports Sam uses in his own tool.',
+      actions:canExp ? '<button type="button" class="btn btn-secondary" id="fb-exp-ct" title="Everyone listed under Contacts, with their consent">' + RI.icon('file','i-sm') + 'Export contacts <span class="fb-n">' + contacts.length + '</span></button>' +
+        '<button type="button" class="btn btn-primary" id="fb-exp-up" title="Only the people who agreed to updates">' + RI.icon('file','i-sm') + 'Export the updates list <span class="fb-n">' + updates.length + '</span></button>' : '',
+      body:'<div class="fb-top">' + C.seg('fb-tab', [['feedback','Feedback',fb.length],['contacts','Contacts',contacts.length]], tab) + '<div id="fb-tools" class="us-bar"></div></div><div id="fb-body"></div>'});
+
+    function consentLbl(c){
+      if(c.consent === 'given') return '<span class="lb lb-pub">Agreed</span>';
+      if(c.consent === 'withdrawn') return '<span class="lb lb-off">Withdrawn</span>';
+      return '<span class="lb lb-off">Not agreed</span>';
+    }
+    function agreedOn(c){
+      if(c.consent === 'given') return '<span class="fb-on">' + C.date(c.at) + '<small>Wording v' + (c.v || 1) + '</small></span>';
+      if(c.consent === 'withdrawn') return '<span class="fb-on">' + C.date(c.off) + '<small>Withdrawn in account settings</small></span>';
+      return '<span class="muted">&ndash;</span>';
+    }
     function body(){
-      var el = doc.getElementById('fb-body');
-      if(tab === 'feedback') el.innerHTML = (fb.length ? '<div class="fb-sum"><div><b>' + yes + ' of ' + fb.length + '</b><span>said the presentation helped</span></div>' + ['Yes','Somewhat','No'].map(function(v){ var n = fb.filter(function(f){ return f.v === v; }).length; return '<div class="fb-b"><span>' + v + '</span><span class="ac-t"><i style="width:' + (fb.length ? n / fb.length * 100 : 0) + '%"></i></span><b>' + n + '</b></div>'; }).join('') + '</div>' : '') +
-        '<ul class="fb-list">' + fb.map(function(f){ return '<li><span class="fb-v fb-' + f.v.toLowerCase() + '">' + f.v + '</span><div><p>' + (f.note ? '“' + RI.esc(f.note) + '”' : '<span class="muted">No comment</span>') + '</p><small>' + RI.esc(f.house) + ' · ' + C.ago(f.at) + '</small></div>' + (f.hid ? '<a class="small" href="#/houses/' + f.hid + '">House</a>' : '') + '</li>'; }).join('') + '</ul>' + C.note('Three of these are sample entries. New feedback from presentations in this browser appears at the top.');
-      if(tab === 'contacts') el.innerHTML = C.table({empty:'Nobody in this browser has agreed to updates yet. Tick “Send me product updates” at sign up to see an entry.', cols:[{label:'Email'},{label:'Account type'},{label:'Agreed at'},{label:'When', num:true}],
-        rows:contacts.map(function(c){ return {cells:['<b>' + RI.esc(c.email) + '</b>', c.type ? C.chip(c.type.charAt(0).toUpperCase() + c.type.slice(1)) : '<span class="muted">Not given</span>', c.from, C.date(c.at)]}; })}) + C.note('Consent is stored with its time and the wording version (SECURITY 6.3). Sam writes from his own tool; the product only exports.');
+      var el = doc.getElementById('fb-body'), tools = doc.getElementById('fb-tools');
+      if(tab === 'feedback'){
+        var cnt = function(v){ return fb.filter(function(f){ return f.v === v; }).length; }, shown = fb.filter(function(f){ return st.a === 'all' || f.v === st.a; });
+        tools.innerHTML = '<label class="c-select us-pick"><span class="sr">Answer</span><select id="fb-a">' + [['all','All answers',fb.length],['Yes','Yes',cnt('Yes')],['Somewhat','Somewhat',cnt('Somewhat')],['No','No',cnt('No')]].map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === st.a ? ' selected' : '') + '>' + o[1] + ' (' + o[2] + ')</option>'; }).join('') + '</select></label>';
+        el.innerHTML = (fb.length ? '<div class="fb-sum"><div><b>' + yes + ' of ' + fb.length + '</b><span>said the presentation helped</span></div>' + ['Yes','Somewhat','No'].map(function(v){ var n = fb.filter(function(f){ return f.v === v; }).length; return '<div class="fb-b"><span>' + v + '</span><span class="ac-t"><i style="width:' + (fb.length ? n / fb.length * 100 : 0) + '%"></i></span><b>' + n + '</b></div>'; }).join('') + '</div>' : '') +
+          (shown.length ? '<ul class="fb-list">' + shown.map(function(f){ return '<li><span class="fb-v fb-' + f.v.toLowerCase() + '">' + f.v + '</span><div><p>' + (f.note ? '&ldquo;' + RI.esc(f.note) + '&rdquo;' : '<span class="muted">No comment</span>') + '</p>' +
+            '<small>' + (f.who ? '<b class="fb-who">' + RI.esc(f.who) + '</b> &middot; ' : '') + RI.esc(f.house) + (f.pkg ? ' &middot; ' + f.pkg : '') + ' &middot; ' + C.ago(f.at) + '</small></div>' + (f.hid ? '<a class="small" href="#/houses/' + f.hid + '">House</a>' : '') + '</li>'; }).join('') + '</ul>' : '<div class="c-empty">' + RI.icon('info') + '<p>No feedback with this answer yet.</p></div>') +
+          '<div class="c-mt">' + C.note('Rows with example.com addresses are examples. New feedback from presentations in this browser appears with them.') + '</div>';
+        tools.querySelector('#fb-a').addEventListener('change', function(){ st.a = this.value; body(); doc.getElementById('fb-a').focus(); });
+      }
+      if(tab === 'contacts'){
+        var n = function(k){ return contacts.filter(function(c){ return c.consent === k; }).length; };
+        tools.innerHTML = C.search('fb-q', 'Search by email', st.q) +
+          '<label class="c-select us-pick"><span class="sr">Updates</span><select id="fb-f">' + [['all','All contacts',contacts.length],['given','Agreed to updates',n('given')],['none','Not agreed',n('none')],['withdrawn','Withdrawn',n('withdrawn')]].map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === st.f ? ' selected' : '') + '>' + o[1] + ' (' + o[2] + ')</option>'; }).join('') + '</select></label>';
+        var rows = contacts.filter(function(c){ return (st.f === 'all' || c.consent === st.f) && (!st.q || c.email.indexOf(st.q) > -1); });
+        el.innerHTML = C.table({cls:'fb-ct', empty:'Nobody matches. Try another email, or show all.', cols:[{label:'Email'},{label:'Account type'},{label:'From'},{label:'Updates'},{label:'Agreed on'}],
+          rows:rows.map(function(c){ return {cells:['<b>' + RI.esc(c.email) + '</b>', c.type ? C.chip(capT(c.type)) : '<span class="muted">Not given</span>', c.from, consentLbl(c), agreedOn(c)]}; })}) +
+          '<div class="c-mt">' + C.note('Export contacts holds everyone listed here, with their consent. Export the updates list holds only the people who agreed. Each consent keeps its time and the version of the wording they saw.') + '</div>';
+        RI.fillIcons(tools);
+        tools.querySelector('#fb-q').addEventListener('input', function(){ st.q = this.value.trim().toLowerCase(); var p = this.selectionStart; body(); var x = doc.getElementById('fb-q'); x.focus(); x.setSelectionRange(p, p); });
+        tools.querySelector('#fb-f').addEventListener('change', function(){ st.f = this.value; body(); doc.getElementById('fb-f').focus(); });
+      }
       RI.fillIcons(el);
     }
-    view.querySelector('#fb-tab').addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if(!b) return; tab = b.getAttribute('data-v'); view.querySelectorAll('#fb-tab [data-v]').forEach(function(x){ x.setAttribute('aria-selected', x === b); }); body(); });
-    var ex = view.querySelector('#fb-exp'); if(ex) ex.addEventListener('click', function(){
-      var csv = 'email,account type,agreed at,date\n' + contacts.map(function(c){ return [c.email, c.type || '', c.from, new Date(c.at).toISOString().slice(0, 10)].join(','); }).join('\n');
-      var a = doc.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'})); a.download = 'contacts-with-consent.csv'; a.click();
-      C.log('Contacts exported', contacts.length + ' contacts with consent', ''); RI.toast(contacts.length + ' contacts exported.', 'file');
+    view.querySelector('#fb-tab').addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if(!b) return; tab = b.getAttribute('data-v'); view.querySelectorAll('#fb-tab [data-v]').forEach(function(x){ x.setAttribute('aria-selected', x === b); }); history.replaceState(null, '', '#/feedback?tab=' + tab); body(); });
+    var eu = view.querySelector('#fb-exp-up'); if(eu) eu.addEventListener('click', function(){
+      save('updates-list.csv', csv(['email', 'account type', 'from', 'agreed on', 'wording version'], updates.map(function(c){ return [c.email, c.type || '', c.from, new Date(c.at).toISOString().slice(0, 10), 'v' + (c.v || 1)]; })));
+      C.log('Contacts exported', 'Updates list, ' + updates.length + ' contacts who agreed', '', 'feedback'); RI.toast('Updates list exported: ' + updates.length + ' contacts.', 'file');
+    });
+    var ec = view.querySelector('#fb-exp-ct'); if(ec) ec.addEventListener('click', function(){
+      var word = {given:'agreed', none:'not agreed', withdrawn:'withdrawn'};
+      save('contacts.csv', csv(['email', 'account type', 'from', 'updates', 'agreed on', 'wording version'], contacts.map(function(c){ return [c.email, c.type || '', c.from, word[c.consent], c.consent === 'given' ? new Date(c.at).toISOString().slice(0, 10) : '', c.consent === 'given' ? 'v' + (c.v || 1) : '']; })));
+      C.log('Contacts exported', 'Contacts, ' + contacts.length + ' people with their consent', '', 'feedback'); RI.toast('Contacts exported: ' + contacts.length + ' people.', 'file');
     });
     body();
   }, {nav:'feedback', perm:'contacts.export'});
