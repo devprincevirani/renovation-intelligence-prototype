@@ -4,22 +4,37 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Console | Renovation Intelligence</title>
-<meta name="description" content="Signed-in area.">
+<meta name="description" content="The console for Sam and his staff.">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#203B38">
 <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Jost:wght@400;500&display=swap">
-<link rel="stylesheet" href="../assets/css/styles.css">
-<script defer src="../assets/js/data.js"></script>
-<script defer src="../assets/js/site.js"></script>
-<script defer src="../assets/js/preview.js"></script>
+<link rel="stylesheet" href="../assets/css/styles.css?v=113">
+<link rel="stylesheet" href="../assets/css/app.css?v=113">
+<link rel="stylesheet" href="../assets/css/console.css?v=113">
+<script defer src="../assets/js/data.js?v=113"></script>
+<script defer src="../assets/js/site.js?v=113"></script>
+<script defer src="../assets/js/app/core.js?v=113"></script>
+<script defer src="../assets/js/console/core.js?v=113"></script>
+<script defer src="../assets/js/console/houses.js?v=113"></script>
+<script defer src="../assets/js/console/inspect.js?v=113"></script>
+<script defer src="../assets/js/console/reasoning.js?v=113"></script>
+<script defer src="../assets/js/console/pricing.js?v=113"></script>
+<script defer src="../assets/js/console/products.js?v=113"></script>
+<script defer src="../assets/js/console/release.js?v=113"></script>
+<script defer src="../assets/js/console/content.js?v=113"></script>
+<script defer src="../assets/js/console/people.js?v=113"></script>
+<script defer src="../assets/js/console/overview.js?v=113"></script>
+<script defer src="../assets/js/console/boot.js?v=113"></script>
 </head>
-<body>
-<div id="focus-head" data-exit="" data-exit-text="Back to the site"></div>
-<main id="main">
-<div class="acc-center"><div class="acc-card" id="preview" data-scope="admin" style="max-width:640px"></div></div>
-</main>
+<body class="con">
+<aside class="con-side" id="con-side" aria-label="Console menu"></aside>
+<div class="con-scrim" id="con-scrim" hidden></div>
+<div class="con-main">
+  <header class="con-top" id="con-top"></header>
+  <main id="main"><div id="view" class="con-view"></div></main>
+</div>
 </body>
 </html>

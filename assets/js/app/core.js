@@ -138,6 +138,10 @@
       list.forEach(function(p, i){ buckets[i % n].push(p); });
       buckets.forEach(function(b, i){ if(b.length) h.photos[i ? g[0] + '-' + (i + 1) : g[0]] = b; else if(i) delete h.photos[g[0] + '-' + (i + 1)]; });
     });   /* titles come from the facts, as for a house entered by hand */
+    /* Consents as the intake records them (SECURITY 6.3): photo rights at upload, the estimate disclaimer at submit */
+    var W = 'Draft 1, November 2026', start = h.run && h.run.start;
+    h.consents = h.consents || {rights:{at:start ? Math.min(h.created + 90000, start - 60000) : h.created + 90000, version:W}};
+    if(h.status !== 'draft' && start && !h.consents.estimate) h.consents.estimate = {at:start - 30000, version:W};
     return h;
   }
   A.seed = function(){

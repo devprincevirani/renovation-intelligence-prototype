@@ -49,6 +49,9 @@
     arrow:'<path d="M4 12h15M13 6l6 6-6 6"/>',
     check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
     x:'<path d="M6 6l12 12M18 6L6 18"/>',
+    plus:'<path d="M12 5v14M5 12h14"/>',
+    chat:'<path d="M4.5 5.5h15v10h-9l-4.5 3.5v-3.5h-1.5z"/>',
+    download:'<path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14"/>',
     menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
     info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
     warn:'<path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5v.5"/>',
@@ -271,9 +274,19 @@
     {key:'builder', name:'Builder app', icon:'hammer', role:'builder', sections:[
       ['Builder', [['Client houses', 'app/#/houses', 'Six client houses with names', 'hammer'], ['Presentation with task lists', 'app/#/go/open/presentation', 'Task lists per trade, as CSV', 'list'], ['Resources', 'app/#/resources', 'Scope documents', 'file']]]
     ]},
-    {key:'other', name:'Shared and console', icon:'share', sections:[
-      ['Shared view', [['Share link not valid', 's/?t=nope', 'What a dead share link shows', 'share']]],
-      ['Console', [['Console (phase 3)', 'admin/', 'A placeholder until phase 3', 'console', 'admin']]]
+    {key:'console', name:'Admin console', icon:'console', role:'admin', sections:[
+      ['Overview', [['Overview', 'admin/#/overview', 'Proposal: what needs Sam and how the engine is doing', 'console']]],
+      ['Houses', [['Houses', 'admin/#/houses', 'Every house, with search and filters', 'house'], ['House inspector', 'admin/#/go/inspector', 'One house end to end', 'list'], ['Decision tree', 'admin/#/go/tree', 'Follow a branch and grade it', 'sliders']]],
+      ['Quality', [['Check results', 'admin/#/checks', 'Lines held by the seven checks', 'shield'], ['Photo accuracy', 'admin/#/accuracy', 'Labelled photos and the score', 'eye']]],
+      ['Rulebook', [['Rules and families', 'admin/#/rules', 'The rule registry by family', 'list'], ['Condition sheets', 'admin/#/condition-sheets', 'Thresholds per component', 'sliders'], ['Room templates', 'admin/#/room-templates', 'What each room type holds', 'ruler'], ['Packages and catalog', 'admin/#/packages', 'Goals and the 23 presets', 'tag']]],
+      ['Pricing', [['Products', 'admin/#/products', 'The product library by tier', 'tag'], ['Rates', 'admin/#/rates', 'Low and High per line', 'file']]],
+      ['Content', [['Guidance', 'admin/#/guidance', 'Systems guidance and texts', 'info'], ['Builder documents', 'admin/#/resources', 'Scope documents', 'file']]],
+      ['Changes', [['Publish queue', 'admin/#/publish', 'Drafts waiting for Sam', 'refresh'], ['Back-tests', 'admin/#/backtests', 'Replay houses after a change', 'clock']]],
+      ['Customers', [['Contacts and feedback', 'admin/#/feedback', 'Feedback and the updates list', 'mail'], ['Funnel', 'admin/#/funnel', 'Where people leave', 'sliders']]],
+      ['Admin', [['Users and staff', 'admin/#/users', 'Accounts, staff, waitlist', 'user'], ['Audit log', 'admin/#/audit', 'Every change, who and why', 'console']]]
+    ]},
+    {key:'other', name:'Shared view', icon:'share', sections:[
+      ['Shared view', [['Share link not valid', 's/?t=nope', 'What a dead share link shows', 'share']]]
     ]}
   ];
   var ROLE_NAME = {homeowner:'Homeowner', builder:'Builder', admin:'Admin'};

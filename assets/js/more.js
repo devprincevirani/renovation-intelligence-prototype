@@ -16,7 +16,7 @@
     });
   }
   if(page === 'invite'){
-    var box = $('inv'), t = P.t || '', INV = {'demo-staff':{email:'staff@demo.ri', by:'Sam', perms:[['eye','See every house','Its photos, runs and decision tree'],['grade','Grade decisions','Mark each node right or wrong, with a note'],['edit','Edit drafts','Rules, products and rates']]}};
+    var box = $('inv'), t = P.t || '', INV = {'demo-staff':{email:'staff@demo.ri', by:'Sam', perms:[['eye','See every house','Its photos, runs and decision tree'],['grade','Grade decisions','Mark each node right or wrong, with a note'],['list','Read the rulebook','Rules, condition sheets, room templates, products and rates'],['clock','Run back-tests','Replay houses and read the report'],['console','Read the audit log','Who changed what, when and why']]}};
     var inv = INV[t], used = RI.store.get('invite.' + t + '.used');
     if(!inv || P.state === 'expired'){
       box.closest('.acc-center').classList.add('fx-wrap'); box.classList.add('fx-card');
