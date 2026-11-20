@@ -107,13 +107,15 @@
 
   C.route('/products', function(view){
     var list = all(), canEdit = C.can('pricing.edit'), q = C.query();
-    var st = {q:'', fam:'all', show:'all'};
+    var st = {q:'', fam:'all', show:'all', tier:'all', view:C.get('pl.view', 'cards')};
     var fams = list.map(function(p){ return p.fam; }).filter(function(v, i, a){ return a.indexOf(v) === i; }).sort(function(a, b){ return (C.FAMILY[a] || a).localeCompare(C.FAMILY[b] || b); });
     view.innerHTML = C.page({kicker:'Pricing', title:'Products', sub:'Sam\'s product library: one real product per item and package, with its price, source and photo. The Low and High of a line comes from the product and the rates together. Lines without a product are priced from a rate.',
       actions:canEdit ? '<button type="button" class="btn btn-primary" id="pl-new">' + I('plus') + 'Add product</button>' : '',
       body:'<div id="pl-stats"></div><div class="pl-bar">' + C.search('pl-q', 'Product or item', '') +
+        '<label class="c-select"><span class="sr">Package</span><select id="pl-t"><option value="all">All packages</option>' + TIERS.map(function(t){ return '<option value="' + t[0] + '">' + t[1] + '</option>'; }).join('') + '</select></label>' +
         '<label class="c-select"><span class="sr">Family</span><select id="pl-f"><option value="all">All families</option>' + fams.map(function(f){ return '<option value="' + f + '">' + (C.FAMILY[f] || f) + '</option>'; }).join('') + '</select></label>' +
-        '<label class="c-select"><span class="sr">Show</span><select id="pl-s"><option value="all">Every item</option><option value="photo">Needs a photo</option><option value="gap">Missing a product</option><option value="draft">Draft waiting</option></select></label></div>' +
+        '<label class="c-select"><span class="sr">Show</span><select id="pl-s"><option value="all">Everything</option><option value="photo">Needs a photo</option><option value="gap">Missing a product</option><option value="draft">Draft waiting</option></select></label>' +
+        '<div class="au-period pl-view" id="pl-view" role="radiogroup" aria-label="View">' + [['cards', 'Cards'], ['items', 'By item']].map(function(o){ return '<button type="button" role="radio" data-view="' + o[0] + '" aria-checked="' + (st.view === o[0]) + '" tabindex="' + (st.view === o[0] ? 0 : -1) + '">' + o[1] + '</button>'; }).join('') + '</div></div>' +
         '<div id="pl-list"></div>' + (canEdit ? '' : '<div class="c-mt">' + C.note('You can read the library. Editing needs the "Edit drafts of products and rates" permission.', 'lock') + '</div>')});
 
     function stats(){
@@ -126,24 +128,50 @@
         tile2(noPh, 'Need a photo', 'Every product shows a real photo', 'photo', true) +
         tile2(drafts, 'Drafts waiting', 'Edits waiting for Sam to publish', 'draft', true) + '</div>';
     }
+    /* One product as a card (DESIGN: product tile, a square photo, its name and tier) */
+    function card(p){
+      var dr = C.draftFor('products', p.id);
+      return '<button type="button" class="pc' + (p.img ? '' : ' nophoto') + (dr ? ' drafted' : '') + '" data-prod="' + p.id + '" aria-label="' + esc(p.name) + ', ' + TN[p.tier] + ', ' + priceOf(p) + '">' +
+        '<span class="pc-ph">' + (p.img ? photo(p) : '<span class="pl-nophoto">' + I('image') + '<b>Photo needed</b></span>') + '<span class="pc-tier t-' + p.tier + '">' + TN[p.tier] + '</span></span>' +
+        '<span class="pc-b"><b class="pc-name">' + esc(p.name) + '</b><span class="pc-item">' + esc(p.item) + '</span><span class="pc-price">' + priceOf(p) + '</span>' +
+        '<span class="pc-f"><span>' + (C.FAMILY[p.fam] || p.fam) + '</span>' + (dr ? '<span class="lb lb-draft">Draft</span>' : '<span class="pl-v">v' + (p.v || 1) + '</span>') + '</span></span></button>';
+    }
     function draw(){
       list = all(); stats();
-      var v = st.q.toLowerCase().trim();
-      var rows = items(list).filter(function(it){
-        if(st.fam !== 'all' && it.fam !== st.fam) return false;
-        var ps = TIERS.map(function(t){ return it.slots[t[0]]; }).filter(Boolean);
-        if(v && !(it.item.toLowerCase().indexOf(v) > -1 || ps.some(function(p){ return p.name.toLowerCase().indexOf(v) > -1 || p.id.indexOf(v) > -1; }))) return false;
-        if(st.show === 'photo') return ps.some(function(p){ return !p.img; });
-        if(st.show === 'gap') return !it.slots.S || !it.slots.P;
-        if(st.show === 'draft') return ps.some(function(p){ return C.draftFor('products', p.id); });
-        return true;
-      });
-      var el = doc.getElementById('pl-list');
-      el.innerHTML = rows.length ? '<p class="pl-count" aria-live="polite"><b>' + rows.length + '</b> ' + (rows.length === 1 ? 'item' : 'items') + (st.show !== 'all' || st.fam !== 'all' || v ? ' match' : '') + '</p><div class="pl-items">' + rows.map(function(it){
-        var n = TIERS.filter(function(t){ return it.slots[t[0]]; }).length;
-        return '<section class="pl-item" data-item="' + esc(it.item) + '"><header class="pl-ih"><div><h2>' + esc(it.item) + '</h2><p>' + (C.FAMILY[it.fam] || it.fam) + '</p></div><span class="pl-cov" title="Tiers with a product">' + n + ' of 3</span></header>' +
-          '<div class="pl-slots">' + TIERS.map(function(t){ return tile(it.slots[t[0]], t[0], canEdit); }).join('') + '</div></section>';
-      }).join('') + '</div>' : '<div class="c-empty">' + I('info') + '<p>' + (v ? 'No product or item matches “' + esc(st.q) + '”.' : 'Nothing here. Try every item.') + '</p></div>';
+      var v = st.q.toLowerCase().trim(), match = function(p){ return p.name.toLowerCase().indexOf(v) > -1 || p.item.toLowerCase().indexOf(v) > -1 || p.id.indexOf(v) > -1; };
+      var el = doc.getElementById('pl-list'), filtered = st.show !== 'all' || st.fam !== 'all' || st.tier !== 'all' || v;
+      if(st.view === 'cards'){
+        var ps = list.filter(function(p){
+          if(st.fam !== 'all' && p.fam !== st.fam) return false;
+          if(st.tier !== 'all' && p.tier !== st.tier) return false;
+          if(v && !match(p)) return false;
+          if(st.show === 'photo') return !p.img;
+          if(st.show === 'draft') return !!C.draftFor('products', p.id);
+          if(st.show === 'gap') return false;
+          return true;
+        }).sort(function(a, b){ return (C.FAMILY[a.fam] || a.fam).localeCompare(C.FAMILY[b.fam] || b.fam) || a.item.localeCompare(b.item) || 'ESP'.indexOf(a.tier) - 'ESP'.indexOf(b.tier); });
+        if(st.show === 'gap'){ st.view = 'items'; return draw(); }
+        el.innerHTML = ps.length ? '<p class="pl-count" aria-live="polite"><b>' + ps.length + '</b> ' + (ps.length === 1 ? 'product' : 'products') + (filtered ? ' match' : '') + '</p><div class="pc-grid">' + ps.map(card).join('') +
+          (canEdit && !filtered ? '<button type="button" class="pc pc-add" id="pc-add">' + I('plus') + '<b>Add a product</b><span>For an item and package with no product yet</span></button>' : '') + '</div>'
+          : '<div class="c-empty">' + I('info') + '<p>' + (v ? 'No product or item matches “' + esc(st.q) + '”.' : 'No product matches these filters.') + '</p></div>';
+      } else {
+        var rows = items(list).filter(function(it){
+          if(st.fam !== 'all' && it.fam !== st.fam) return false;
+          var pr = TIERS.map(function(t){ return it.slots[t[0]]; }).filter(Boolean);
+          if(st.tier !== 'all' && !it.slots[st.tier]) return false;
+          if(v && !(it.item.toLowerCase().indexOf(v) > -1 || pr.some(match))) return false;
+          if(st.show === 'photo') return pr.some(function(p){ return !p.img; });
+          if(st.show === 'gap') return !it.slots.S || !it.slots.P;
+          if(st.show === 'draft') return pr.some(function(p){ return C.draftFor('products', p.id); });
+          return true;
+        });
+        el.innerHTML = rows.length ? '<p class="pl-count" aria-live="polite"><b>' + rows.length + '</b> ' + (rows.length === 1 ? 'item' : 'items') + (filtered ? ' match' : '') + '</p><div class="pl-items">' + rows.map(function(it){
+          var n = TIERS.filter(function(t){ return it.slots[t[0]]; }).length;
+          return '<section class="pl-item" data-item="' + esc(it.item) + '"><header class="pl-ih"><div><h2>' + esc(it.item) + '</h2><p>' + (C.FAMILY[it.fam] || it.fam) + '</p></div><span class="pl-cov" title="Packages with a product">' + n + ' of 3</span></header>' +
+            '<div class="pl-slots">' + TIERS.map(function(t){ return tile(it.slots[t[0]], t[0], canEdit); }).join('') + '</div></section>';
+        }).join('') + '</div>' : '<div class="c-empty">' + I('info') + '<p>' + (v ? 'No product or item matches “' + esc(st.q) + '”.' : 'Nothing here. Try everything.') + '</p></div>';
+      }
+      view.querySelectorAll('#pl-view [data-view]').forEach(function(x){ var on = x.getAttribute('data-view') === st.view; x.setAttribute('aria-checked', on); x.tabIndex = on ? 0 : -1; });
       RI.fillIcons(view);
     }
 
@@ -179,11 +207,11 @@
       var withGap = its.filter(function(it){ return open(it).length; });
       var pickItem = preset ? preset.item : (withGap[0] || {}).item;
       var itemOf = function(name){ return its.filter(function(x){ return x.item === name; })[0]; };
-      var tierOpts = function(name){ var it = itemOf(name); return it ? open(it).map(function(t){ return '<label class="pl-tr"><input type="radio" name="pl-tier" value="' + t[0] + '"' + (preset && preset.tier === t[0] ? ' checked' : '') + '><span>' + t[1] + '</span></label>'; }).join('') : ''; };
+      var tierOpts = function(name){ var it = itemOf(name), o = it ? open(it) : []; return o.map(function(t){ return '<label class="pl-tr"><input type="radio" name="pl-tier" value="' + t[0] + '"' + ((preset && preset.tier === t[0]) || o.length === 1 ? ' checked' : '') + '><span>' + t[1] + '</span></label>'; }).join(''); };
       var d = C.dialog(isNew ? 'Add a product' : 'Edit: ' + esc(a.name),
         '<form class="ax-scroll pl-form" id="pl-form" novalidate>' +
           (isNew ? '<div class="field"><label for="pl-item">Item</label><span class="c-select"><select id="pl-item">' + withGap.map(function(it){ return '<option' + (it.item === pickItem ? ' selected' : '') + '>' + esc(it.item) + '</option>'; }).join('') + '</select></span><span class="help">Only items with an empty slot are listed: one product per item per package.</span></div>' +
-            '<div class="field"><span class="flabel">Package</span><div class="pl-trs" id="pl-trs">' + tierOpts(pickItem) + '</div><span class="err" id="pl-terr"></span></div>'
+            '<div class="field" id="pl-tf"><span class="flabel">Package</span><div class="pl-trs" id="pl-trs">' + tierOpts(pickItem) + '</div><span class="err" id="pl-terr"></span></div>'
             : '<p class="pl-for">For <b>' + esc(a.item) + '</b> · ' + TN[a.tier] + ' · ' + a.id + '</p>') +
           '<div class="field"><span class="flabel">Photo</span><div class="pl-up"><span class="pl-upv" id="pl-upv">' + photo({img:img}) + '</span><div><label class="btn btn-secondary btn-sm" for="pl-file">' + I('image') + (img ? 'Change photo' : 'Upload a photo') + '</label><input type="file" id="pl-file" accept="image/*" class="sr"><span class="help">A square photo of the real product, as the presentation shows it.</span></div></div></div>' +
           '<div class="field"><label for="pl-n">Product name</label><input class="input" id="pl-n" value="' + esc(a.name) + '" placeholder="For example: Painted shaker, soft close"><span class="err"></span></div>' +
@@ -195,7 +223,8 @@
           C.note('Saving makes a draft. It waits in the publish queue; only Sam publishes. Old runs keep the version they were priced with.') +
         '</form><div class="ax-foot"><div class="ax-btns"><button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="submit" form="pl-form" class="btn btn-primary">Save as draft</button></div></div>');
       d.classList.add('dlg-drawer'); RI.fillIcons(d);
-      var sel = d.querySelector('#pl-item'); if(sel) sel.addEventListener('change', function(){ d.querySelector('#pl-trs').innerHTML = tierOpts(this.value); });
+      d.addEventListener('change', function(e){ if(e.target.name === 'pl-tier'){ var tf = d.querySelector('#pl-tf'); if(tf) tf.classList.remove('invalid'); } });
+      var sel = d.querySelector('#pl-item'); if(sel) sel.addEventListener('change', function(){ d.querySelector('#pl-trs').innerHTML = tierOpts(this.value); d.querySelector('#pl-tf').classList.remove('invalid'); });
       d.querySelector('#pl-file').addEventListener('change', function(){
         var f = this.files && this.files[0]; if(!f) return;
         if(f.size > 1.5 * 1024 * 1024){ RI.toast('That photo is over 1.5 MB. Choose a smaller one.', 'warn'); return; }
@@ -209,7 +238,7 @@
         var after = {name:name.value.trim(), price:price, per:per, src:d.querySelector('#pl-src').value.trim(), link:d.querySelector('#pl-ln').value.trim(), img:img};
         if(isNew){
           var tier = (d.querySelector('input[name="pl-tier"]:checked') || {}).value, item = sel.value, it = itemOf(item);
-          if(!tier){ d.querySelector('#pl-terr').textContent = 'Choose a package.'; return; }
+          if(!tier){ var tf = d.querySelector('#pl-tf'); tf.classList.add('invalid'); d.querySelector('#pl-terr').textContent = 'Choose a package.'; tf.scrollIntoView({block:'center'}); return; }
           after._new = true; after.item = item; after.tier = tier; after.fam = it.fam;
           d.close();
           C.askWhy('New product: ' + after.name, item + ' · ' + TN[tier] + ' · ' + priceOf(after), function(why){ C.addDraft({area:'products', ref:'new-' + item + '-' + tier, title:'New product: ' + after.name, summary:item + ', ' + TN[tier] + ': ' + priceOf(after), after:after, why:why}); RI.toast('Saved as a draft. It waits in the publish queue.', 'check'); draw(); });
@@ -225,11 +254,16 @@
     view.querySelector('#pl-q').addEventListener('input', function(){ st.q = this.value; draw(); });
     view.querySelector('#pl-f').addEventListener('change', function(){ st.fam = this.value; draw(); });
     view.querySelector('#pl-s').addEventListener('change', function(){ st.show = this.value; draw(); });
+    view.querySelector('#pl-t').addEventListener('change', function(){ st.tier = this.value; draw(); });
+    var vg = view.querySelector('#pl-view');
+    function setView(v){ st.view = v; C.set('pl.view', v); draw(); }
+    vg.addEventListener('click', function(e){ var b = e.target.closest('[data-view]'); if(b) setView(b.getAttribute('data-view')); });
+    vg.addEventListener('keydown', function(e){ if(e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return; e.preventDefault(); setView(st.view === 'cards' ? 'items' : 'cards'); var on = vg.querySelector('[aria-checked="true"]'); if(on) on.focus(); });
     view.addEventListener('click', function(e){
       var s = e.target.closest('[data-show]'); if(s){ st.show = st.show === s.getAttribute('data-show') ? 'all' : s.getAttribute('data-show'); view.querySelector('#pl-s').value = st.show; draw(); return; }
       var p = e.target.closest('[data-prod]'); if(p){ panel(p.getAttribute('data-prod')); return; }
       var ad = e.target.closest('[data-add]'); if(ad){ form(null, {item:ad.closest('[data-item]').getAttribute('data-item'), tier:ad.getAttribute('data-add')}); return; }
-      if(e.target.closest('#pl-new')) form(null);
+      if(e.target.closest('#pl-new') || e.target.closest('#pc-add')) form(null);
     });
     draw();
     if(q.p) panel(q.p);
