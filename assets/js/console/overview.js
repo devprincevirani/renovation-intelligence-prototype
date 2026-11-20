@@ -11,41 +11,39 @@
   var day = function(t){ return new Date(t).toLocaleDateString('en-US', {month:'short', day:'numeric'}); };
   var plural = function(n, one, many){ return n + ' ' + (n === 1 ? one : many); };
 
-  /* ---------- Houses entered per day, stacked by the stage each house is in now ----------
-     Daily counts are separate events, so columns, not a line. Whole-number ticks, the day's total on top, a stub for
-     days with none. The legend above is the key and a filter: pick a stage to bring it forward in every column.
-     Stack order, bottom to top: Presentation open, Price ready, Working, Draft (furthest along sits on the baseline) */
-  var KEYS = ['draft', 'work', 'ready', 'open'];
-  function scale(max){ var step = max <= 5 ? 1 : Math.ceil(max / 4), top = Math.max(2, Math.ceil(max / step) * step), t = []; for(var v = 0; v <= top; v += step) t.push(v); return {top:top, ticks:t}; }
-  function breakdown(d){ return KEYS.filter(function(k){ return d.by[k]; }).map(function(k){ return d.by[k] + ' ' + STAGES[KEYS.indexOf(k)][1].toLowerCase(); }).join(', '); }
-  function columns(data){
-    var n = data.length, max = Math.max.apply(null, data.map(function(d){ return d.n; })), sc = scale(max), dense = n > 14, step = n <= 7 ? 1 : n <= 14 ? 2 : 5;
-    var label = function(d, i){ return i === n - 1 ? 'Today' : day(d.t); };
-    return '<div class="ov-cols' + (dense ? ' dense' : '') + '" style="--n:' + n + '">' +
+  /* ---------- Houses per day: submitted and price ready, side by side ----------
+     Daily counts are separate events, so grouped columns, not lines. Submitted is the day a run starts; price ready is
+     the day that run finishes (the app's own run length). Two colours: Deep Forest and a light bronze (#A88A66, 3.2:1 on
+     white, 3.7:1 against Deep Forest). Whole-number ticks, a readout by hover or arrow keys, and a table for screen readers */
+  var SER = [['sub', 'Submitted'], ['ready', 'Price ready']];
+  function scale(max){ var step = max <= 5 ? 1 : max <= 10 ? 2 : Math.ceil(max / 4), top = Math.max(2, Math.ceil(max / step) * step), t = []; for(var v = 0; v <= top; v += step) t.push(v); return {top:top, ticks:t}; }
+  function runEnd(h){
+    var ms = 0; A.STAGES.forEach(function(st){ ms += st[0] === 'reading' ? A.readMs(h) : st[3]; if(st[0] === 'price' && h.run.slow) ms += 9000; });
+    return h.run.start + ms;
+  }
+  function grouped(data){
+    var n = data.length, max = Math.max.apply(null, data.map(function(d){ return Math.max(d.sub, d.ready); })), sc = scale(max), step = n <= 7 ? 1 : n <= 14 ? 2 : 5;
+    var label = function(d){ return day(d.t); };
+    return '<div class="ov-cols ov-grp' + (n > 14 ? ' dense' : '') + '" style="--n:' + n + '">' +
       '<div class="ov-cy" aria-hidden="true">' + sc.ticks.map(function(v){ return '<span style="bottom:' + (v / sc.top * 100) + '%">' + v + '</span>'; }).join('') + '</div>' +
       '<div class="ov-cplot">' + sc.ticks.map(function(v){ return '<i class="ov-cg' + (v ? '' : ' base') + '" style="bottom:' + (v / sc.top * 100) + '%"></i>'; }).join('') +
-        '<div class="ov-cbars" tabindex="0" role="group" aria-label="Houses entered per day, by stage. Use the left and right arrow keys to read each day.">' + data.map(function(d, i){
-          var tip = label(d, i) + ': ' + plural(d.n, 'house', 'houses') + (d.n ? ' (' + breakdown(d) + ')' : '');
-          return '<span class="ov-cb' + (d.n ? '' : ' z') + '" data-i="' + i + '" data-tip="' + tip + '"><span class="ov-cw" style="height:' + (d.n / sc.top * 100) + '%">' + (d.n && !dense ? '<b>' + d.n + '</b>' : '') +
-            '<span class="ov-st">' + KEYS.map(function(k, j){ return d.by[k] ? '<span class="ov-sg ov-s' + j + '" style="flex:' + d.by[k] + '"></span>' : ''; }).join('') + '</span></span></span>'; }).join('') + '</div>' +
+        '<div class="ov-cbars" tabindex="0" role="group" aria-label="Houses submitted and price ready per day. Use the left and right arrow keys to read each day.">' + data.map(function(d, i){
+          return '<span class="ov-cb" data-i="' + i + '" data-tip="' + label(d) + ': ' + d.sub + ' submitted, ' + d.ready + ' price ready"><span class="ov-pair">' +
+            SER.map(function(s){ return '<span class="ov-gb ov-' + s[0] + (d[s[0]] ? '' : ' z') + '" style="height:' + (d[s[0]] / sc.top * 100) + '%"></span>'; }).join('') + '</span></span>'; }).join('') + '</div>' +
         '<span class="ov-ctip" role="status" hidden></span>' +
       '</div>' +
-      '<div class="ov-cx" aria-hidden="true">' + (function(){ var k = 0; return data.map(function(d, i){ var show = i === n - 1 || (i % step === 0 && n - 1 - i >= step); if(!show) return '<span></span>'; var alt = i !== n - 1 && (k++ % 2 === 1); return '<span' + (alt ? ' class="alt"' : '') + '>' + label(d, i) + '</span>'; }).join(''); })() + '</div>' +
+      '<div class="ov-cx" aria-hidden="true">' + data.map(function(d, i){ return i % step === 0 ? '<span' + ((i / step) % 2 ? ' class="alt"' : '') + '>' + label(d) + '</span>' : '<span></span>'; }).join('') + '</div>' +
     '</div>' +
-    '<div class="sr"><table><caption>Houses entered per day, by stage</caption><thead><tr><th scope="col">Day</th><th scope="col">Total</th>' + STAGES.map(function(s){ return '<th scope="col">' + s[1] + '</th>'; }).join('') + '</tr></thead><tbody>' +
-      data.map(function(d, i){ return '<tr><th scope="row">' + label(d, i) + '</th><td>' + d.n + '</td>' + KEYS.map(function(k){ return '<td>' + d.by[k] + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
-  }
-  function legend(data, focus){
-    return KEYS.map(function(k, j){ var n = data.reduce(function(a, d){ return a + d.by[k]; }, 0);
-      return '<button type="button" class="ov-lg" data-stage="' + k + '" aria-pressed="' + (focus === k) + '"' + (n ? '' : ' disabled') + '><i class="ov-s' + j + '"></i><span>' + STAGES[j][1] + '</span><b>' + n + '</b></button>'; }).join('');
+    '<div class="sr"><table><caption>Houses submitted and price ready per day</caption><thead><tr><th scope="col">Day</th><th scope="col">Submitted</th><th scope="col">Price ready</th></tr></thead><tbody>' +
+      data.map(function(d){ return '<tr><th scope="row">' + label(d) + '</th><td>' + d.sub + '</td><td>' + d.ready + '</td></tr>'; }).join('') + '</tbody></table></div>';
   }
   function wireCols(box){
     var bars = box.querySelector('.ov-cbars'), tip = box.querySelector('.ov-ctip'), all = [].slice.call(bars.children), cur = all.length - 1;
     function show(i){
       cur = Math.max(0, Math.min(all.length - 1, i)); all.forEach(function(b, j){ b.classList.toggle('on', j === cur); });
-      var b = all[cur], pr = bars.getBoundingClientRect(), r = b.getBoundingClientRect(), bar = b.firstChild.getBoundingClientRect();
+      var b = all[cur], pr = bars.getBoundingClientRect(), r = b.getBoundingClientRect(), top = Math.min.apply(null, [].map.call(b.querySelectorAll('.ov-gb'), function(x){ return x.getBoundingClientRect().top; }));
       tip.textContent = b.getAttribute('data-tip'); tip.hidden = false;
-      tip.style.left = (r.left - pr.left + r.width / 2) + 'px'; tip.style.bottom = (pr.bottom - Math.min(bar.top, pr.bottom - 2) + 8) + 'px';
+      tip.style.left = (r.left - pr.left + r.width / 2) + 'px'; tip.style.bottom = (pr.bottom - Math.min(top, pr.bottom - 2) + 8) + 'px';
       tip.classList.toggle('end', cur > all.length * .6); tip.classList.toggle('start', cur < all.length * .25);
     }
     function hide(){ tip.hidden = true; all.forEach(function(b){ b.classList.remove('on'); }); }
@@ -58,10 +56,11 @@
       if(e.key === 'Home'){ e.preventDefault(); show(0); } if(e.key === 'End'){ e.preventDefault(); show(all.length - 1); }
     });
   }
-  /* The figures that matter, in one line under the title */
-  function headline(data){
-    var total = data.reduce(function(a, d){ return a + d.n; }, 0), best = data.reduce(function(a, d){ return d.n > a.n ? d : a; }, {n:0});
-    return '<b>' + total + '</b> in ' + data.length + ' days' + (best.n ? ' · busiest ' + day(best.t) + ' with ' + best.n : '');
+  /* The three totals under the chart */
+  function totals(data, running){
+    var sub = data.reduce(function(a, d){ return a + d.sub; }, 0), ready = data.reduce(function(a, d){ return a + d.ready; }, 0);
+    var box = function(l, v){ return '<div><span>' + l + '</span><b>' + v + '</b></div>'; };
+    return box('Submitted, ' + data.length + ' days', sub) + box('Price ready', ready) + box('Still running', running);
   }
 
   C.route('/overview', function(view){
@@ -69,8 +68,10 @@
     var stage = function(h){ return GROUP[A.status(h)]; }, count = function(k){ return all.filter(function(h){ return stage(h) === k; }).length; };
     var runs = all.filter(function(h){ return A.status(h) !== 'draft'; });
     var today = new Date(); today.setHours(0, 0, 0, 0); var T0 = today.getTime();
-    var series = function(n){ var out = []; for(var i = n - 1; i >= 0; i--){ var d0 = T0 - i * DAY, hs = all.filter(function(h){ return h.created >= d0 && h.created < d0 + DAY; }), by = {draft:0, work:0, ready:0, open:0}; hs.forEach(function(h){ by[stage(h)]++; }); out.push({t:d0, n:hs.length, by:by}); } return out; };
-    var focus = '';
+    var series = function(n){ var out = []; for(var i = n - 1; i >= 0; i--){ var d0 = T0 - i * DAY, d1 = d0 + DAY;
+        out.push({t:d0, sub:runs.filter(function(h){ return h.run && h.run.start >= d0 && h.run.start < d1; }).length,
+          ready:runs.filter(function(h){ var st = stage(h); if(!h.run || (st !== 'ready' && st !== 'open')) return false; var e = runEnd(h); return e >= d0 && e < d1; }).length}); } return out; };
+    var running = all.filter(function(h){ return stage(h) === 'work'; }).length;
     var per = [7, 14, 30].indexOf(+C.get('ov.per', 14)) > -1 ? +C.get('ov.per', 14) : 14;
 
     /* Lines and checks, counted the way Check results counts them: a held line by its first failed check */
@@ -90,7 +91,6 @@
     var priced = count('ready') + count('open'), paid = count('open'), inProgress = count('draft') + count('work');
     var canQueue = C.can(['rulebook.edit', 'pricing.edit', 'content.edit']), queue = C.queued().filter(C.mine);
     var bts = C.get('backtests', []) || [], untested = queue.filter(function(d){ return !bts.some(function(b){ return (b.drafts || []).indexOf(d.id) > -1; }); }).length;
-    var s14 = series(14), thisWeek = s14.slice(7).reduce(function(a, d){ return a + d.n; }, 0), lastWeek = s14.slice(0, 7).reduce(function(a, d){ return a + d.n; }, 0);
 
     var card = function(o){ return '<section class="ov-c' + (o.cls ? ' ' + o.cls : '') + '" aria-labelledby="ov-' + o.id + '"><header class="ov-ch"><div><h2 id="ov-' + o.id + '">' + o.title + '</h2>' + (o.sub ? '<p>' + o.sub + '</p>' : '') + '</div>' + (o.link ? '<a href="' + o.link[1] + '">' + o.link[0] + RI.icon('chev','i-sm ov-go') + '</a>' : '') + '</header>' + o.body + '</section>'; };
     var kpi = function(o){ return '<a class="ov-k' + (o.cls ? ' ' + o.cls : '') + '" href="' + o.href + '"><span class="ov-kl">' + o.label + '</span><span class="ov-kv">' + o.value + (o.unit ? '<small>' + o.unit + '</small>' : '') + '</span>' + (o.visual || '') + '<span class="ov-kc">' + o.context + '</span></a>'; };
@@ -108,8 +108,9 @@
 
     /* ---------- Houses entered ---------- */
     var first = series(per);
-    var trend = card({id:'trend', cls:'ov-trend', title:'Houses entered', sub:'<span id="ov-head">' + headline(first) + '</span> · ' + thisWeek + ' this week, ' + lastWeek + ' the week before', link:['House list', '#/houses'],
-      body:'<div class="ov-legend" role="group" aria-label="Stage now. Pick one to bring it forward" id="ov-leg">' + legend(first, focus) + '</div><div id="ov-chart">' + columns(first) + '</div>'});
+    var trend = card({id:'trend', cls:'ov-trend', title:'Houses per day', sub:'<span id="ov-head">Submitted and price ready, last ' + per + ' days</span>',
+      body:'<div class="ov-key" aria-hidden="true">' + SER.map(function(x){ return '<span><i class="ov-' + x[0] + '"></i>' + x[1] + '</span>'; }).join('') + '</div>' +
+        '<div id="ov-chart">' + grouped(first) + '</div><div class="ov-tot" id="ov-tot">' + totals(first, running) + '</div>'});
 
     /* ---------- Decisions to grade ---------- */
     var grade = C.can('houses.grade') ? card({id:'grade', cls:'ov-grade', title:'Decisions to grade', sub:open.length ? plural(open.length, 'run', 'runs') + ' with ungraded components, newest first' : 'Every run is graded', link:['House list', '#/houses'],
@@ -148,19 +149,17 @@
 
     var dateLine = new Date().toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
     view.innerHTML = C.page({kicker:'Console', title:'Overview <span class="ov-prop h-aside">Proposal for Sam</span>', sub:dateLine + '. What needs you, and how the engine is doing. Every block opens the screen it comes from.',
-      actions:'<span class="ov-per" id="ov-per" role="group" aria-label="Period for houses entered">' + [7, 14, 30].map(function(d){ return '<button type="button" data-d="' + d + '" aria-pressed="' + (d === per) + '">' + d + ' days</button>'; }).join('') + '</span>',
+      actions:'<span class="ov-per" id="ov-per" role="group" aria-label="Period for houses per day">' + [7, 14, 30].map(function(d){ return '<button type="button" data-d="' + d + '" aria-pressed="' + (d === per) + '">' + d + ' days</button>'; }).join('') + '</span>',
       body:'<div class="ov-kpis">' + kpis + '</div>' +
         '<div class="ov-row' + (grade ? ' ov-r1' : '') + '">' + trend + grade + '</div>' +
         '<div class="ov-row' + (acc ? ' ov-r2' : '') + '">' + checks + acc + '</div>' + changes});
     RI.fillIcons(view);
     var chart = doc.getElementById('ov-chart');
     wireCols(chart);
-    function applyFocus(){ var c = chart.querySelector('.ov-cols'); if(focus) c.setAttribute('data-focus', focus); else c.removeAttribute('data-focus'); doc.querySelectorAll('#ov-leg [data-stage]').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-stage') === focus); }); }
-    doc.getElementById('ov-leg').addEventListener('click', function(e){ var b = e.target.closest('[data-stage]'); if(!b) return; focus = focus === b.getAttribute('data-stage') ? '' : b.getAttribute('data-stage'); applyFocus(); });
     view.querySelector('#ov-per').addEventListener('click', function(e){
       var b = e.target.closest('[data-d]'); if(!b) return; per = +b.getAttribute('data-d'); C.set('ov.per', per);
       this.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); });
-      var d = series(per); chart.innerHTML = columns(d); wireCols(chart); doc.getElementById('ov-leg').innerHTML = legend(d, focus); doc.getElementById('ov-head').innerHTML = headline(d); applyFocus();
+      var d = series(per); chart.innerHTML = grouped(d); wireCols(chart); doc.getElementById('ov-tot').innerHTML = totals(d, running); doc.getElementById('ov-head').textContent = 'Submitted and price ready, last ' + per + ' days';
     });
   }, {nav:'overview', perm:'houses.view'});
 })();

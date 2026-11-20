@@ -108,6 +108,7 @@ Each named version is a full copy in `../prototype-versions/<name>/`. To go back
 | v46-global | (Not used) Removed the region entirely, including the city pages and area sections |
 | v47-no-metro-detroit | Current. Only the words "Metro Detroit" removed, from the logo tagline, page titles and copy (home, waitlist and its email, contact, cost hub, house type pages, rate notes). The five area pages, the home areas section, the cost hub map and area finder, and the footer Areas column all stay |
 | v48-admin-back | Admin console brought back from v42 on top of v47: admin/index.html, assets/css/console.css, assets/js/console/, the "Admin console" group in the Pages menu and the staff invite permission text. Sample rate region renamed from "Metro Detroit" to "Sample region". Everything since v42 is kept (simple How it works, no photo credits page, no "Metro Detroit") |
+| v49-houses-per-day | Overview chart is now "Houses per day": submitted and price ready side by side for each day (Deep Forest and a light bronze #A88A66), legend at the top right, and three totals underneath (submitted, price ready, still running). Follows the 7, 14 or 30 day switch |
 | v6-cost | Redesigns the renovation cost section: finder and schematic area map, house type line drawings, rate explorer with a size slider, and "typical vs your house"; carried into area and house type pages |
 
 ## Folder layout

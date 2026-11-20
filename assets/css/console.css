@@ -1133,3 +1133,28 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:.78rem}
   .ov-trend .ov-cols{flex:1;grid-template-rows:minmax(240px,1fr) auto}
 }
 @media (prefers-reduced-motion:reduce){ .ov-sg,.ov-lg{transition:none} }
+
+/* Overview: houses per day, submitted and price ready side by side (replaces the stacked chart) */
+.ov-trend{position:relative}
+.ov-trend .ov-ch{margin:-18px -20px 18px;padding:18px 20px 16px;border-bottom:1px solid var(--border-soft)}
+.ov-key{display:flex;flex-wrap:wrap;gap:6px 18px;margin:-6px 0 14px;font-size:.82rem;color:var(--text)}
+.ov-key span{display:inline-flex;align-items:center;gap:8px}
+.ov-key i{width:12px;height:12px;border-radius:2px}
+@media (min-width:720px){ .ov-key{position:absolute;top:22px;right:20px;margin:0} }
+.ov-sub{background:var(--deep-forest)}
+.ov-ready{background:#A88A66}
+.ov-grp .ov-cb{align-items:stretch}
+.ov-pair{display:flex;align-items:flex-end;justify-content:center;gap:3px;width:100%;height:100%}
+.ov-gb{display:block;width:min(34%,18px);min-height:0;border-radius:3px 3px 0 0;transition:filter var(--fast)}
+.ov-gb.z{height:2px!important;background:var(--border-strong);border-radius:1px}
+.ov-grp .ov-cb.on{background:rgba(32,59,56,.05)}
+.ov-grp .ov-cb.on .ov-gb:not(.z){filter:brightness(1.15)}
+.dense .ov-pair{gap:1px}
+.dense .ov-gb{width:40%}
+.ov-tot{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:18px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.ov-tot>div{display:grid;gap:6px;padding:12px 16px;border-left:1px solid var(--border)}
+.ov-tot>div:first-child{border-left:0}
+.ov-tot span{font-size:.78rem;color:var(--muted)}
+.ov-tot b{font-family:var(--display);font-weight:500;font-size:1.6rem;line-height:1;font-variant-numeric:tabular-nums}
+@media (max-width:719px){ .ov-tot>div{padding:10px 12px} .ov-tot b{font-size:1.3rem} }
+@media (prefers-reduced-motion:reduce){ .ov-gb{transition:none} }
