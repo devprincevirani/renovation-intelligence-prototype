@@ -366,41 +366,122 @@
     vals(); C.crumb(r.code);
   }, {nav:'rules', perm:'rulebook.view'});
 
-  /* ---------- Condition sheets ---------- */
+  /* ---------- Condition sheets (APP_FLOW 7; BACKLOG M2-09, M2-23, M4-27; SCHEMA condition_sheets) ----------
+     Master and detail. Left: each component type with its live threshold on a small meter, its line count and
+     how many of those lines are unverified. Right: what is live and what waits in the queue; the threshold as a
+     scale from 40 to 95 with every line of the current runs placed on it, so the effect of a change shows before
+     it is saved; those lines, lowest confidence first; the condition levels and the four scales, each with how
+     this component read in the current runs. cd- prefix (cs- belongs to the console shell). */
   var SEVS = [['C0','No visible defect','Keep, unless the goal asks for change'],['C1','Minor cosmetic wear','Clean, repair or refinish'],['C2','Moderate deterioration','Repair or refinish; replace if the goal needs it'],['C3','Significant deterioration','Replace or repair, by the rules'],['C4','Apparent urgent safety concern','Flag for a professional; no precise replacement'],['CX','Not enough evidence','Verify. Shown as unverified']];
+  var SCALES = [['condition','Physical condition',['Excellent','Good','Serviceable','Worn','Poor','Failed']],['modern','Modernisation',['Current','Acceptable','Dated','Strongly dated','Obsolete']],['character','Character value',['High','Moderate','Low','None']],['func','Functional adequacy',['Good','Adequate','Limited','Deficient']]];
+  var CD_LO = 40, CD_HI = 95, cdPos = function(v){ return ((Math.max(CD_LO, Math.min(CD_HI, v)) - CD_LO) / (CD_HI - CD_LO) * 100).toFixed(2) + '%'; };
   C.route('/condition-sheets', function(view){
-    var sheets = C.get('sheets', {}), fams = Object.keys(sheets), cur = C.query().fam || 'CB', lines = allLines(), val = null, canEdit = C.can('rulebook.edit');
-    view.innerHTML = C.page({kicker:'Rulebook', title:'Condition sheets', sub:'Sam\'s conditions per component type, and the confidence threshold for each. Below the threshold, a line shows as unverified instead of being priced.',
-      body:'<div class="c-split"><aside class="c-list" aria-label="Component types"><div id="cs-list"></div></aside><section class="c-detail" id="cs-detail"></section></div>'});
+    var sheets = C.get('sheets', {}), fams = Object.keys(sheets), cur = C.query().fam, all = allLines(), val = null, more = false, canEdit = C.can('rulebook.edit');
+    if(!sheets[cur]) cur = sheets.CB ? 'CB' : fams[0];
+    var name = function(f){ return C.FAMILY[f] || f; };
+    var of = function(f){ return all.filter(function(l){ return l.fam === f && l.item.state !== 'measure'; }).sort(function(a, b){ return a.conf - b.conf; }); };
+    var plural = function(n, w){ return n + ' ' + w + (n === 1 ? '' : 's'); };
+    view.innerHTML = C.page({kicker:'Rulebook', title:'Condition sheets', sub:'Each component type has its condition levels and a confidence threshold. A photo reading below the threshold shows as unverified instead of being priced.',
+      body:fams.length ? '<div class="c-split cd-split"><nav class="c-list cd-list" aria-label="Component types" id="cd-list"></nav><section class="c-detail cd-detail" id="cd-detail" aria-live="off"></section></div>' : '<div class="c-empty">' + RI.icon('info') + '<p>No condition sheet yet. Sheets arrive with Sam\'s rulebook import.</p></div>'});
+    if(!fams.length) return;
+
     function list(){
-      doc.getElementById('cs-list').innerHTML = '<p class="c-list-g">Component types</p>' + fams.map(function(f){ var s = sheets[f], dr = C.draftFor('sheets', f);
-        return '<button type="button" class="c-li' + (f === cur ? ' on' : '') + '" data-f="' + f + '"><span><b>' + (C.FAMILY[f] || f) + '</b><small><code>' + f + '</code> · threshold ' + s.threshold + '</small></span>' + (dr ? C.lbl('queued') : '') + '</button>'; }).join('');
+      var box = doc.getElementById('cd-list');
+      box.innerHTML = '<p class="c-list-g">Component types<span>' + fams.length + '</span></p>' + fams.map(function(f){
+        var s = sheets[f], dr = C.draftFor('sheets', f), fl = of(f), un = fl.filter(function(l){ return l.conf < s.threshold; }).length;
+        return '<button type="button" class="cd-li' + (f === cur ? ' on' : '') + '" data-f="' + f + '"' + (f === cur ? ' aria-current="true"' : '') + '>' +
+          '<span class="cd-li-t"><b>' + name(f) + '</b><span class="cd-li-v">' + s.threshold + (dr ? '<i title="Queued">' + RI.icon('arrow', 'i-sm') + dr.after.threshold + '</i>' : '') + '</span></span>' +
+          '<span class="cd-li-m" aria-hidden="true"><i style="width:' + cdPos(s.threshold) + '"></i>' + (dr ? '<s style="left:' + cdPos(dr.after.threshold) + '"></s>' : '') + '</span>' +
+          '<small><code>' + f + '</code> · ' + (fl.length ? plural(fl.length, 'line') + (un ? ', <em>' + un + ' unverified</em>' : '') : 'no lines yet') + (dr ? ' · queued' : '') + '</small></button>'; }).join('');
+      var on = box.querySelector('.on'); if(on && box.scrollWidth > box.clientWidth) box.scrollLeft = on.offsetLeft - 8;
     }
+
+    function dots(fl){
+      var placed = [], top = 0;
+      var html = fl.map(function(l, k){ var c = Math.max(CD_LO, l.conf), lv = 0;
+        while(placed.some(function(p){ return p[1] === lv && Math.abs(p[0] - c) < 2; })) lv++;
+        placed.push([c, lv]); top = Math.max(top, lv);
+        return '<i class="cd-dot" data-k="' + k + '" style="left:' + cdPos(c) + ';bottom:' + (10 + lv * 16) + 'px" title="' + RI.esc(l.item.name + ', ' + l.room + ', ' + A.addr(l.h) + ': confidence ' + l.conf) + '"></i>'; }).join('');
+      return {html:html, h:Math.max(104, 58 + (top + 1) * 16)};
+    }
+
+    function mark(cls, v, label){ return '<div class="' + cls + (v > 80 ? ' r' : '') + (v < 52 ? ' l' : '') + '" style="left:' + cdPos(v) + '"><span>' + label + '</span></div>'; }
+
     function detail(){
-      var s = sheets[cur], t = val == null ? s.threshold : val, fl = lines.filter(function(l){ return l.fam === cur && l.item.state !== 'measure'; });
-      var below = fl.filter(function(l){ return l.conf < t; }).length, nowBelow = fl.filter(function(l){ return l.conf < s.threshold; }).length;
-      var el = doc.getElementById('cs-detail');
-      el.innerHTML = C.draftBar('sheets', cur) + '<header class="c-dhead"><div><p class="c-kicker"><code>' + cur + '</code></p><h2>' + (C.FAMILY[cur] || cur) + '</h2><p class="c-sub">Version ' + s.v + ', published ' + C.ago(s.at) + '.</p></div>' + (val != null && val !== s.threshold ? C.lbl('draft', 'not saved') : C.lbl('published')) + '</header>' +
-        '<section class="cs-thr"><div class="cs-thr-h"><label for="cs-r"><b>Confidence threshold</b><span class="small muted">A reading below this shows as unverified.</span></label><output id="cs-o">' + t + '</output></div>' +
-          '<input type="range" id="cs-r" min="40" max="95" step="1" value="' + t + '"' + (canEdit ? '' : ' disabled') + ' aria-describedby="cs-eff">' +
-          '<div class="cs-dots" aria-hidden="true">' + fl.map(function(l){ return '<i class="' + (l.conf < t ? 'below' : '') + '" style="left:' + ((l.conf - 40) / 55 * 100) + '%" title="' + RI.esc(l.item.name) + ', ' + l.conf + '"></i>'; }).join('') + '</div>' +
-          '<p class="cs-eff" id="cs-eff">' + (fl.length ? '<b>' + below + ' of ' + fl.length + '</b> ' + (C.FAMILY[cur] || cur).toLowerCase() + ' lines in the current runs would show as unverified' + (t !== s.threshold ? ' (now ' + nowBelow + ')' : '') + '.' : 'No line of this type in the current runs.') + '</p></section>' +
-        '<section class="c-mt"><h3 class="c-h2">Severity codes</h3>' + C.table({cols:[{label:'Code'},{label:'Meaning'},{label:'What the engine does'}], rows:SEVS.map(function(x){ return {cells:['<span class="sev sev-' + x[0] + '">' + x[0] + '</span>', x[1], x[2]]}; })}) + '</section>' +
-        '<section class="c-mt"><h3 class="c-h2">Four separate scales</h3><div class="cs-scales">' + [['Physical condition','Excellent, Good, Serviceable, Worn, Poor, Failed, Unknown'],['Modernisation','Current, Acceptable, Dated, Strongly dated, Obsolete, Unknown'],['Character value','High, Moderate, Low, None, Unknown'],['Functional adequacy','Good, Adequate, Limited, Deficient, Unknown']].map(function(x){ return '<div><b>' + x[0] + '</b><span>' + x[1] + '</span></div>'; }).join('') + '</div>' + C.note('Never one score: a 1990 oak kitchen can be condition 8 and modernisation 3 (PDF section 33).') + '</section>' +
-        (val != null && val !== s.threshold && canEdit ? C.saveBar('cs') : '') + (canEdit ? '' : C.note('Changing a threshold needs the permission to edit reasoning drafts.', 'lock'));
-      RI.fillIcons(el);
+      var s = sheets[cur], dr = C.draftFor('sheets', cur), fl = of(cur), d = dots(fl), el = doc.getElementById('cd-detail');
+      el.innerHTML =
+        '<header class="cd-head"><div><p class="c-kicker"><code>' + cur + '</code> · Condition sheet</p><h2>' + name(cur) + '</h2></div><span id="cd-state"></span></header>' +
+        '<div class="cd-vers">' +
+          '<div><span class="cd-vk">Live threshold</span><b>' + s.threshold + '</b><small>Version ' + s.v + ', published ' + C.ago(s.at) + '</small></div>' +
+          (dr ? '<span class="cd-vto" aria-hidden="true">' + RI.icon('arrow') + '</span><div class="cd-vq"><span class="cd-vk">In the publish queue</span><b>' + dr.after.threshold + '</b><small>Version ' + (s.v + 1) + ', by ' + RI.esc(dr.by) + ', ' + C.ago(dr.at) + '</small></div>' +
+            '<div class="cd-vfoot">' + (dr.why ? '<p class="cd-why">' + RI.icon('info', 'i-sm') + '<span><b>Why:</b> ' + RI.esc(dr.why) + '</span></p>' : '<span></span>') + '<a class="btn btn-secondary btn-sm cd-vbtn" href="#/publish">Open the queue</a></div>'
+            : '<p class="cd-vnone">Nothing waiting. A change you save becomes a draft for Sam to publish.</p>') +
+        '</div>' +
+        '<section class="cd-card" aria-labelledby="cd-thr-h">' +
+          '<div class="cd-thr-top"><div><h3 class="cd-h" id="cd-thr-h">Confidence threshold</h3><p class="cd-p">' + (fl.length ? 'Each dot is one ' + name(cur).toLowerCase() + ' line in the current runs, placed at how sure its photo reading is. ' : '') + (canEdit ? 'Drag the handle or use the buttons to see what a change would do.' : 'You can read this sheet but not change it.') + '</p></div>' +
+            '<div class="cd-step">' + (canEdit ? '<button type="button" class="cd-sb" data-step="-1" aria-label="Lower the threshold by one">' + RI.icon('minus') + '</button>' : '') + '<output id="cd-num" for="cd-r">' + s.threshold + '</output>' + (canEdit ? '<button type="button" class="cd-sb" data-step="1" aria-label="Raise the threshold by one">' + RI.icon('plus') + '</button>' : '') + '</div></div>' +
+          '<div class="cd-chart">' +
+            '<div class="cd-plot" style="height:' + d.h + 'px">' +
+              '<div class="cd-zone" id="cd-zone"><span>Unverified</span></div><span class="cd-zok">Clear to price</span>' +
+              (dr ? mark('cd-ghost', dr.after.threshold, 'Queued ' + dr.after.threshold) : '') + mark('cd-pub', s.threshold, 'Live ' + s.threshold) +
+              '<div class="cd-line" id="cd-line"></div>' + d.html +
+            '</div>' +
+            '<input type="range" id="cd-r" class="cd-range" min="' + CD_LO + '" max="' + CD_HI + '" step="1" value="' + s.threshold + '"' + (canEdit ? '' : ' disabled') + ' aria-label="Confidence threshold" aria-describedby="cd-sum">' +
+            '<div class="cd-axis" aria-hidden="true">' + [40, 50, 60, 70, 80, 90].map(function(v){ return '<span style="left:' + cdPos(v) + '">' + v + '</span>'; }).join('') + '</div>' +
+          '</div>' +
+          '<dl class="cd-stats" id="cd-stats"></dl><p class="cd-sum" id="cd-sum" aria-live="polite"></p>' +
+        '</section>' +
+        '<section class="cd-card" aria-labelledby="cd-ln-h"><div class="cd-card-h"><div><h3 class="cd-h" id="cd-ln-h">Lines in the current runs</h3><p class="cd-p">Lowest confidence first. These are the lines a higher threshold turns unverified. Open one to see its photos.</p></div></div><div id="cd-lines"></div></section>' +
+        '<section class="cd-card" aria-labelledby="cd-lv-h"><div class="cd-card-h"><div><h3 class="cd-h" id="cd-lv-h">Condition levels</h3><p class="cd-p">What a photo reading is matched to, and what the engine does at each level.</p></div><span class="cd-colh">In current runs</span></div>' +
+          '<ol class="cd-lv">' + SEVS.map(function(x){ var n = fl.filter(function(l){ return l.sev === x[0]; }).length;
+            return '<li><span class="sev sev-' + x[0] + '">' + x[0] + '</span><span class="cd-lv-t"><b>' + x[1] + '</b><small>' + RI.icon('arrow', 'i-sm') + x[2] + '</small></span><span class="cd-lv-n' + (n ? '' : ' zero') + '"><span class="cd-bar"><i style="width:' + (fl.length ? (n / fl.length * 100).toFixed(1) : 0) + '%"></i></span><b>' + n + '</b></span></li>'; }).join('') + '</ol></section>' +
+        '<section class="cd-card" aria-labelledby="cd-sc-h"><div class="cd-card-h"><div><h3 class="cd-h" id="cd-sc-h">Four separate scales</h3><p class="cd-p">Never one score: a 1990 oak kitchen can be condition 8 and modernisation 3.' + (fl.length ? ' The numbers show how the ' + plural(fl.length, 'line') + ' read.' : '') + '</p></div></div>' +
+          '<div class="cd-scales">' + SCALES.map(function(sc){
+            return '<div class="cd-sc"><b>' + sc[1] + '</b><ol>' + sc[2].concat(['Unknown']).map(function(v){ var n = fl.filter(function(l){ return l.scales[sc[0]] === v; }).length;
+              return '<li class="' + (v === 'Unknown' ? 'unk' : '') + (n ? ' has' : '') + '"><span>' + v + '</span>' + (n ? '<em>' + n + '</em>' : '') + '</li>'; }).join('') + '</ol></div>'; }).join('') + '</div></section>' +
+        '<div id="cd-savewrap"></div>' + (canEdit ? '' : C.note('Changing a threshold needs the permission to edit reasoning drafts.', 'lock'));
+      update();
     }
-    view.addEventListener('input', function(e){ if(e.target.id !== 'cs-r') return; var had = val != null && val !== sheets[cur].threshold; val = +e.target.value; var has = val !== sheets[cur].threshold;
-      if(had !== has){ detail(); var r = doc.getElementById('cs-r'); r.focus(); return; }
-      doc.getElementById('cs-o').textContent = val; var fl = lines.filter(function(l){ return l.fam === cur && l.item.state !== 'measure'; }), below = fl.filter(function(l){ return l.conf < val; }).length;
-      doc.querySelectorAll('.cs-dots i').forEach(function(i, k){ i.classList.toggle('below', fl[k].conf < val); });
-      doc.getElementById('cs-eff').innerHTML = fl.length ? '<b>' + below + ' of ' + fl.length + '</b> ' + (C.FAMILY[cur] || cur).toLowerCase() + ' lines in the current runs would show as unverified (now ' + fl.filter(function(l){ return l.conf < sheets[cur].threshold; }).length + ').' : 'No line of this type in the current runs.';
-    });
+
+    function rows(t, live){
+      var fl = of(cur);
+      if(!fl.length) return '<div class="c-empty">' + RI.icon('info') + '<p>No ' + name(cur).toLowerCase() + ' line in the current runs yet. The threshold applies from the next run.</p></div>';
+      var cut = fl.length > 8, show = more || !cut ? fl : fl.slice(0, 6);
+      return '<div class="cd-tblw"><table class="cd-tbl"><thead><tr><th scope="col">Line</th><th scope="col">Confidence</th><th scope="col">Result</th></tr></thead><tbody>' + show.map(function(l){
+        var un = l.conf < t, was = l.conf < live, flip = un !== was;
+        return '<tr class="' + (un ? 'un' : '') + (flip ? ' flip' : '') + '"><td><a href="#/houses/' + l.h.id + '"><b>' + RI.esc(l.item.name) + '</b><small>' + RI.esc(l.room) + ' · ' + RI.esc(A.addr(l.h)) + '</small></a></td>' +
+          '<td class="cd-cf"><span class="cd-cfw"><span class="cd-bar"><i style="width:' + cdPos(l.conf) + '"></i><s style="left:' + cdPos(t) + '"></s></span><b>' + l.conf + '</b></span></td>' +
+          '<td>' + (un ? '<span class="cd-res cd-un">Unverified</span>' : '<span class="cd-res cd-ok">' + RI.icon('check', 'i-sm') + 'Clear</span>') + (flip ? '<small class="cd-was">was ' + (was ? 'unverified' : 'clear') + '</small>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>' +
+        (cut ? '<button type="button" class="cd-more" id="cd-more" aria-expanded="' + more + '">' + (more ? 'Show fewer' : 'Show all ' + fl.length + ' lines') + RI.icon('chev', 'i-sm') + '</button>' : '');
+    }
+
+    function update(){
+      var s = sheets[cur], t = val == null ? s.threshold : val, dirty = t !== s.threshold, fl = of(cur);
+      var un = fl.filter(function(l){ return l.conf < t; }).length, was = fl.filter(function(l){ return l.conf < s.threshold; }).length, delta = un - was;
+      doc.getElementById('cd-num').textContent = t;
+      var r = doc.getElementById('cd-r'); if(+r.value !== t) r.value = t;
+      doc.getElementById('cd-zone').style.width = cdPos(t); doc.getElementById('cd-line').style.left = cdPos(t);
+      view.querySelector('.cd-pub').classList.toggle('on', dirty);
+      view.querySelectorAll('.cd-dot').forEach(function(dt){ var l = fl[+dt.getAttribute('data-k')]; dt.classList.toggle('un', l.conf < t); dt.classList.toggle('flip', (l.conf < t) !== (l.conf < s.threshold)); });
+      doc.getElementById('cd-stats').innerHTML = '<div><dt>Lines in current runs</dt><dd>' + fl.length + '</dd></div><div><dt>Clear to price</dt><dd>' + (fl.length - un) + '</dd></div>' +
+        '<div class="u"><dt>Unverified</dt><dd>' + un + (dirty && delta ? '<small>' + (delta > 0 ? '+' : '') + delta + ' vs live</small>' : '') + '</dd></div>';
+      doc.getElementById('cd-sum').innerHTML = !fl.length ? 'No line of this type in the current runs, so a change here shows no effect yet.'
+        : dirty ? (delta ? '<b>' + plural(Math.abs(delta), 'line') + '</b> would turn ' + (delta > 0 ? 'unverified' : 'clear') + ' at ' + t + ', against the live threshold of ' + s.threshold + '.' : 'No line changes between ' + s.threshold + ' and ' + t + '.')
+        : '<b>' + un + ' of ' + fl.length + '</b> lines show as unverified at the live threshold.';
+      doc.getElementById('cd-lines').innerHTML = rows(t, s.threshold);
+      doc.getElementById('cd-state').innerHTML = dirty ? C.lbl('draft', 'not saved') : C.lbl('published', 'v' + s.v);
+      var sv = doc.getElementById('cd-savewrap'), has = !!sv.firstChild;
+      if(dirty && canEdit && !has) sv.innerHTML = C.saveBar('cd'); else if(!dirty && has) sv.innerHTML = '';
+    }
+
+    view.addEventListener('input', function(e){ if(e.target.id !== 'cd-r') return; val = +e.target.value; update(); });
     view.addEventListener('click', function(e){
-      var li = e.target.closest('[data-f]'); if(li){ if(val != null && val !== sheets[cur].threshold){ RI.toast('Save or undo your change first.', 'warn'); return; } cur = li.getAttribute('data-f'); val = null; history.replaceState(null, '', '#/condition-sheets?fam=' + cur); list(); detail(); return; }
-      if(e.target.closest('#cs-undo')){ val = null; detail(); }
-      if(e.target.closest('#cs-save')){ var s = sheets[cur], sum = 'Confidence threshold ' + s.threshold + ' to ' + val;
-        C.askWhy('Condition sheet: ' + (C.FAMILY[cur] || cur), sum, function(why){ C.addDraft({area:'sheets', ref:cur, title:'Condition sheet: ' + (C.FAMILY[cur] || cur) + ' threshold', summary:sum, after:{threshold:val}, why:why}); val = null; RI.toast('Saved as a draft. It waits in the publish queue.', 'check'); C.render(); }); }
+      var li = e.target.closest('[data-f]'); if(li){ if(val != null && val !== sheets[cur].threshold){ RI.toast('Save or undo your change first.', 'warn'); return; } cur = li.getAttribute('data-f'); val = null; more = false; history.replaceState(null, '', '#/condition-sheets?fam=' + cur); list(); detail(); return; }
+      var st = e.target.closest('[data-step]'); if(st){ val = Math.max(CD_LO, Math.min(CD_HI, (val == null ? sheets[cur].threshold : val) + +st.getAttribute('data-step'))); update(); return; }
+      if(e.target.closest('#cd-more')){ more = !more; update(); return; }
+      if(e.target.closest('#cd-undo')){ val = null; update(); return; }
+      if(e.target.closest('#cd-save')){ var s = sheets[cur], sum = 'Confidence threshold ' + s.threshold + ' to ' + val;
+        C.askWhy('Condition sheet: ' + name(cur), sum, function(why){ C.addDraft({area:'sheets', ref:cur, title:'Condition sheet: ' + name(cur) + ' threshold', summary:sum, after:{threshold:val}, why:why}); val = null; RI.toast('Saved as a draft. It waits in the publish queue.', 'check'); C.render(); }); }
     });
     list(); detail();
   }, {nav:'sheets', perm:'rulebook.view'});
