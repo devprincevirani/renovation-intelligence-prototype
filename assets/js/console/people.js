@@ -76,8 +76,6 @@
   var SHORT = {'houses.view':'See houses', 'houses.grade':'Grade decisions', 'rulebook.view':'Read the rulebook', 'rulebook.edit':'Edit rulebook drafts',
     'pricing.edit':'Edit products and rates', 'content.edit':'Edit guidance and documents', 'accuracy.manage':'Label photos for accuracy', 'backtests.run':'Run back-tests',
     'users.view':'See users and the waitlist', 'contacts.export':'Read feedback, export contacts', 'funnel.view':'See the funnel', 'audit.view':'Read the audit log'};
-  var GROUPS = [['Houses', ['houses.view', 'houses.grade']], ['Rulebook and pricing', ['rulebook.view', 'rulebook.edit', 'pricing.edit', 'content.edit', 'accuracy.manage', 'backtests.run']],
-    ['People and records', ['users.view', 'contacts.export', 'funnel.view', 'audit.view']]];
   var SAM_ONLY = ['Publish or discard a draft', 'Invite staff and set permissions', 'Invite contacts to the trial', 'Disable an account'];
   /* Demo access logins: a note on where the row comes from, not a state, so it is quiet and sits by the name */
   var DEMO_TAG = '<span class="lb lb-sample" title="A Demo access login for trying the prototype. It cannot be disabled.">Demo</span>';
@@ -206,36 +204,15 @@
       });
     }
 
-    function permGrid(){
-      var people = staff.filter(function(x){ return x.status !== 'disabled'; });
-      var head = '<tr><th scope="col" class="pg-perm">Permission</th><th scope="col" class="pg-who">' + C.av('Sam', 'sam') + '<span>Sam<small>Super admin</small></span></th>' +
-        people.map(function(x){ return '<th scope="col" class="pg-who">' + C.av(x.name || x.email) + '<span>' + RI.esc((x.name || x.email.split('@')[0]).split(' ')[0]) + '<small>' + (x.status === 'invited' ? 'Invited' : 'Staff') + '</small></span>' + (sam ? '<button type="button" class="linkbtn small pg-man" data-staff="' + RI.esc(x.email) + '">Manage</button>' : '') + '</th>'; }).join('') + '</tr>';
-      var yes = '<span class="pg-yes" title="Yes">' + RI.icon('check','i-sm') + '<span class="sr">Yes</span></span>';
-      var rows = GROUPS.map(function(g){
-        return '<tr class="pg-grp"><th scope="rowgroup" colspan="' + (people.length + 2) + '">' + g[0] + '</th></tr>' + g[1].map(function(code){
-          return '<tr><th scope="row" class="pg-perm"><b>' + SHORT[code] + '</b><code>' + code + '</code></th><td>' + yes + '</td>' + people.map(function(x, i){
-            var held = C.migratePerms(x.perms), has = held.indexOf(code) > -1;
-            var by = Object.keys(C.IMPLIES).filter(function(k){ return held.indexOf(k) > -1 && C.IMPLIES[k].indexOf(code) > -1; })[0];
-            if(has) return '<td>' + yes + '</td>';
-            if(by) return '<td><span class="pg-inc" title="Included with ' + SHORT[by] + '">' + RI.icon('check','i-sm') + '<span class="sr">Included with ' + SHORT[by] + '</span></span></td>';
-            return '<td><span class="pg-no" aria-label="No">–</span></td>';
-          }).join('') + '</tr>';
-        }).join('');
-      }).join('') + '<tr class="pg-grp"><th scope="rowgroup" colspan="' + (people.length + 2) + '">Super admin only</th></tr>' + SAM_ONLY.map(function(t){
-        return '<tr class="pg-sam"><th scope="row" class="pg-perm"><b>' + t + '</b></th><td>' + yes + '</td>' + people.map(function(){ return '<td><span class="pg-no" title="Only Sam">' + RI.icon('lock','i-sm') + '<span class="sr">Only Sam</span></span></td>'; }).join('') + '</tr>';
-      }).join('');
-      return '<section class="c-card c-mt pg-card"><header><div><h2>Access overview</h2><p class="small muted">Who can do what, side by side. ' + (sam ? 'To change it, open Manage for that person.' : 'Only Sam changes permissions.') + '</p></div><div class="pg-key" aria-hidden="true"><span>' + RI.icon('check','i-sm') + 'Given</span><span class="inc">' + RI.icon('check','i-sm') + 'Included with an edit</span><span>' + RI.icon('lock','i-sm') + 'Only Sam</span></div></header>' +
-        '<div class="pg-wrap"><table class="pg-tbl"><caption class="sr">Permissions for each staff member</caption><thead>' + head + '</thead><tbody>' + rows + '</tbody></table></div></section>';
-    }
     function bodyStaff(el){
       var rows = [{cells:['<span class="c-person">' + C.av('Sam', 'sam') + '<span><b>Sam</b><small>admin@demo.ri</small>' + meta(['Super admin', 'Everything', 'Created on the server']) + '</span></span>', '<span class="c-chip sam">Super admin</span>', C.lbl('published').replace('Published', 'Active'), '<span class="ax-areas"><span class="c-chip sam">Everything</span></span>', '<span class="muted">Created on the server</span>', '']}];
       staff.forEach(function(x){
-        rows.push({attr:sam ? 'data-staff="' + RI.esc(x.email) + '" tabindex="0" role="button"' : '', cells:['<span class="c-person">' + C.av(x.name || x.email) + '<span><b>' + RI.esc(x.name || 'Not accepted yet') + '</b><small>' + RI.esc(x.email) + '</small>' + meta(['Staff', x.status === 'invited' ? 'Invited ' + C.ago(x.invitedAt) : 'Joined ' + C.ago(x.joinedAt || x.invitedAt)]) + '</span></span>', '<span class="c-chip">Staff</span>',
+        rows.push({attr:sam ? 'data-staff="' + RI.esc(x.email) + '"' : '', cells:['<span class="c-person">' + C.av(x.name || x.email) + '<span><b>' + RI.esc(x.name || 'Not accepted yet') + '</b><small>' + RI.esc(x.email) + '</small>' + meta(['Staff', x.status === 'invited' ? 'Invited ' + C.ago(x.invitedAt) : 'Joined ' + C.ago(x.joinedAt || x.invitedAt)]) + '</span></span>', '<span class="c-chip">Staff</span>',
           staffLbl(x),
           areaChips(x.perms), x.status === 'invited' ? 'Invited ' + C.ago(x.invitedAt) + ' · link works 7 days' : 'Joined ' + C.ago(x.joinedAt || x.invitedAt),
-          sam ? '<span class="linkbtn small">Manage access</span>' : '']});
+          sam ? '<button type="button" class="us-act" data-staff="' + RI.esc(x.email) + '" aria-label="Manage access for ' + RI.esc(x.name || x.email) + '">' + RI.icon('key','i-sm') + 'Manage access</button>' : '']});
       });
-      el.innerHTML = C.table({cls:'us-cards us-staff', cols:[{label:'Person'},{label:'Role'},{label:'State'},{label:'Can work in'},{label:'Since'},{label:''}], rows:rows}) + permGrid() +
+      el.innerHTML = C.table({cls:'us-cards us-staff', cols:[{label:'Person'},{label:'Role'},{label:'State'},{label:'Can work in'},{label:'Since'},{label:'', cls:'us-actc'}], rows:rows}) +
         '<div class="c-mt">' + C.note('Staff edit drafts. Only Sam publishes, and only Sam manages staff. A new staff member starts with no permissions.') + '</div>';
       RI.fillIcons(el);
     }
@@ -281,7 +258,7 @@
   }, {nav:'users', perm:'users.view'});
 
   /* ---------- Staff access: one place to change it (SECURITY 3.2, 3.3; BACKLOG M1-34, M4-22) ----------
-     A side panel, opened from Manage access or Invite staff. Permissions are grouped by area; ticking an edit
+     A side panel, opened from the Manage access button or Invite staff. Permissions are grouped by area; ticking an edit
      permission ticks and locks the reading it includes. Nothing is saved until Save, the footer says exactly what
      will change, and a saved change ends that person's sessions. Disabling the account sits apart and asks first. */
   var AREAS = [
