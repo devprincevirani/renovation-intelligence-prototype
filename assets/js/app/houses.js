@@ -72,9 +72,9 @@
       '<a class="back" href="#/houses">' + RI.icon('arrow','i-sm flip') + (pro ? 'Client houses' : 'My houses') + '</a>' +
       '<div class="start"><div class="start-art">' + RI.Drawing.svg('brick-ranch', false) + '</div>' +
       '<h1>Add a house</h1><p class="lede">Enter it once. We read the photos and work out the price under three goals. You do nothing after you submit.</p>' +
-      '<ol class="start-steps"><li><b>The house</b><span>Address and listing facts. About 2 minutes.</span></li><li><b>Photos by room</b><span>A photo of each room. About 6 minutes.</span></li><li><b>Room sizes</b><span>Optional. They narrow your range.</span></li><li><b>Review and submit</b><span>We tell you what is missing, kindly.</span></li></ol>' +
+      '<ol class="start-steps"><li><b>Tell us about the home</b><span>Address, size, bedrooms and baths.</span></li><li><b>Rooms and photos</b><span>All your photos at once, sorted into rooms. Sizes optional. Then submit.</span></li></ol>' +
       (pro ? '<div class="field"><label for="client">Client name <span class="opt">(optional)</span></label><input class="input" id="client" autocomplete="off" placeholder="For example, Maria Alvarez"><span class="help">Only you see this. It helps you find the house later.</span></div>' : '') +
-      '<div class="cta-row"><button type="button" class="btn btn-primary" id="go">Start with the house ' + RI.icon('arrow','i-sm i-arrow') + '</button><span class="small muted">Saved as a draft as you go.</span></div></div></div>';
+      '<div class="cta-row"><button type="button" class="btn btn-primary" id="go">Start ' + RI.icon('arrow','i-sm i-arrow') + '</button><span class="small muted">Saved as a draft as you go.</span></div></div></div>';
     view.querySelector('#go').addEventListener('click', function(){
       var s = A.me(), c = view.querySelector('#client');
       var h = {id:A.uid(), owner:s.email, created:Date.now(), status:'draft', step:'house', facts:{basement:'finished'}, addr:{}, photos:{}, sizes:{}, rights:false, pk:'S', off:{}, shares:[], version:1, client:c && c.value.trim() ? c.value.trim() : undefined};
@@ -85,7 +85,7 @@
   /* ---------- Account ---------- */
   A.route('/account', function(view){
     var s = A.me(), u = RI.users.get(s.email) || {}, pro = A.isPro();
-    var trial = s.demo || u.trial, trialEnd = (u.at || s.at || Date.now()) + 15 * 86400000, daysLeft = Math.max(0, Math.ceil((trialEnd - Date.now()) / 86400000));
+    var credits = A.hasCredits(), left = A.creditsLeft();
     var houses = A.mine(), used = houses.filter(function(h){ return h.run; }).length;
     var types = ['homeowner','buyer','seller','builder','agent','other'];
     view.innerHTML = '<div class="app-wrap narrow-wrap"><header class="app-head"><div><p class="label">Settings</p><h1>Account</h1></div></header>' +
@@ -100,10 +100,10 @@
         '<div class="field"><label for="ac-p2">Type it again</label><div class="pw-wrap"><input class="input" id="ac-p2" type="password" autocomplete="new-password"><button type="button">Show</button></div><span class="err"></span></div>' +
         '<div><button class="btn btn-secondary" type="submit">Change password</button></div></form></section>' +
       '<section class="acc-card-s"><h2>Your plan</h2>' +
-        (trial ? '<div class="trial"><div class="trial-top"><b>15-day trial</b><span class="st st-ready">' + daysLeft + ' days left</span></div><span class="bar"><i style="width:' + ((15 - daysLeft) / 15 * 100) + '%"></i></span><p class="small muted">Presentations open without payment until ' + A.date(trialEnd) + '.</p></div>' : '<p class="small muted">The price by package is free. Each full presentation is one payment.</p>') +
-        '<dl class="kv"><div><dt>Houses</dt><dd>' + houses.length + '</dd></div><div><dt>Estimates run</dt><dd>' + used + '</dd></div><div><dt>Free estimates left</dt><dd>' + (pro ? 'Builder accounts are not limited in this demo' : Math.max(0, A.FREE_LIMIT - used) + ' of ' + A.FREE_LIMIT + ' <span class="state state-sample">Sample limit</span>') + '</dd></div></dl></section>' +
-      '<section class="acc-card-s"><h2>Demo data</h2><p class="small muted">Everything here is stored in this browser only.</p><div class="cta-row"><button type="button" class="btn btn-secondary" id="reseed">' + RI.icon('refresh','i-sm') + 'Reset my demo houses</button><button type="button" class="btn btn-secondary" data-logout>Log out</button></div>' +
-        '<div class="cta-row demo-links"><span class="xsmall muted">Demo screens:</span><button type="button" class="linkbtn small" id="show-limit">Free-report limit reached</button><a class="textlink small" href="#/demo-error">A screen that fails to load</a></div></section>' +
+        (credits ? '<div class="trial"><div class="trial-top"><b>Invite credits</b><span class="st st-ready">' + left + ' of ' + A.CREDITS_START + ' left</span></div><span class="bar"><i style="width:' + ((A.CREDITS_START - left) / A.CREDITS_START * 100) + '%"></i></span><p class="small muted">Each credit opens one full presentation for free. They never expire. After the last one, each house is one payment.</p></div>' : '<p class="small muted">The price by package is free. Each full presentation is one payment.</p>') +
+        '<dl class="kv"><div><dt>Houses</dt><dd>' + houses.length + '</dd></div><div><dt>Estimates run</dt><dd>' + used + '</dd></div><div><dt>Free runs left</dt><dd>' + (pro ? 'Builder accounts are not limited in this demo' : Math.max(0, A.freeRuns() - used) + ' of ' + A.freeRuns() + ' <span class="state state-sample">Sample limit</span>') + '</dd></div></dl></section>' +
+      '<section class="acc-card-s"><h2>Session</h2><div class="cta-row">' + (RI.devTools ? '<button type="button" class="btn btn-secondary" id="reseed">' + RI.icon('refresh','i-sm') + 'Reset my demo houses</button>' : '') + '<button type="button" class="btn btn-secondary" data-logout>Log out</button></div>' +
+        (RI.devTools ? '<div class="cta-row demo-links"><span class="xsmall muted">Team screens:</span><button type="button" class="linkbtn small" id="show-limit">Free-run limit reached</button><a class="textlink small" href="#/demo-error">A screen that fails to load</a></div>' : '') + '</section>' +
       '</div></div>';
     RI.form.pwToggle(view);
     view.querySelector('#prof').addEventListener('submit', function(e){
@@ -122,8 +122,8 @@
       if(u.email){ u.pw = RI.form.hash(p1.value); RI.users.put(u); }
       p1.value = p2.value = ''; RI.toast('Your password is changed.');
     });
-    view.querySelector('#show-limit').addEventListener('click', function(){ A.limitDialog(); });
-    view.querySelector('#reseed').addEventListener('click', function(){
+    var sl = view.querySelector('#show-limit'); if(sl) sl.addEventListener('click', function(){ A.limitDialog(); });
+    var rs = view.querySelector('#reseed'); if(rs) rs.addEventListener('click', function(){
       A.confirm('Reset your demo houses?', 'Your houses go back to the starting set. Houses you added are removed.', 'Reset', function(){
         A.saveAll(A.all().filter(function(h){ return h.owner !== s.email; })); RI.store.del('seeded.' + s.email); A.seed(); RI.toast('Demo houses reset.'); A.go('#/houses');
       });

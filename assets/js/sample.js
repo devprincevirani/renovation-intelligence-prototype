@@ -6,63 +6,50 @@
   function save(){ RI.store.set('sample.pk', st.pk); RI.store.set('sample.off', st.off); }
   var selRoom = 'kitchen';
   var plan = RI.Plan.mount(document.getElementById('plan'), {onSelect:function(k){
-    selRoom = k; plan.update(st.pk, st.off, selRoom);
-    var el = roomsEl.querySelector('[data-room="' + k + '"]'); if(!el) return;
-    st.open[k] = true; el.classList.add('open'); el.querySelector('.room-head').setAttribute('aria-expanded', 'true');
-    el.scrollIntoView({behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
+    selRoom = k; renderRooms(); plan.update(st.pk, st.off, selRoom);
+    var el = doc.getElementById('rooms'); if(el) el.scrollIntoView({behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
   }});
   function pkName(k){ return RI.PACKAGES.filter(function(p){ return p.key === k; })[0]; }
   function heldLabel(it){ return it.state === 'measure' ? 'Needs measurement' : 'Unverified'; }
 
   doc.getElementById('facts').innerHTML = H.facts.map(function(f){ return '<div><dt>' + f[0] + '</dt><dd>' + f[1] + '</dd></div>'; }).join('');
 
-  /* Rooms */
+  /* Rooms: one room card at a time, picked from the chips */
   var roomsEl = doc.getElementById('rooms');
-  function roomScale(){ var m = 0; H.rooms.forEach(function(r){ ['E','S','P'].forEach(function(k){ m = Math.max(m, RI.totals(k, {}, r.key).high); }); }); return Math.ceil(m / 5000) * 5000; }
-  var RS = roomScale();
   function itemRow(it){
     if(RI.isHeld(it)){
-      return '<div class="item hold"><div><span class="nm">' + RI.esc(it.name) + '</span><div class="meta"><span>' + RI.esc(it.qty) + '</span>' + RI.ev(it.ev) + '</div><div class="fix">' + RI.icon('info','i-sm') + ' ' + RI.esc(it.fix) + ' would settle it.</div></div>' +
+      return '<div class="item hold"><div><span class="nm">' + RI.esc(it.name) + '</span><div class="fix">' + RI.icon('info','i-sm') + ' ' + RI.esc(it.fix) + ' would settle it.</div></div>' +
         '<span class="state ' + (it.state === 'measure' ? 'state-measure' : 'state-unverified') + '">' + heldLabel(it) + '</span><span class="amt muted small">Not in the total</span></div>';
     }
     var p = it.pk[st.pk], keep = p[1] == null, off = !!st.off[it.id];
     return '<div class="item' + (off ? ' off' : '') + '" data-item="' + it.id + '"><div><span class="nm">' + RI.esc(it.name) + '</span><div class="act">' + RI.esc(p[0]) + '</div>' +
-      '<div class="meta"><span>' + RI.esc(it.qty) + '</span>' + RI.ev(it.ev) + '<span>' + RI.esc(it.trade) + '</span>' + (p[3] ? '<span class="prod">' + RI.icon('dot','i-sm') + RI.esc(p[3]) + '</span>' : '') + '</div></div>' +
+      '<details class="rc-det"><summary>Details</summary><span>' + RI.esc(it.qty) + ' · ' + RI.esc(it.trade) + '</span></details></div>' +
       (keep ? '<span></span><span class="amt muted small">Keep, no cost</span>' :
       '<label class="switch sw"><input type="checkbox" data-id="' + it.id + '"' + (off ? '' : ' checked') + '><span class="track"></span><span class="sr">Include ' + RI.esc(it.name) + '</span></label>' +
       '<span class="amt range-txt">' + RI.range(p[1], p[2]) + '</span>') + '</div>';
   }
-  function roomHead(r){
-    var t = RI.totals(st.pk, st.off, r.key);
-    var has = r.items.some(function(i){ return RI.isHeld(i); });
-    return '<button type="button" class="room-head" aria-expanded="' + !!st.open[r.key] + '" aria-controls="room-' + r.key + '"><span><span class="rh-title">' + r.name + '</span><span class="sub">' + r.sub + (has ? ' &middot; partial' : '') + '</span></span>' +
-      '<span data-scale="0,' + RS + '"><span class="rl' + (has ? ' partial' : '') + '" data-low="' + t.low + '" data-high="' + t.high + '"></span></span>' +
-      '<span class="range-txt">' + (t.high ? RI.range(t.low, t.high) : '<span class="muted">No cost</span>') + '</span><span class="chev" aria-hidden="true"></span></button>';
+  function roomRange(r){
+    var t = RI.totals(st.pk, st.off, r.key), has = r.items.some(RI.isHeld);
+    return (t.high ? RI.range(t.low, t.high) : '<span class="muted">No cost</span>') + (has ? ' <span class="state state-partial">Partial</span>' : '');
   }
   function renderRooms(){
-    roomsEl.innerHTML = H.rooms.map(function(r){
-      return '<div class="room' + (st.open[r.key] ? ' open' : '') + '" data-room="' + r.key + '">' + roomHead(r) +
-        '<div class="room-body" id="room-' + r.key + '"><div>' + r.items.map(itemRow).join('') + '</div></div></div>';
-    }).join('');
-    RI.initRanges(roomsEl);
+    var r = H.rooms.filter(function(x){ return x.key === selRoom; })[0] || H.rooms[0];
+    roomsEl.innerHTML = '<div class="rc-picker" role="group" aria-label="Rooms">' + H.rooms.map(function(x){ return '<button type="button" class="rc-chip" data-pick="' + x.key + '" aria-pressed="' + (x.key === r.key) + '">' + x.name + '</button>'; }).join('') + '</div>' +
+      '<div id="rc-host">' + RI.RoomCard.html(r, st.pk, {range:roomRange(r), itemsHtml:r.items.map(itemRow).join('')}) + '</div>';
+    RI.RoomCard.wire(roomsEl);
   }
   function refreshHeads(){
-    H.rooms.forEach(function(r){
-      var el = roomsEl.querySelector('[data-room="' + r.key + '"] .room-head'); if(!el) return;
-      var tmp = doc.createElement('div'); tmp.innerHTML = roomHead(r);
-      el.innerHTML = tmp.firstChild.innerHTML; RI.initRanges(el); el.querySelectorAll('.rl').forEach(function(x){ x.classList.add('drawn'); });
-    });
+    var r = H.rooms.filter(function(x){ return x.key === selRoom; })[0], el = roomsEl.querySelector('.rc-range'); if(el && r) el.innerHTML = roomRange(r);
   }
   roomsEl.addEventListener('click', function(e){
-    var h = e.target.closest('.room-head'); if(!h) return;
-    var room = h.parentNode, k = room.getAttribute('data-room');
-    st.open[k] = !st.open[k]; room.classList.toggle('open', st.open[k]); h.setAttribute('aria-expanded', st.open[k]);
+    var b = e.target.closest('[data-pick]'); if(!b) return;
+    selRoom = b.getAttribute('data-pick'); renderRooms(); renderThree(); plan.update(st.pk, st.off, selRoom);
   });
   roomsEl.addEventListener('change', function(e){
     var id = e.target.getAttribute('data-id'); if(!id) return;
     st.off[id] = !e.target.checked; if(!st.off[id]) delete st.off[id];
     e.target.closest('.item').classList.toggle('off', !e.target.checked);
-    save(); refreshHeads(); renderTotals(); renderCompare(); renderTrades();
+    save(); refreshHeads(); renderTotals(); renderTrades(); renderThree();
   });
 
   /* Totals */
@@ -77,19 +64,40 @@
     var rl = doc.getElementById('tot-rl'); rl.setAttribute('data-low', t.low); rl.setAttribute('data-high', t.high); RI.drawRange(rl); rl.classList.add('drawn');
   }
 
-  /* Comparison table */
-  function renderCompare(){
-    var rows = H.rooms.map(function(r){
-      return '<tr><td class="wt"><strong>' + r.name + '</strong></td>' + ['E','S','P'].map(function(k){
-        var t = RI.totals(k, st.off, r.key);
-        return '<td class="r' + (k === st.pk ? '' : ' muted') + '">' + (t.high ? RI.range(t.low, t.high) : 'No cost') + '</td>';
-      }).join('') + '</tr>';
-    }).join('');
-    var tot = ['E','S','P'].map(function(k){ var t = RI.totals(k, st.off); return '<td class="r"><strong>' + RI.range(t.low, t.high) + '</strong><div data-scale="0,125000" style="margin-top:6px"><div class="rl partial" data-low="' + t.low + '" data-high="' + t.high + '"></div></div></td>'; }).join('');
-    doc.getElementById('compare').innerHTML = '<thead><tr><th scope="col">Room</th>' + RI.PACKAGES.map(function(p){ return '<th scope="col" style="text-align:right">' + p.name + (p.key === st.pk ? ' (selected)' : '') + '</th>'; }).join('') + '</tr></thead><tbody>' + rows +
-      '<tr><td class="wt"><strong>Total</strong><span>Partial: 3 lines not priced</span></td>' + tot + '</tr></tbody>';
-    RI.initRanges(doc.getElementById('compare'));
+  /* The three goals side by side: one row per part of the room, one column per goal.
+     Read across a row to see what each goal does with that part. Tap a goal to use it on the whole page. */
+  function g3Cell(it, pk){
+    var sel = pk === st.pk ? ' sel' : '';
+    if(RI.isHeld(it)) return '<div class="g3-cell held' + sel + '"><span class="g3-ph g3-ph-n">' + RI.icon(it.state === 'measure' ? 'ruler' : 'camera', 'i-sm') + '</span><span class="g3-t"><b>' + (it.state === 'measure' ? 'Needs measurement' : 'Unverified') + '</b><span>Not in the total</span></span></div>';
+    var a = it.pk[pk];
+    if(st.off[it.id] && a[1] != null) return '<div class="g3-cell off' + sel + '"><span class="g3-ph g3-ph-n">' + RI.icon('x', 'i-sm') + '</span><span class="g3-t"><b>Turned off</b><span>Not in the total</span></span></div>';
+    if(a[1] == null) return '<div class="g3-cell kept' + sel + '" title="' + RI.esc(a[0]) + '"><span class="g3-ph g3-ph-n">' + RI.icon('check', 'i-sm') + '</span><span class="g3-t"><b>Kept as it is</b><span>No cost</span></span></div>';
+    var m = RI.PRODUCT_IMG && RI.PRODUCT_IMG[it.id], img = m && m[pk] ? RI.img(m[pk]) : null;
+    return '<div class="g3-cell' + sel + '" title="' + RI.esc(a[0] + (a[3] ? '. ' + a[3] : '')) + '">' +
+      (img ? '<img class="g3-ph" src="' + img + '" alt="" loading="lazy">' : '<span class="g3-ph g3-ph-n">' + RI.icon('tag', 'i-sm') + '</span>') +
+      '<span class="g3-t"><b>' + RI.esc(a[0]) + '</b><span class="g3-p">' + RI.money(a[1]) + ' to ' + RI.money(a[2]) + '</span></span></div>';
   }
+  function renderThree(){
+    var r = H.rooms.filter(function(x){ return x.key === selRoom; })[0] || H.rooms[0], el = doc.getElementById('three');
+    var T = {}, max = 1; RI.PACKAGES.forEach(function(p){ T[p.key] = RI.totals(p.key, st.off, r.key); max = Math.max(max, T[p.key].high); });
+    var held = r.items.some(RI.isHeld), photo = RI.RoomCard && RI.RoomCard.photoFor(r.key);
+    var head = '<div class="g3-corner">' + (photo ? '<img src="' + photo + '" alt="">' : '<span class="g3-noph">' + RI.icon('camera') + '</span>') +
+      '<span><b>' + RI.esc(r.name) + '</b><span>' + r.items.length + ' part' + (r.items.length === 1 ? '' : 's') + '</span></span></div>' +
+      RI.PACKAGES.map(function(p){
+        var t = T[p.key], on = p.key === st.pk;
+        return '<button type="button" class="g3-goal' + (on ? ' sel' : '') + '" data-goal="' + p.key + '" aria-pressed="' + on + '">' +
+          '<span class="g3-gn">' + p.name + (on ? '<span class="g3-badge">' + RI.icon('check', 'i-sm') + 'Selected</span>' : '') + '</span>' +
+          '<span class="g3-gl">' + p.goal + '</span>' +
+          '<span class="g3-tot range-txt">' + (t.high ? RI.range(t.low, t.high) : 'No cost') + '</span>' +
+          '<span class="g3-bar" aria-hidden="true"><i style="left:' + (t.low / max * 100).toFixed(1) + '%;width:' + Math.max(2, (t.high - t.low) / max * 100).toFixed(1) + '%"></i></span>' +
+          '<span class="g3-foot">' + (held ? '<span class="state state-partial">Partial</span>' : '') + (on ? '' : '<span class="g3-use">Use this goal</span>') + '</span></button>';
+      }).join('');
+    var rows = r.items.map(function(it){
+      return '<div class="g3-part">' + RI.esc(it.name.split(',')[0]) + '</div>' + RI.PACKAGES.map(function(p){ return g3Cell(it, p.key); }).join('');
+    }).join('');
+    el.innerHTML = '<div class="g3" role="table" aria-label="' + RI.esc(r.name) + ' under each goal">' + head + rows + '</div>';
+  }
+  doc.getElementById('three').addEventListener('click', function(e){ var g = e.target.closest('[data-goal]'); if(g && g.getAttribute('data-goal') !== st.pk) setPk(g.getAttribute('data-goal')); });
 
   /* Trades summary */
   function renderTrades(){
@@ -106,13 +114,14 @@
   doc.getElementById('unknowns').innerHTML = unk.map(function(x){ return '<div class="unk-row"><div><strong>' + x[0].name + ', ' + x[1].name.toLowerCase() + '</strong><div class="fix">' + x[1].fix + ' would settle it.</div></div><span class="state ' + (x[1].state === 'measure' ? 'state-measure' : 'state-unverified') + '">' + heldLabel(x[1]) + '</span></div>'; }).join('');
   doc.getElementById('mech').innerHTML = H.mechanicals.map(RI.mechCard).join('');
 
+
   /* Package switch */
   var seg = doc.getElementById('pk-seg');
   function setPk(k){
     st.pk = k; save();
     seg.querySelectorAll('[data-pk]').forEach(function(x){ x.setAttribute('aria-selected', x.getAttribute('data-pk') === k); });
-    RI.syncSeg(seg); renderRooms(); roomsEl.querySelectorAll('.rl').forEach(function(x){ x.classList.add('drawn'); });
-    renderTotals(); renderCompare(); renderTrades();
+    RI.syncSeg(seg); renderRooms();
+    renderTotals(); renderTrades(); renderThree();
   }
   seg.addEventListener('click', function(e){ var b = e.target.closest('[data-pk]'); if(b) setPk(b.getAttribute('data-pk')); });
   seg.addEventListener('keydown', function(e){
@@ -121,12 +130,6 @@
     setPk(n); seg.querySelector('[data-pk="' + n + '"]').focus();
   });
 
-  doc.getElementById('expand').addEventListener('click', function(){
-    var all = H.rooms.every(function(r){ return st.open[r.key]; });
-    H.rooms.forEach(function(r){ st.open[r.key] = !all; });
-    roomsEl.querySelectorAll('.room').forEach(function(el){ el.classList.toggle('open', !all); el.querySelector('.room-head').setAttribute('aria-expanded', !all); });
-    this.textContent = all ? 'Open all rooms' : 'Close all rooms';
-  });
   doc.getElementById('reset').addEventListener('click', function(){ st.off = {}; save(); setPk(st.pk); RI.toast('All items are back on.'); });
   doc.getElementById('share').addEventListener('click', function(){ RI.toast('In a paid presentation this copies a private, read-only link.', 'share'); });
   doc.getElementById('pdf').addEventListener('click', function(){ RI.toast('In a paid presentation this saves a PDF of the selected goal.', 'file'); });

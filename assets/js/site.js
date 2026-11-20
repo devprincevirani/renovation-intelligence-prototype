@@ -22,7 +22,7 @@
     var ev = RI.store.get('events', []); ev.push({e:name, at:Date.now(), page:location.pathname.replace(/.*prototype/, ''), p:props || null});
     if(ev.length > 500) ev = ev.slice(-500); RI.store.set('events', ev);
   };
-  RI.FUNNEL = [['page_view','Page views'],['waitlist_joined','Waitlist joined'],['signup_completed','Sign ups'],['intake_started','Intakes started'],['intake_submitted','Intakes submitted'],['price_viewed','Prices viewed'],['checkout_started','Checkouts started'],['payment_completed','Payments'],['presentation_opened','Presentations opened'],['share_created','Share links made'],['share_viewed','Share links viewed'],['pdf_downloaded','PDFs downloaded'],['feedback_sent','Feedback sent']];
+  RI.FUNNEL = [['page_view','Page views'],['waitlist_joined','Waitlist joined'],['signup_completed','Sign ups'],['intake_started','Intakes started'],['intake_submitted','Intakes submitted'],['price_viewed','Prices viewed'],['sample_opened_from_price','Sample opened from price'],['locked_room_tapped','Locked rooms tapped'],['checkout_started','Checkouts started'],['payment_completed','Payments'],['presentation_opened','Presentations opened'],['share_created','Share links made'],['share_viewed','Share links viewed'],['pdf_downloaded','PDFs downloaded'],['feedback_sent','Feedback sent']];
   RI.session = function(){ return RI.store.get('session', null); };
 
   /* ---------- Formatting ---------- */
@@ -39,9 +39,9 @@
   /* House systems guidance card (guide p49): what to look for, typical lifespan, a typical range from Sam
      shown as guidance only and never added to any total, and the inspect note */
   RI.mechCard = function(m){
-    return '<div class="mech-card"><h4>' + m.name + '<span class="state state-guidance">Guidance</span></h4><span class="src">' + m.src + ' · ' + RI.ev(m.ev) + '</span><p>' + m.text + '</p>' +
+    return '<div class="mech-card"><h4>' + m.name + '<span class="state state-guidance">Guidance</span></h4><span class="src">' + m.src + '</span><p>' + m.text + '</p>' +
       '<dl class="mech-kv">' + (m.life ? '<div><dt>Typical lifespan</dt><dd>' + m.life + '</dd></div>' : '') + (m.range ? '<div><dt>Typical range, for planning</dt><dd>' + RI.money(m.range[0]) + ' to ' + RI.money(m.range[1]) + '</dd></div>' : '') + '</dl>' +
-      '<span class="src">Guidance only. Never scored, never added to any total. Have it inspected by a professional.</span></div>';
+      '<span class="src">Guidance only. Never added to any total. Have it inspected by a professional.</span></div>';
   };
 
   /* ---------- Icons: one small hand-drawn set, regular weight ---------- */
@@ -74,6 +74,18 @@
     refresh:'<path d="M19.5 8A8 8 0 005 9M4.5 16a8 8 0 0014.5-1"/><path d="M19.5 3.5V8H15M4.5 20.5V16H9"/>',
     tool:'<path d="M14.5 6.5a4 4 0 015 5l-9 9-3-3 9-9"/><path d="M14.5 6.5L17 9"/>',
     minus:'<path d="M5 12h14"/>',
+    image:'<rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><circle cx="9" cy="10" r="1.8"/><path d="M3.5 17l5-5 4 4 2.5-2.5 5.5 5.5"/>',
+    upload:'<path d="M7.5 18H7a4 4 0 01-.6-8A5.5 5.5 0 0117 8.5a4.5 4.5 0 01.5 9.5h-1"/><path d="M12 12.5v8M9 15.5l3-3 3 3"/>',
+    pencil:'<path d="M4.5 19.5h4l10-10-4-4-10 10z"/><path d="M13 7l4 4"/>',
+    trash:'<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/><path d="M10 11v5.5M14 11v5.5"/>',
+    plus:'<path d="M12 5v14M5 12h14"/>',
+    kitchen:'<rect x="4" y="3.5" width="16" height="17" rx="1.5"/><path d="M4 9h16M7.5 6.3h.01M10.5 6.3h.01"/><rect x="7" y="12" width="10" height="5.5" rx="1"/>',
+    sofa:'<path d="M5.5 11V8.5A2.5 2.5 0 018 6h8a2.5 2.5 0 012.5 2.5V11"/><path d="M3.5 13a1.5 1.5 0 013 0v1.5h11V13a1.5 1.5 0 013 0v5h-17z"/><path d="M5.5 18v1.5M18.5 18v1.5"/>',
+    bed:'<path d="M3.5 19V6M3.5 15h17v4"/><path d="M10 15v-4h7a3.5 3.5 0 013.5 3.5v.5"/><circle cx="6.8" cy="11.5" r="1.7"/>',
+    bath:'<path d="M3.5 12h17v2.5A4.5 4.5 0 0116 19H8a4.5 4.5 0 01-4.5-4.5z"/><path d="M6 12V6.5a2 2 0 014 0"/><path d="M7.5 19l-1 1.5M16.5 19l1 1.5"/>',
+    stairs:'<path d="M3.5 19.5h4.5v-4h4v-4h4v-4h4.5"/>',
+    door:'<path d="M6 20.5V4.5a1 1 0 011-1h10a1 1 0 011 1v16M4 20.5h16"/><path d="M14.5 12.5v.5"/>',
+    grid:'<rect x="4" y="4" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1"/>',
     search:'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
     chev:'<path d="M6 9.5l6 6 6-6"/>',
     dot:'<circle cx="12" cy="12" r="3"/>',
@@ -170,10 +182,10 @@
     host.outerHTML = '<footer class="site-foot"><div class="wrap"><div class="foot-grid">' +
       '<div class="foot-brand">' + brand() + '<p>An estimate for one specific house, with a Low and a High under three goals, and every unknown named.</p><div><a class="btn btn-ivory btn-sm" data-cta></a></div></div>' +
       '<div><h4>Product</h4><ul><li><a href="' + RI.url('how-it-works/') + '">How it works</a></li><li><a href="' + RI.url('sample/') + '">Sample estimate</a></li><li><a href="' + RI.url('renovation-cost/') + '">Renovation cost</a></li><li><a href="' + RI.url('waitlist/') + '">Waitlist</a></li><li><a href="' + RI.url('login/') + '">Log in</a></li></ul></div>' +
-      '<div><h4>Areas</h4><ul>' + areas + '</ul></div>' +
+      '<div><h4>Renovation cost by area</h4><p class="xsmall" style="margin:0 0 6px;opacity:.75">Michigan</p><ul>' + areas + '</ul></div>' +
       '<div><h4>Legal</h4><ul><li><a href="' + RI.url('terms/') + '">Terms of use</a></li><li><a href="' + RI.url('privacy/') + '">Privacy</a></li><li><a href="' + RI.url('disclaimer/') + '">Estimate disclaimer</a></li><li><a href="' + RI.url('contact/') + '">Contact</a></li></ul></div>' +
-      '</div><div class="foot-bottom"><div class="disc"><p>Every figure is an estimate for planning, not a contractor\'s bid or a fixed price. Items we could not confirm are labeled and left out of the total. The roof, heating and cooling, water heater and electrical panel get guidance only, never a price.</p><p>Design prototype. Sample data. "Renovation Intelligence" is a working name.</p></div>' +
-      '<div class="foot-state"><span class="xsmall">Demo: site state</span>' + modeSeg(true) + '</div></div></div></footer>';
+      '</div><div class="foot-bottom"><div class="disc"><p>Every figure is an estimate for planning, not a contractor\'s bid or a fixed price. Items we could not confirm are labeled and left out of the total. The roof, heating and cooling, water heater and electrical panel get guidance only, never a price.</p><p>Sample houses and figures shown on this site are sample data.</p></div>' +
+      (RI.devTools ? '<div class="foot-state"><span class="xsmall">Team: site state</span>' + modeSeg(true) + '</div>' : '') + '</div></div></footer>';
   }
 
   /* ---------- Segmented control with sliding thumb ---------- */
@@ -203,17 +215,18 @@
   /* ---------- Developer shortcuts switch ----------
      Demo access, the Pages menu and the floating Demo button are developer shortcuts. They are off by
      default, so reviewers use the prototype like the product. Turn them on in this browser by opening
-     any page with ?dev=1 (for example /?dev=1 or /app/?dev=1#/houses). Turn them off again with ?dev=0.
+     any page with ?team=1 (or ?dev=1) (for example /?dev=1 or /app/?dev=1#/houses). Turn them off again with ?dev=0.
      The choice is remembered in this browser only. */
   RI.devTools = (function(){
     var on = false;
     try {
-      var q = /[?&]dev=([01])\b/.exec(location.search);
+      var q = /[?&](?:dev|team)=([01])\b/.exec(location.search);
       if(q) localStorage.setItem('ri-dev-tools', q[1]);
       on = localStorage.getItem('ri-dev-tools') === '1';
     } catch(err){}
     return on;
   })();
+  if(RI.devTools) document.documentElement.classList.add('team');
 
   /* ---------- Prototype ribbon and demo panel ---------- */
   /* The prototype ribbon shows only in developer mode, because it holds the shortcuts. */
@@ -242,19 +255,19 @@
      open a demo house in that state (the app resolves them). */
   var PM = [
     {key:'public', name:'Public site', icon:'house', sections:[
-      ['Main pages', [['Home', '', 'The first screen a visitor sees', 'house'], ['How it works', 'how-it-works/', 'Eight steps, from photos to price', 'list'], ['Sample estimate', 'sample/', 'A full presentation for one house', 'file'], ['Renovation cost', 'renovation-cost/', 'Costs by area and house type', 'sliders']]],
+      ['Main pages', [['Home', '', 'The first screen a visitor sees', 'house'], ['How it works', 'how-it-works/', 'Three steps, from photos to price', 'list'], ['Sample estimate', 'sample/', 'A full presentation for one house', 'file'], ['Renovation cost', 'renovation-cost/', 'Costs by area and house type', 'sliders']]],
       ['Area and house type', [['Area page: Livonia', 'renovation-cost/livonia/', 'Typical costs for one area', 'pin'], ['House type: brick ranch', 'renovation-cost/house-types/brick-ranch/', 'Typical costs for one house type', 'house']]],
       ['Waitlist and contact', [['Waitlist', 'waitlist/', 'Email and account type, before launch', 'mail'], ['Contact', 'contact/', 'A message form', 'mail']]],
       ['Legal and other', [['Terms', 'terms/', 'Terms of use', 'file'], ['Privacy', 'privacy/', 'How data is handled', 'shield'], ['Disclaimer', 'disclaimer/', 'An estimate, not a bid', 'info'], ['Page not found', '404.html', 'The 404 screen', 'warn']]]
     ]},
     {key:'accounts', name:'Accounts', icon:'user', sections:[
-      ['Sign up', [['Sign up', 'signup/', 'Before launch: closed, points to the waitlist', 'user'], ['Sign up from Sam\'s trial invite', 'signup/?invite=demo-trial', 'The invited path, with a 15-day trial', 'mail'], ['Check your email', 'verify-email/?email=homeowner@demo.ri', 'Confirm the address after sign up', 'mail'], ['Email link expired', 'verify-email/?email=homeowner@demo.ri&state=expired', 'The link is older than 24 hours', 'clock']]],
+      ['Sign up', [['Sign up', 'signup/', 'Before launch: closed, points to the waitlist', 'user'], ['Sign up from Sam\'s trial invite', 'signup/?invite=demo-trial', 'The invited path, with 3 invite credits', 'mail'], ['Check your email', 'verify-email/?email=homeowner@demo.ri', 'Confirm the address after sign up', 'mail'], ['Email link expired', 'verify-email/?email=homeowner@demo.ri&state=expired', 'The link is older than 24 hours', 'clock']]],
       ['Log in and passwords', [['Log in', 'login/', 'Email and password, plus the demo roles', 'lock'], ['Forgot password', 'forgot-password/', 'Ask for a reset link', 'refresh'], ['Set a new password', 'reset-password/?email=homeowner@demo.ri', 'Opened from the reset link', 'lock']]],
       ['Staff', [['Staff invite', 'invite/?t=demo-staff', 'Accept Sam\'s invite and set a password', 'shield'], ['Staff invite expired', 'invite/?t=old', 'The invite link no longer works', 'clock']]]
     ]},
     {key:'homeowner', name:'Homeowner app', icon:'house', role:'homeowner', sections:[
       ['Houses', [['My houses', 'app/#/houses', 'Cards with status and the next step', 'house'], ['Add a house', 'app/#/houses/new', 'Starts a new intake', 'house']]],
-      ['Intake', [['The house', 'app/#/go/draft/intake~house', 'Address, size, rooms', 'house'], ['Photos', 'app/#/go/draft/intake~photos', 'Photos by room, plans', 'camera'], ['Room sizes', 'app/#/go/draft/intake~measurements', 'Optional lengths and widths', 'ruler'], ['Review', 'app/#/go/draft/intake~review', 'Gaps, estimate tick, submit', 'check']], 'flow'],
+      ['Intake', [['Tell us about the home', 'app/#/go/draft/intake~house', 'Address, size, rooms', 'house'], ['Rooms and photos', 'app/#/go/draft/intake~rooms', 'Tray, room cards, sizes, submit', 'camera']], 'flow'],
       ['After submit', [['House being read', 'app/#/go/working/-', 'Progress while the photos are read', 'clock'], ['Price by package', 'app/#/go/ready/-', 'Free: Low and High for three goals', 'sliders'], ['Checkout', 'app/#/go/ready/checkout', 'One payment for the presentation', 'lock'], ['Presentation', 'app/#/go/open/presentation', 'Rooms, products, share and PDF', 'file']]],
       ['Other', [['Account', 'app/#/account', 'Profile, demo data, the free limit', 'user'], ['Error screen', 'app/#/demo-error', 'When a screen fails to load', 'warn']]]
     ]},
@@ -384,7 +397,7 @@
   RI.loginAs = function(role){
     var r = ROLES.filter(function(x){ return x.role === role; })[0]; if(!r) return;
     RI.store.set('session', {role:r.role, name:r.name, email:r.email, type:r.type, demo:true, at:Date.now()});
-    RI.toast('Logged in as the demo ' + r.type.toLowerCase() + '.');
+    RI.toast('Logged in with the sample ' + r.type.toLowerCase() + ' account.');
     var nx = role === 'admin' ? '' : RI.store.get('next', ''); RI.store.del('next');
     setTimeout(function(){
       var target = new URL(RI.url(role === 'admin' ? 'admin/' : 'app/') + (nx || ''), location.href);
@@ -400,15 +413,24 @@
     var d = doc.getElementById('demo-dlg');
     if(!d){
       d = doc.createElement('dialog'); d.className = 'dlg'; d.id = 'demo-dlg'; d.setAttribute('aria-labelledby', 'demo-dlg-t');
-      d.innerHTML = '<div class="dlg-head"><h2 id="demo-dlg-t">Demo access</h2><button class="icon-btn" type="button" data-dlg-close aria-label="Close">' + RI.icon('x') + '</button></div>' +
+      d.innerHTML = '<div class="dlg-head"><h2 id="demo-dlg-t">Team panel</h2><button class="icon-btn" type="button" data-dlg-close aria-label="Close">' + RI.icon('x') + '</button></div>' +
         '<div class="dlg-body"><div class="dlg-sec"><h3>Log in as</h3><div class="role-list">' + RI.roleButtons() + '</div><p class="xsmall muted">No password needed. The dashboards are built in the next phases; for now each opens a preview page.</p></div>' +
         '<div class="dlg-sec"><h3>Site state</h3>' + modeSeg(false) + '<p class="xsmall muted">Before launch, the main button is Join the waitlist and only the contacts Sam invites can sign up. <a href="' + RI.url('signup/?invite=demo-trial') + '">Open Sam\'s trial invite</a></p></div>' +
         '<div class="dlg-sec"><h3>Staff</h3><p class="xsmall muted">Sam invites staff from the console. <a href="' + RI.url('invite/?t=demo-staff') + '">Open a demo staff invite</a></p></div>' +
+        '<div class="dlg-sec"><h3>Offers and limits</h3><p class="xsmall muted">One place for every setting (RI.OFFERS in data.js). Sam decides the numbers and dates.</p>' +
+          '<label class="switch"><input type="checkbox" data-offer="founding"' + (RI.OFFERS.founding.on ? ' checked' : '') + '><span class="track"></span><span>Founding price $' + RI.OFFERS.founding.price + ' for waitlist members, until ' + RI.OFFERS.founding.ends + '</span></label>' +
+          '<label class="switch"><input type="checkbox" data-offer="second"' + (RI.OFFERS.secondHouse.on ? ' checked' : '') + '><span class="track"></span><span>Second house $' + RI.OFFERS.secondHouse.price + '</span></label>' +
+          '<p class="xsmall muted">Price $' + RI.OFFERS.price + (RI.OFFERS.priceIsSample ? ' (sample)' : '') + ' · ' + RI.OFFERS.inviteCredits + ' invite credits · ' + RI.OFFERS.freeRuns + ' free runs, +' + RI.OFFERS.runsPerPayment + ' per payment · price ready email ' + (RI.OFFERS.priceReadyEmail ? 'on' : 'off') + ' · reminder after ' + RI.OFFERS.reminderEmail.days + ' days ' + (RI.OFFERS.reminderEmail.on ? 'on' : 'off') + '</p></div>' +
         '<div class="dlg-sec"><h3>Funnel events</h3><div class="funnel-mini" id="funnel-mini"></div><p class="xsmall muted">Counted in this browser. The console\'s funnel view counts them on the server.</p></div>' +
         '<div class="dlg-sec"><h3>Demo data</h3><div class="cta-row"><button type="button" class="btn btn-secondary btn-sm" data-reset-demo>' + RI.icon('refresh','i-sm') + 'Reset demo data</button>' +
         (RI.session() ? '<button type="button" class="btn btn-secondary btn-sm" data-logout>Log out</button>' : '') + '</div><p class="xsmall muted">Accounts, waitlist entries and choices are kept in this browser only.</p></div></div>';
       doc.body.appendChild(d);
       d.addEventListener('click', function(e){ if(e.target === d || e.target.closest('[data-dlg-close]')) d.close(); });
+      d.addEventListener('change', function(e){ var k = e.target.getAttribute('data-offer'); if(!k) return;
+        var cur = {}; try { cur = JSON.parse(localStorage.getItem('ri-offers') || '{}') || {}; } catch(err){}
+        cur[k] = e.target.checked; try { localStorage.setItem('ri-offers', JSON.stringify(cur)); } catch(err){}
+        if(k === 'founding') RI.OFFERS.founding.on = e.target.checked; else RI.OFFERS.secondHouse.on = e.target.checked;
+        RI.toast('Offer ' + (e.target.checked ? 'on' : 'off') + ' in this browser. Reload a price page to see it.'); });
     }
     var counts = {}; RI.store.get('events', []).forEach(function(e){ counts[e.e] = (counts[e.e] || 0) + 1; });
     d.querySelector('#funnel-mini').innerHTML = RI.FUNNEL.map(function(f){ return '<div><span>' + f[1] + '</span><b>' + (counts[f[0]] || 0) + '</b></div>'; }).join('');

@@ -72,14 +72,14 @@
         return '<a class="map-pin" href="' + R + 'renovation-cost/' + k + '/" data-area="' + k + '" aria-label="' + a.name + ', ' + a.county + '"><circle cx="' + p[0] + '" cy="' + (side === 't' ? p[1] - 6 : p[1]) + '" r="18" class="mp-hit"/><circle cx="' + p[0] + '" cy="' + p[1] + '" r="8" class="mp-ring"/><circle cx="' + p[0] + '" cy="' + p[1] + '" r="4" class="mp-dot"/>' +
           '<text x="' + tx + '" y="' + ty + '" text-anchor="' + anchor + '">' + a.name + '</text></a>';
       }).join('');
-      host.innerHTML = '<svg class="map-svg" viewBox="0 0 400 290" aria-label="Schematic map of the five areas around Detroit">' +
+      host.innerHTML = '<svg class="map-svg" viewBox="0 0 400 290" aria-label="Schematic map of the five areas">' +
         '<path class="map-water" d="M338 40 C372 52 392 92 396 132 C398 170 384 196 360 206 C340 214 326 204 322 186 C316 160 330 140 326 116 C322 90 318 60 338 40 Z"/>' +
         '<path class="map-river" d="M322 186 C300 214 270 238 238 252 C214 262 196 272 176 290"/>' +
         '<line class="map-road" x1="20" y1="152" x2="318" y2="152"/><text class="map-road-t" x="24" y="146">8 Mile Rd</text>' +
         '<line class="map-county" x1="190" y1="10" x2="190" y2="152"/>' +
         '<text class="map-county-t" x="60" y="40">Oakland County</text><text class="map-county-t" x="232" y="28">Macomb County</text><text class="map-county-t" x="40" y="276">Wayne County</text>' +
         '<text class="map-water-t" x="356" y="126" text-anchor="middle">Lake</text><text class="map-water-t" x="356" y="138" text-anchor="middle">St. Clair</text>' +
-        '<g class="map-city"><rect x="208" y="196" width="44" height="26" rx="2"/><text x="230" y="213" text-anchor="middle">Detroit</text></g>' +
+        '<g class="map-city"><rect x="208" y="196" width="44" height="26" rx="2"/><text x="230" y="213" text-anchor="middle">City centre</text></g>' +
         pins + '<g class="map-compass" transform="translate(382 268)"><path d="M0 -10 L4 2 L0 -1 L-4 2 Z"/><text y="12" text-anchor="middle">N</text></g></svg>' +
         '<p class="map-note">Schematic, not to scale.</p>';
       host.addEventListener('mouseover', function(e){ var a = e.target.closest('.map-pin'); if(a) onHover(a.getAttribute('data-area')); });
@@ -88,44 +88,41 @@
     mark:function(host, k){ host.querySelectorAll('.map-pin').forEach(function(a){ a.classList.toggle('on', a.getAttribute('data-area') === k); }); }
   };
 
-  /* ---------- Rate explorer: a work type, a size you choose, a Low and a High ---------- */
+  /* ---------- What your estimate prices: pick a kind of work, see what sets its price for your house.
+     No area prices here: a Low and a High is for one house, from its photos (free with the price by package). ---------- */
   RI.RateExplorer = {
     render:function(host, opts){
       opts = opts || {};
       var idx = opts.only || RI.RATES.map(function(_, i){ return i; });
       var cur = idx[0];
-      host.innerHTML = '<div class="rx">' +
+      host.innerHTML = '<div class="rx rx-np">' +
         '<div class="rx-pick"><p class="label">Work</p><div class="rx-list" role="radiogroup" aria-label="Work type">' + idx.map(function(i, n){
           var r = RI.RATES[i];
-          return '<button type="button" role="radio" class="rx-opt" data-i="' + i + '" aria-checked="' + (n === 0) + '"' + (n ? ' tabindex="-1"' : '') + '><b>' + r[0] + '</b><span>' + RI.moneyRate(r[3]) + ' to ' + RI.moneyRate(r[4]) + (r[2] === 'each' ? ' each' : ' per ' + r[2]) + '</span></button>';
+          return '<button type="button" role="radio" class="rx-opt" data-i="' + i + '" aria-checked="' + (n === 0) + '"' + (n ? ' tabindex="-1"' : '') + '><b>' + r[0] + '</b><span>' + RI.esc(r[1]) + '</span></button>';
         }).join('') + '</div></div>' +
-        '<div class="rx-out"><p class="rx-what"></p>' +
-          '<div class="field rx-size"><label for="rx-q-' + (opts.id || 'a') + '"><span class="rx-q-label">Size</span> <output class="rx-q-val"></output></label><input type="range" class="rx-range" id="rx-q-' + (opts.id || 'a') + '"></div>' +
-          '<div class="rx-price"><span class="big-range"></span></div>' +
-          '<div class="rx-line"><div class="rl thick" data-low="0" data-high="0"></div><div class="axis"></div></div>' +
-          '<p class="small muted rx-note">' + (opts.where ? 'Typical installed cost in ' + opts.where + '. ' : 'Typical installed cost. ') + 'Sample rates, dated November 2026. In the product these come from Sam\'s published rate library.</p>' +
-          '<p class="rx-ev">' + RI.ev('reported') + '<span class="small muted">Your size, so only the rate varies. Your own estimate counts the real quantities from your photos.</span></p>' +
-        '</div></div>';
-      var range = host.querySelector('.rx-range'), out = host.querySelector('.rx-q-val'), rl = host.querySelector('.rl'), axis = host.querySelector('.axis'), lineWrap = host.querySelector('.rx-line');
+        '<div class="rx-out" aria-live="polite"></div></div>';
+      var outEl = host.querySelector('.rx-out');
       function draw(bump){
-        var r = RI.RATES[cur], q = +range.value, lo = Math.round(q * r[3] / 10) * 10, hi = Math.round(q * r[4] / 10) * 10;
-        if(hi < 100){ lo = Math.round(q * r[3]); hi = Math.round(q * r[4]); }
-        out.textContent = q.toLocaleString('en-US') + ' ' + (r[2] === 'each' ? (q === 1 ? 'item' : 'items') : r[2]);
-        range.setAttribute('aria-valuetext', out.textContent);
-        var max = r[7] * r[4], step = Math.pow(10, Math.floor(Math.log10(max))); max = Math.ceil(max / step) * step;
-        lineWrap.setAttribute('data-scale', '0,' + max);
-        rl.setAttribute('data-low', lo); rl.setAttribute('data-high', hi); RI.drawRange(rl); rl.classList.add('drawn');
-        axis.setAttribute('data-ticks', [0, max / 2, max].join(',')); RI.initRanges(lineWrap);
-        var p = host.querySelector('.big-range'); p.innerHTML = RI.range(lo, hi);
-        if(bump){ p.classList.remove('bump'); void p.offsetWidth; p.classList.add('bump'); }
-        range.style.setProperty('--fill', ((q - r[6]) / (r[7] - r[6]) * 100) + '%');
+        var r = RI.RATES[cur], each = r[2] === 'each';
+        var F = [
+          ['ruler', each ? 'How many' : 'How much', each ? 'Counted in your photos' : 'The ' + r[2] + ' of your rooms, from your photos and sizes'],
+          ['camera', 'What it looks like now', 'The condition we see in your photos'],
+          ['sliders', 'The goal you pick', 'Essential, Standard or Premium'],
+          ['pin', 'Where the house is', 'Local prices for your ZIP code']
+        ];
+        outEl.innerHTML = '<p class="rx-what"><b>' + r[0] + '</b> <span class="muted">' + RI.esc(r[1]) + '</span></p>' +
+          '<p class="rx-np-h">What sets the price for your house</p>' +
+          '<ul class="rx-np-f">' + F.map(function(f){ return '<li><span class="rx-np-ic">' + RI.icon(f[0], 'i-sm') + '</span><span><b>' + f[1] + '</b><span>' + f[2] + '</span></span></li>'; }).join('') + '</ul>' +
+          '<div class="rx-lock"><span class="rx-lock-ic">' + RI.icon('lock') + '</span>' +
+            '<div class="rx-lock-t"><b>Your Low and High for ' + (/^[A-Z]{2,}/.test(r[0]) ? r[0] : r[0].charAt(0).toLowerCase() + r[0].slice(1)) + '</b><span>Priced for your house, not an area average. The price by package is free.</span>' +
+              '<span class="rx-lock-bar" aria-hidden="true"><i></i></span></div></div>' +
+          '<div class="rx-np-cta"><a class="btn btn-primary" data-cta data-arrow href="' + RI.url('waitlist/') + '">Join the waitlist</a><a class="textlink" href="' + RI.url('sample/') + '">See it in a sample estimate ' + RI.icon('arrow', 'i-sm') + '</a></div>';
+        RI.applyCtas && RI.applyCtas();
+        if(bump){ outEl.classList.remove('rx-in'); void outEl.offsetWidth; outEl.classList.add('rx-in'); }
       }
       function pick(i, focus){
-        cur = i; var r = RI.RATES[i];
+        cur = i;
         host.querySelectorAll('.rx-opt').forEach(function(b){ var on = +b.getAttribute('data-i') === i; b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1; if(on && focus) b.focus(); });
-        range.min = r[6]; range.max = r[7]; range.step = r[8]; range.value = r[5];
-        host.querySelector('.rx-q-label').textContent = r[2] === 'each' ? 'How many' : 'Size';
-        host.querySelector('.rx-what').innerHTML = '<b>' + r[0] + '</b> <span class="muted">' + r[1] + '</span>';
         draw(true);
       }
       host.querySelector('.rx-list').addEventListener('click', function(e){ var b = e.target.closest('.rx-opt'); if(b) pick(+b.getAttribute('data-i')); });
@@ -135,28 +132,25 @@
         if(e.key === 'ArrowUp' || e.key === 'ArrowLeft') m = Math.max(0, n - 1);
         if(m != null){ e.preventDefault(); pick(+bs[m].getAttribute('data-i'), true); }
       });
-      range.addEventListener('input', function(){ draw(false); });
-      pick(cur);
+      draw(false);
     }
   };
 
-  /* ---------- Typical range for a house type against one house's own estimate ---------- */
+  /* ---------- Typical range against one house's own estimate, as shapes only: no area prices ---------- */
   RI.TypicalVsYours = {
     render:function(host, opts){
       opts = opts || {};
-      var S = RI.totals('S', {}), sqft = 1686;
       var tk = opts.type || 'brick-ranch', tt = RI.TYPES[tk], band = tt.size.replace(/,/g, '').match(/\d+/g).map(Number);
-      /* Sample: the sample house's Standard per sq ft, over the type's typical size band, widened for inferred sizes */
-      var tl = Math.round(S.low / sqft * band[0] * .85 / 100) * 100, th = Math.round(S.high / sqft * band[1] * 1.15 / 100) * 100;
       var where = opts.where ? ' in ' + opts.where : '';
-      host.innerHTML = '<div class="tvy" data-scale="0,' + (Math.ceil(th / 20000) * 20000) + '">' +
-        '<div class="tvy-row"><div class="tvy-h"><b>Typical' + where + '</b><span>Standard goal, a ' + tt.name.toLowerCase() + ' of ' + band[0].toLocaleString('en-US') + ' to ' + band[1].toLocaleString('en-US') + ' sq ft. Sizes and condition unknown.</span></div>' +
-          '<div class="rl tvy-wide partial" data-low="' + tl + '" data-high="' + th + '"></div><span class="range-txt">' + RI.range(tl, th) + '</span></div>' +
-        '<div class="tvy-row is-yours"><div class="tvy-h"><b>One house, from its photos</b><span>The sample brick ranch, 1,686 sq ft. 2 lines unverified, 1 needs measurement, all named.</span></div>' +
-          '<div class="rl thick partial" data-low="' + S.low + '" data-high="' + S.high + '"></div><span class="range-txt">' + RI.range(S.low, S.high) + '</span></div>' +
-        '<div class="tvy-axis"><span></span><div class="axis" data-ticks="0,' + (Math.ceil(th / 20000) * 10000) + ',' + (Math.ceil(th / 20000) * 20000) + '"></div><span></span></div>' +
-        '<div class="tvy-foot"><p>An area range helps you plan. <b>Your house gets its own</b>, with every line it could not confirm named, never guessed.</p><a class="btn btn-primary" data-cta href="' + RI.url('waitlist/') + '">Join the waitlist</a><a class="textlink" href="' + RI.url('sample/') + '">Open the sample house</a></div>' +
-        '<p class="xsmall muted">Sample figures, worked out from the sample house and the sample rates.</p></div>';
+      /* Relative widths only (0 to 100), from the sample house: the typical span is about twice as wide */
+      host.innerHTML = '<div class="tvy tvy-np" data-scale="0,100">' +
+        '<div class="tvy-row"><div class="tvy-h"><b>Typical' + where + '</b><span>A ' + tt.name.toLowerCase() + ' of ' + band[0].toLocaleString('en-US') + ' to ' + band[1].toLocaleString('en-US') + ' sq ft. Size and condition unknown.</span></div>' +
+          '<div class="rl tvy-wide partial" data-low="14" data-high="88"></div><span class="tvy-word">Wide</span></div>' +
+        '<div class="tvy-row is-yours"><div class="tvy-h"><b>One house, from its photos</b><span>Its real rooms, parts and sizes. Every unknown named.</span></div>' +
+          '<div class="rl thick partial" data-low="38" data-high="66"></div><span class="tvy-word is-yours">Narrow</span></div>' +
+        '<div class="tvy-axis"><span></span><div class="tvy-scale" aria-hidden="true"><span>Lower</span><span>Higher</span></div><span></span></div>' +
+        '<div class="tvy-foot"><p>An area average cannot tell you what your house needs. <b>Your house gets its own Low and High</b>, free, with every line it could not confirm named.</p><a class="btn btn-primary" data-cta href="' + RI.url('waitlist/') + '">Join the waitlist</a><a class="textlink" href="' + RI.url('sample/') + '">Open the sample house</a></div>' +
+        '</div>';
       RI.initRanges(host); RI.applyCtas();
     }
   };

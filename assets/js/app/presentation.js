@@ -3,7 +3,7 @@
 (function(){
   var RI = window.RI, A = RI.App, doc = document;
   A.hasCheckout = true;
-  var PRICE = 49; /* sample price for the prototype; Sam sets the real one */
+  /* The price comes from RI.OFFERS through A.priceFor, the same value as on the price page */
 
   /* ---------- Checkout (simulated Stripe Checkout) ---------- */
   A.route('/houses/:id/checkout', function(view, p){
@@ -11,7 +11,7 @@
     var runPay = /[?&]run=1/.test(location.hash);  /* paying at the free-report limit runs the house (guide p58) */
     if(A.status(h) === 'open'){ A.go('#/houses/' + h.id + '/presentation'); return; }
     if(A.status(h) !== 'ready' && !(runPay && A.status(h) === 'draft')){ A.go('#/houses/' + h.id); return; }
-    var s = A.me(), cov = A.cover(h); RI.track('checkout_started', {house:h.id});
+    var s = A.me(), cov = A.cover(h), PRICE = A.priceFor(h).amount; RI.track('checkout_started', {house:h.id});
     var exit = doc.getElementById('focus-exit'); if(exit) exit.innerHTML = '<a class="exit-btn" href="#/houses/' + h.id + '" aria-label="Cancel and go back to the house"><span class="eb-l">Cancel</span>' + RI.icon('x','i-sm') + '</a>';
     view.innerHTML = '<div class="app-wrap co-wrap"><div class="co-demo">' + RI.icon('info','i-sm') + '<span><b>Demo checkout.</b> In the product this is Stripe\'s own secure page. No real payment is taken here.</span></div>' +
       '<div class="co">' +
@@ -66,7 +66,7 @@
     open[est.rooms[0].key] = true;
     view.innerHTML = '<div class="app-wrap pres">' +
       '<a class="back" href="#/houses/' + h.id + '">' + RI.icon('arrow','i-sm flip') + 'Price by package</a>' +
-      '<header class="pr-head">' + (A.cover(h) ? '<img class="pr-photo" src="' + A.cover(h) + '" alt="' + RI.esc(A.addr(h)) + '">' : '') + '<div class="pr-ht"><p class="label">Presentation' + (h.version > 1 ? ' · version ' + h.version : '') + '</p><h1>' + RI.esc(A.addr(h)) + '</h1><p class="muted small">' + RI.esc(A.place(h)) + ' · ' + RI.esc(h.title || '') + '</p><p class="xsmall muted">Evidence: ' + A.photoCount(h) + ' photos' + (Object.keys(h.sizes || {}).length ? ' and your room sizes' : '') + ', as of ' + A.date(h.run.start) + '. Prepared for ' + RI.esc(h.client || A.me().name) + '.</p></div>' +
+      '<header class="pr-head">' + (A.cover(h) ? '<img class="pr-photo" src="' + A.cover(h) + '" alt="' + RI.esc(A.addr(h)) + '">' : '') + '<div class="pr-ht"><p class="label">Presentation' + (h.version > 1 ? ' · version ' + h.version : '') + '</p><h1>' + RI.esc(A.addr(h)) + '</h1><p class="muted small">' + RI.esc(A.place(h)) + ' · ' + RI.esc(h.title || '') + '</p><p class="xsmall muted">Based on: ' + A.photoCount(h) + ' photos' + (Object.keys(h.sizes || {}).length ? ' and your room sizes' : '') + ', as of ' + A.date(h.run.start) + '. Prepared for ' + RI.esc(h.client || A.me().name) + '.</p></div>' +
         '<div class="pr-actions"><button type="button" class="btn btn-secondary btn-sm" id="share">' + RI.icon('share','i-sm') + 'Share</button><button type="button" class="btn btn-secondary btn-sm" id="pdf">' + RI.icon('file','i-sm') + 'PDF</button><button type="button" class="btn btn-secondary btn-sm" id="fb">Feedback</button></div></header>' +
       '<div class="pr-layout"><aside class="pr-side" id="pr-bar" aria-label="Package and total"><div class="pr-side-in"><div class="seg" role="tablist" aria-label="Package" id="pk"><span class="seg-thumb"></span>' + RI.PACKAGES.map(function(x){ return '<button type="button" role="tab" data-pk="' + x.key + '" aria-selected="' + (x.key === h.pk) + '">' + x.name + '</button>'; }).join('') + '</div>' +
         '<span class="small muted pr-goal" id="pr-goal"></span><div class="pr-total" aria-live="polite"><span class="lbl"><span id="pr-off"></span>' + (held.u + held.m ? '<span class="state state-partial">Partial</span>' : '') + '</span><span class="range-txt" id="pr-tot"></span><div data-scale="0,1"><div class="rl' + (held.u + held.m ? ' partial' : '') + '" id="pr-rl" data-low="0" data-high="0"></div></div></div><button type="button" class="linkbtn small pr-reset" id="pr-reset">Turn all items on</button></div></aside><div class="pr-main">' +
@@ -87,9 +87,9 @@
     }
     function heldTag(it){ return '<span class="state ' + (it.state === 'measure' ? 'state-measure' : 'state-unverified') + '">' + (it.state === 'measure' ? 'Needs measurement' : 'Unverified') + '</span>'; }
     function item(it){
-      if(RI.isHeld(it)) return '<div class="item hold"><div><span class="nm">' + RI.esc(it.name) + '</span><div class="meta"><span>' + RI.esc(it.qty) + '</span>' + RI.ev(it.ev) + '</div><div class="fix">' + RI.icon('info','i-sm') + ' ' + RI.esc(it.fix) + ' would settle it.</div></div>' + heldTag(it) + '<span class="amt muted small">Not in the total</span></div>';
+      if(RI.isHeld(it)) return '<div class="item hold"><div><span class="nm">' + RI.esc(it.name) + '</span><div class="fix">' + RI.icon('info','i-sm') + ' ' + RI.esc(it.fix) + ' would settle it.</div></div>' + heldTag(it) + '<span class="amt muted small">Not in the total</span></div>';
       var a = it.pk[h.pk], keep = a[1] == null, off = !!h.off[it.id];
-      return '<div class="item' + (off ? ' off' : '') + '" data-item="' + it.id + '"><div><span class="nm">' + RI.esc(it.name) + '</span><div class="act">' + RI.esc(a[0]) + '</div><div class="meta"><span>' + RI.esc(it.qty) + '</span>' + RI.ev(it.ev) + '<span>' + RI.esc(it.trade) + '</span>' + (a[3] ? '<span class="prod">' + (productImg(it) ? '<img class="prod-th" src="' + productImg(it) + '" alt="">' : RI.icon('dot','i-sm')) + RI.esc(a[3]) + '</span>' : '') + '</div></div>' +
+      return '<div class="item' + (off ? ' off' : '') + '" data-item="' + it.id + '"><div><span class="nm">' + RI.esc(it.name) + '</span><div class="act">' + RI.esc(a[0]) + '</div><details class="rc-det"><summary>Details</summary><span>' + RI.esc(it.qty) + ' · ' + RI.esc(it.trade) + '</span></details><div class="meta">' + (a[3] ? '<span class="prod">' + (productImg(it) ? '<img class="prod-th" src="' + productImg(it) + '" alt="">' : RI.icon('dot','i-sm')) + RI.esc(a[3]) + '</span>' : '') + '</div></div>' +
         (keep ? '<span></span><span class="amt muted small">Keep, no cost</span>' : '<label class="switch sw"><input type="checkbox" data-id="' + it.id + '"' + (off ? '' : ' checked') + '><span class="track"></span><span class="sr">Include ' + RI.esc(it.name) + '</span></label><span class="amt range-txt">' + RI.range(a[1], a[2]) + '</span>') + '</div>';
     }
     function roomHead(r){
@@ -97,20 +97,23 @@
       return '<button type="button" class="room-head" aria-expanded="' + !!open[r.key] + '"><span><span class="rh-title">' + r.name + '</span><span class="sub">' + r.sub + (hasHeld ? ' · partial' : '') + '</span></span><span data-scale="0,' + Math.max(10000, Math.ceil(RI.totals('P', {}, r.key).high / 5000) * 5000) + '"><span class="rl' + (hasHeld ? ' partial' : '') + '" data-low="' + t.low + '" data-high="' + t.high + '"></span></span><span class="range-txt">' + (t.high ? RI.range(t.low, t.high) : '<span class="muted">' + (hasHeld ? 'Not priced yet' : 'No cost') + '</span>') + '</span><span class="chev" aria-hidden="true"></span></button>';
     }
     var plan;
+    var selRoom = est.rooms[0].key;
+    function roomRange(r){ var t = RI.totals(h.pk, h.off, r.key), hh = r.items.some(RI.isHeld); return (t.high ? RI.range(t.low, t.high) : '<span class="muted">No cost</span>') + (hh ? ' <span class="state state-partial">Partial</span>' : ''); }
+    function roomPhoto(key){ var ps = []; Object.keys(h.photos || {}).forEach(function(k){ if(k === key || k.indexOf(key + '-') === 0) h.photos[k].forEach(function(p){ if(p.state === 'done') ps.push(p.src); }); }); return ps[0] || null; }
     function viewRooms(){
-      pv.innerHTML = '<div class="pr-rooms"><div class="pr-plan card" id="pr-plan"></div><div id="rooms">' + est.rooms.map(function(r){ return '<div class="room' + (open[r.key] ? ' open' : '') + '" data-room="' + r.key + '">' + roomHead(r) + '<div class="room-body"><div>' + roomPhotos(r.key) + r.items.map(item).join('') + '</div></div></div>'; }).join('') + '</div></div>';
-      plan = RI.Plan.mount(pv.querySelector('#pr-plan'), {onSelect:function(k){ open[k] = true; var el = pv.querySelector('.room[data-room="' + k + '"]'); if(el){ el.classList.add('open'); el.querySelector('.room-head').setAttribute('aria-expanded', 'true'); el.scrollIntoView({behavior:A.reduce ? 'auto' : 'smooth', block:'start'}); } plan.update(h.pk, h.off, k); }});
-      plan.update(h.pk, h.off, null);
+      var r = est.rooms.filter(function(x){ return x.key === selRoom; })[0] || est.rooms[0];
+      pv.innerHTML = '<div class="rc-picker" role="group" aria-label="Rooms">' + est.rooms.map(function(x){ return '<button type="button" class="rc-chip" data-pick="' + x.key + '" aria-pressed="' + (x.key === r.key) + '">' + x.name + '</button>'; }).join('') + '</div>' +
+        RI.RoomCard.html(r, h.pk, {photo:roomPhoto(r.key), range:roomRange(r), itemsHtml:r.items.map(item).join('')}) +
+        '<div class="pr-rooms" style="margin-top:20px"><div class="pr-plan card" id="pr-plan"></div></div>';
+      RI.RoomCard.wire(pv);
+      plan = RI.Plan.mount(pv.querySelector('#pr-plan'), {onSelect:function(k){ selRoom = k; viewRooms(); plan.update(h.pk, h.off, k); }});
+      plan.update(h.pk, h.off, r.key);
       RI.initRanges(pv); pv.querySelectorAll('.rl').forEach(function(x){ x.classList.add('drawn'); });
     }
     function refreshRooms(){
       if(tab !== 'rooms') return;
-      pv.querySelectorAll('.room').forEach(function(el){
-        var r = est.rooms.filter(function(x){ return x.key === el.getAttribute('data-room'); })[0];
-        var tmp = doc.createElement('div'); tmp.innerHTML = roomHead(r); var head = el.querySelector('.room-head'); head.innerHTML = tmp.firstChild.innerHTML;
-        RI.initRanges(head); head.querySelectorAll('.rl').forEach(function(x){ x.classList.add('drawn'); });
-      });
-      if(plan) plan.update(h.pk, h.off, null);
+      var r = est.rooms.filter(function(x){ return x.key === selRoom; })[0], el = pv.querySelector('.rc-range'); if(el && r) el.innerHTML = roomRange(r);
+      if(plan) plan.update(h.pk, h.off, selRoom);
     }
     function viewTrades(){
       var by = {};
@@ -178,8 +181,7 @@
 
     pv.addEventListener('click', function(e){
       var ph = e.target.closest('[data-ph]'); if(ph){ var kk = ph.getAttribute('data-ph').split('|'), pp = (h.photos[kk[0]] || []).filter(function(x){ return x.state === 'done'; })[+kk[1]]; if(pp) A.dialog(RI.esc(est.rooms.filter(function(r){ return r.key === kk[0]; })[0].name), '<img class="plan-view" src="' + pp.src + '" alt="' + RI.esc(pp.name) + '">', {wide:true}); return; }
-      var hd = e.target.closest('.room-head'); if(!hd) return;
-      var room = hd.parentNode, k = room.getAttribute('data-room'); open[k] = !open[k]; room.classList.toggle('open', open[k]); hd.setAttribute('aria-expanded', open[k]);
+      var pick = e.target.closest('[data-pick]'); if(pick){ selRoom = pick.getAttribute('data-pick'); viewRooms(); }
     });
     pv.addEventListener('change', function(e){
       var id = e.target.getAttribute('data-id'); if(!id) return;
@@ -211,7 +213,7 @@
     /* PDF through the browser's print dialog, with every room open */
     view.querySelector('#pdf').addEventListener('click', function(){
       if(tab !== 'rooms') show('rooms');
-      pv.querySelectorAll('.room').forEach(function(r){ r.classList.add('open'); });
+      pv.querySelectorAll('details.rc-inc').forEach(function(d){ d.open = true; });
       RI.toast('Choose "Save as PDF" in the print dialog.', 'file');
       RI.track('pdf_downloaded', {house:h.id}); setTimeout(function(){ window.print(); }, 400);
     });

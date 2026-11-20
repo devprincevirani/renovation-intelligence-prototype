@@ -92,7 +92,7 @@
     ['queued','We have your house','In line for reading', 2500],
     ['reading','Reading your photos','Rooms, parts, materials and condition, each with how sure we are', 0],
     ['measure','Measuring','Your sizes first, then patterns in the photos, then room templates', 2600],
-    ['evaluate','Evaluating condition','Condition and how dated, against the threshold for each part', 2200],
+    ['evaluate','Evaluating condition','Condition and how dated each part looks', 2200],
     ['decide','Deciding the work','One action per part, under Essential, Standard and Premium', 2600],
     ['count','Counting the work','Tasks and net quantities, one trade for each task', 2000],
     ['price','Pricing and checking','Local rates and products, then the seven checks on every line', 2800]
@@ -204,9 +204,17 @@
     d.innerHTML = '<div class="dlg-head"><h2>' + title + '</h2><button class="icon-btn" type="button" data-dlg-close aria-label="Close">' + RI.icon('x') + '</button></div><div class="dlg-body">' + body + '</div>';
     doc.body.appendChild(d);
     d.addEventListener('click', function(e){ if(e.target === d || e.target.closest('[data-dlg-close]')) d.close(); });
-    d.addEventListener('close', function(){ setTimeout(function(){ d.remove(); }, 50); if(opts.onClose) opts.onClose(); });
-    RI.fillIcons(d); d.showModal(); return d;
+    d.addEventListener('close', function(){ setTimeout(function(){ d.remove(); }, 50); scrollLock(false); if(opts.onClose) opts.onClose(); });
+    RI.fillIcons(d); d.showModal(); scrollLock(true); return d;
   };
+  /* While a dialog is open the page behind it stays still. Counted, so a sheet opened over another keeps the lock */
+  var locks = 0;
+  function scrollLock(on){
+    var de = doc.documentElement;
+    if(on){ if(!locks++){ de.style.setProperty('--sbw', Math.max(0, innerWidth - de.clientWidth) + 'px'); de.classList.add('dlg-lock'); } }
+    else if(locks && !--locks) de.classList.remove('dlg-lock');
+  }
+  A.unlockScroll = function(){ if(!doc.querySelector('dialog[open]')){ locks = 0; doc.documentElement.classList.remove('dlg-lock'); } };
   A.confirm = function(title, text, yes, cb, danger){
     var d = A.dialog(title, '<p>' + text + '</p><div class="cta-row" style="justify-content:flex-end"><button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="button" class="btn ' + (danger ? 'btn-danger' : 'btn-primary') + '" data-yes>' + yes + '</button></div>');
     d.querySelector('[data-yes]').addEventListener('click', function(){ d.close(); cb(); });
@@ -221,6 +229,7 @@
   A.later = function(fn, ms){ var t = setTimeout(fn, ms); timers.push(t); return t; };
   A.render = function(){
     timers.forEach(function(t){ clearInterval(t); clearTimeout(t); }); timers = [];
+    A.unlockScroll();
     RI.CURRENT = null;
     var path = (location.hash || '#/houses').slice(1).split('?')[0];
     if(path === '/' || path === '') path = '/houses';
