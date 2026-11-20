@@ -396,20 +396,19 @@
       var on = box.querySelector('.on'); if(on && box.scrollWidth > box.clientWidth) box.scrollLeft = on.offsetLeft - 8;
     }
 
-    /* What-if curve: for every threshold from 40 to 95, how many lines would be unverified (a reading below it).
-       The x axis is the handle's axis, so the marker rides the curve as the handle moves. */
-    var cdU = function(fl, t){ return fl.filter(function(l){ return l.conf < t; }).length; };
-    var cdY = function(u, n){ return 10 + (1 - u / Math.max(1, n)) * 90; };
-    function curve(fl){
-      var n = fl.length, d = 'M0 ' + cdY(cdU(fl, CD_LO), n).toFixed(2);
-      for(var t = CD_LO + 1; t <= CD_HI; t++) d += 'H' + ((t - CD_LO) * 10) + 'V' + cdY(cdU(fl, t), n).toFixed(2);
-      d += 'H550';
-      return '<svg class="cd-svg" viewBox="0 0 550 100" preserveAspectRatio="none" aria-hidden="true"><path class="a" d="' + d + 'V100H0Z"/><path class="l" d="' + d + '" vector-effect="non-scaling-stroke"/></svg>';
+    /* Lines by confidence: one bar per 5 points from 40 to 95 (90 and up is the last). The share of a bar's lines
+       below the threshold is bronze (shown as unverified), the rest Deep Forest (clear to price). */
+    var BINS = [40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90];
+    var binOf = function(c){ return Math.min(10, Math.max(0, Math.floor((c - CD_LO) / 5))); };
+    function bars(fl, t){
+      var n = BINS.map(function(){ return 0; }); fl.forEach(function(l){ n[binOf(l.conf)]++; });
+      var mx = Math.max.apply(null, n.concat([1])), w = (5 / (CD_HI - CD_LO) * 100).toFixed(3);
+      return BINS.map(function(b, i){ if(!n[i]) return '';
+        var u = fl.filter(function(l){ return binOf(l.conf) === i && l.conf < t; }).length;
+        var tip = 'Confidence ' + (i === 10 ? '90 and up' : b + ' to ' + (b + 4)) + ': ' + plural(n[i], 'line') + (u ? ', ' + u + ' unverified' : ', all clear');
+        return '<div class="cd-bar2" style="left:' + cdPos(b) + ';width:' + w + '%;height:' + (n[i] / mx * 100).toFixed(2) + '%" title="' + RI.esc(tip) + '">' +
+          (u ? '<i class="b" style="flex-grow:' + u + '"></i>' : '') + (n[i] - u ? '<i class="g" style="flex-grow:' + (n[i] - u) + '"></i>' : '') + '</div>'; }).join('');
     }
-    function yGrid(n){ return (n > 1 ? [0, Math.round(n / 2), n] : [0, 1]).map(function(v){ return '<i class="cd-gl" style="top:' + cdY(v, n).toFixed(2) + '%"><span>' + v + '</span></i>'; }).join(''); }
-    /* Live and queued: a dot on the curve, a dashed guide up to a label along the top of the chart */
-    function pin(cls, fl, v, label){ var y = cdY(cdU(fl, v), fl.length).toFixed(2);
-      return '<span class="cd-guide ' + cls + (v > 80 ? ' r' : '') + '" style="left:' + cdPos(v) + ';height:' + y + '%"><em>' + label + '</em></span><span class="cd-pin ' + cls + '" style="left:' + cdPos(v) + ';top:' + y + '%"></span>'; }
 
     function detail(){
       var s = sheets[cur], dr = C.draftFor('sheets', cur), fl = of(cur), el = doc.getElementById('cd-detail');
@@ -425,16 +424,18 @@
           '<div class="cd-thr-top"><div><h3 class="cd-h" id="cd-thr-h">Confidence threshold</h3><p class="cd-p">' + 'A photo reading below this number shows as unverified instead of being priced. ' + (canEdit ? 'Drag the handle, use the buttons or click the chart to try a value.' : 'You can read this sheet but not change it.') + '</p></div>' +
             '<div class="cd-step">' + (canEdit ? '<button type="button" class="cd-sb" data-step="-1" aria-label="Lower the threshold by one">' + RI.icon('minus') + '</button>' : '') + '<output id="cd-num" for="cd-r">' + s.threshold + '</output>' + (canEdit ? '<button type="button" class="cd-sb" data-step="1" aria-label="Raise the threshold by one">' + RI.icon('plus') + '</button>' : '') + '</div></div>' +
           '<div class="cd-meter" id="cd-meter"></div>' +
-          '<div class="cd-what"><div class="cd-what-h"><b>Unverified lines at each threshold</b><span class="cd-hv">' + (canEdit ? 'Hover to read a value, click to set it' : 'Hover to read a value') + '</span>' + (canEdit ? '<span class="cd-tc">Tap the chart to set a value</span>' : '') + '</div>' +
+          '<div class="cd-what"><div class="cd-what-h"><b>Lines by confidence</b><span class="cd-key"><span><i class="cd-sw u"></i>Unverified</span><span><i class="cd-sw o"></i>Clear to price</span></span></div>' +
           '<div class="cd-chart">' +
-            '<div class="cd-plot' + (canEdit ? ' edit' : '') + '" id="cd-plot">' + yGrid(fl.length) + curve(fl) +
-              '<div class="cd-hair" id="cd-hair" hidden><span></span></div><div class="cd-line" id="cd-line"></div>' +
-              (dr ? pin('q', fl, dr.after.threshold, 'Queued ' + dr.after.threshold) : '') + pin('p', fl, s.threshold, 'Live ' + s.threshold) +
-              '<span class="cd-pin now" id="cd-now"><em id="cd-now-t"></em></span>' +
+            '<div class="cd-plot' + (canEdit ? ' edit' : '') + '" id="cd-plot">' + [25, 50, 75, 100].map(function(v){ return '<i class="cd-gl" style="bottom:' + v + '%"></i>'; }).join('') +
+              '<div id="cd-bars"></div>' +
+              '<div class="cd-guide p" id="cd-gp" style="left:' + cdPos(s.threshold) + '"><em>Live ' + s.threshold + '</em></div>' +
+              '<div class="cd-thl" id="cd-thl"><em id="cd-thl-t"></em></div>' +
             '</div>' +
-            '<input type="range" id="cd-r" class="cd-range" min="' + CD_LO + '" max="' + CD_HI + '" step="1" value="' + s.threshold + '"' + (canEdit ? '' : ' disabled') + ' aria-label="Confidence threshold" aria-describedby="cd-sum">' +
-            '<div class="cd-axis" aria-hidden="true">' + [40, 50, 60, 70, 80, 90].map(function(v){ return '<span style="left:' + cdPos(v) + '">' + v + '</span>'; }).join('') + '</div><p class="cd-xt">Threshold</p>' +
-          '</div></div>' +
+            '<div class="cd-axis" aria-hidden="true">' + [40, 50, 60, 70, 80, 90].map(function(v){ return '<span style="left:' + cdPos(v) + '">' + v + '</span>'; }).join('') + '</div>' +
+          '</div>' +
+          '<div class="cd-sl"><label for="cd-r">Threshold: <b id="cd-sl-v">' + s.threshold + '</b></label>' +
+            '<div class="cd-slw"><span class="cd-sl-tr"><i id="cd-fill"></i></span><input type="range" id="cd-r" class="cd-range" min="' + CD_LO + '" max="' + CD_HI + '" step="1" value="' + s.threshold + '"' + (canEdit ? '' : ' disabled') + ' aria-describedby="cd-sum"></div></div>' +
+          '</div>' +
           '<p class="cd-sum" id="cd-sum" aria-live="polite"></p>' +
         '</section>' +
         '<section class="cd-card" aria-labelledby="cd-ln-h"><div class="cd-card-h"><div><h3 class="cd-h" id="cd-ln-h">Lines in the current runs</h3><p class="cd-p">Lowest confidence first. These are the lines a higher threshold turns unverified. Open one to see its photos.</p></div></div><div id="cd-lines"></div></section>' +
@@ -466,9 +467,10 @@
       var un = fl.filter(function(l){ return l.conf < t; }).length, was = fl.filter(function(l){ return l.conf < s.threshold; }).length, delta = un - was;
       doc.getElementById('cd-num').textContent = t;
       var r = doc.getElementById('cd-r'); if(+r.value !== t) r.value = t;
-      doc.getElementById('cd-line').style.left = cdPos(t); view.querySelectorAll('.cd-pin.p,.cd-guide.p').forEach(function(x){ x.classList.toggle('on', dirty); });
-      var nw = doc.getElementById('cd-now'), yy = cdY(un, fl.length); nw.style.left = cdPos(t); nw.style.top = yy.toFixed(2) + '%'; nw.className = 'cd-pin now' + (t > 74 ? ' r' : '') + (yy < 34 ? ' dn' : '');
-      doc.getElementById('cd-now-t').innerHTML = '<b>' + un + '</b> unverified at ' + t;
+      doc.getElementById('cd-bars').innerHTML = bars(fl, t);
+      var th = doc.getElementById('cd-thl'), gp = doc.getElementById('cd-gp'); th.style.left = cdPos(t); doc.getElementById('cd-thl-t').textContent = 'Threshold ' + t;
+      th.className = 'cd-thl' + ((dirty ? t < s.threshold : t > 80) ? ' l' : ''); gp.className = 'cd-guide p' + (dirty ? ' on' : '') + (t < s.threshold ? ' r' : '');
+      doc.getElementById('cd-sl-v').textContent = t; doc.getElementById('cd-fill').style.width = 'calc(' + ((t - CD_LO) / (CD_HI - CD_LO)).toFixed(4) + ' * (100% - 18px) + 9px)';
       var ok = fl.length - un;
       doc.getElementById('cd-meter').innerHTML = !fl.length ? '' : '<div class="cd-mbar" aria-hidden="true">' + (ok ? '<i class="o" style="flex-grow:' + ok + '"></i>' : '') + (un ? '<i class="u" style="flex-grow:' + un + '"></i>' : '') + '</div>' +
         '<div class="cd-mleg"><span><i class="cd-sw o"></i><b>' + ok + '</b> clear to price</span><span><i class="cd-sw u"></i><b>' + un + '</b> unverified' + (dirty && delta ? ' <small>' + (delta > 0 ? '+' : '') + delta + ' vs live</small>' : '') + '</span><span class="cd-mtot">' + plural(fl.length, 'line') + ' in the current runs</span></div>';
@@ -482,10 +484,6 @@
     }
 
     var atX = function(e){ var p = doc.getElementById('cd-plot'), r = p.getBoundingClientRect(); return Math.max(CD_LO, Math.min(CD_HI, Math.round(CD_LO + (e.clientX - r.left) / r.width * (CD_HI - CD_LO)))); };
-    view.addEventListener('mousemove', function(e){ var p = e.target.closest && e.target.closest('#cd-plot'), h = doc.getElementById('cd-hair'); if(!h) return;
-      if(!p){ h.hidden = true; return; } var v = atX(e), fl = of(cur);
-      h.style.left = cdPos(v); h.firstChild.textContent = 'At ' + v + ': ' + cdU(fl, v) + ' of ' + fl.length + ' unverified'; h.className = 'cd-hair' + (v > 80 ? ' r' : v < 50 ? ' l' : ''); h.hidden = false; });
-    view.addEventListener('mouseleave', function(){ var h = doc.getElementById('cd-hair'); if(h) h.hidden = true; });
     view.addEventListener('input', function(e){ if(e.target.id !== 'cd-r') return; val = +e.target.value; update(); });
     view.addEventListener('click', function(e){
       var li = e.target.closest('[data-f]'); if(li){ if(val != null && val !== sheets[cur].threshold){ RI.toast('Save or undo your change first.', 'warn'); return; } cur = li.getAttribute('data-f'); val = null; more = false; history.replaceState(null, '', '#/condition-sheets?fam=' + cur); list(); detail(); return; }
