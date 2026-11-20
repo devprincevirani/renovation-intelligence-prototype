@@ -53,7 +53,7 @@
   /* Version 3 of the data: one price per product. The old Low and High was the sample house's whole line, so it is
      kept apart as that line (line, qty), never as the product's price */
   function onePrice(list){
-    if(C.get('products.v') === 3) return list;
+    if(C.get('products.v') >= 3) return list;
     list.forEach(function(p){
       if(p.price == null){
         var sp = samplePrice(p); p.price = sp[0]; p.per = sp[1];
@@ -66,7 +66,18 @@
     C.set('products', list); C.set('products.v', 3);
     return list;
   }
-  function all(){ return onePrice(upgrade(C.get('products', []) || [])); }
+  /* Version 4 of the data: a sample photo for every product that had none. Openly licensed stand-ins, credited in
+     CREDITS.md; they show the kind of product, and Sam swaps in the real one with Edit */
+  var PHOTOS = {'Kitchen floor|E':'p1109', 'Kitchen floor|P':'p1111', 'Baseboard|S':'p1115', 'Baseboard|P':'p1116', 'Closet doors|S':'p1117', 'Closet doors|P':'p1118',
+    'Tub and surround|S':'p1119', 'Tub and surround|P':'p1120', 'Toilet|S':'p1123', 'Toilet|P':'p1124', 'Wall paneling|S':'p1129', 'Wall paneling|P':'p1130',
+    'Interior paint, walls|S':'p1131', 'Interior paint, walls|P':'p1132', 'Interior doors|S':'p1133', 'Interior doors|P':'p1134', 'Front door|S':'p1137', 'Front door|P':'p1138'};
+  function photos(list){
+    if(C.get('products.v') >= 4) return list;
+    list.forEach(function(p){ var f = PHOTOS[p.item + '|' + p.tier]; if(!p.img && f) p.img = 'products/' + f + '.jpg'; });
+    C.set('products', list); C.set('products.v', 4);
+    return list;
+  }
+  function all(){ return photos(onePrice(upgrade(C.get('products', []) || []))); }
   function priceOf(x){ var n = +x.price, per = x.per || 'each'; return '$' + (n < 100 && n % 1 ? n.toFixed(2) : Math.round(n).toLocaleString('en-US')) + ' ' + (per === 'each' ? 'each' : 'per ' + per); }
   /* Items: every item that has a product, with its three slots */
   function items(list){
