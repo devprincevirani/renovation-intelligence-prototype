@@ -116,20 +116,26 @@
         '<div class="pl-vt" id="pl-view" role="radiogroup" aria-label="View">' + [['cards', 'Cards', 'grid'], ['items', 'By item', 'list']].map(function(o){ return '<button type="button" role="radio" data-view="' + o[0] + '" aria-label="' + o[1] + '" title="' + o[1] + '" aria-checked="' + (st.view === o[0]) + '" tabindex="' + (st.view === o[0] ? 0 : -1) + '">' + I(o[2]) + '</button>'; }).join('') + '</div></div></div>' +
         '<div id="pl-list"></div>' + (canEdit ? '' : '<div class="c-mt">' + C.note('You can read the library. Editing needs the "Edit drafts of products and rates" permission.', 'lock') + '</div>')});
 
-    /* Library health: photos, package coverage and drafts, each a bar that filters the list when tapped */
+    /* Library health: what needs attention. Photos as a ring with Show them; package coverage per package as three bars;
+       drafts waiting with their names and the way to the publish queue */
+    function ring(pct){ var r = 26, c = 2 * Math.PI * r; return '<svg class="lh-ring" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="' + r + '" class="tr"/><circle cx="32" cy="32" r="' + r + '" class="vl" stroke-dasharray="' + (c * pct / 100).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 32 32)"/><text x="32" y="36.5" text-anchor="middle">' + pct + '%</text></svg>'; }
     function stats(){
-      var its = items(list), withPh = list.filter(function(p){ return p.img; }).length, drafts = C.queued().filter(function(d){ return d.area === 'products'; }).length;
-      var slots = its.length * 2, filled = its.reduce(function(n, it){ return n + ['S', 'P'].filter(function(t){ return it.slots[t]; }).length; }, 0);
-      var meter = function(k, label, n, of, note, warn){ var pc = of ? Math.round(n / of * 100) : 0; return '<button type="button" class="ph-m' + (warn ? ' warn' : '') + '" data-show="' + k + '" aria-pressed="' + (st.show === k) + '"><span class="ph-l">' + label + '</span><span class="ph-n"><b>' + n + '</b> of ' + of + '</span><span class="ph-bar"><i style="width:' + pc + '%"></i></span><span class="ph-note">' + note + '</span></button>'; };
-      doc.getElementById('pl-stats').innerHTML = '<section class="ph" aria-label="Library health"><header class="ph-h"><b>Library health</b><span>' + list.length + ' products · ' + its.length + ' items · ' + fams.length + ' families</span></header><div class="ph-ms">' +
-        meter('photo', 'Photos', withPh, list.length, list.length - withPh ? (list.length - withPh) + ' still need a photo' : 'Every product has a photo', list.length - withPh) +
-        meter('gap', 'Package coverage', filled, slots, slots - filled ? (slots - filled) + ' Standard or Premium ' + (slots - filled === 1 ? 'slot' : 'slots') + ' empty' : 'Every item has Standard and Premium', slots - filled) +
-        '<button type="button" class="ph-m ph-d' + (drafts ? ' warn' : '') + '" data-show="draft" aria-pressed="' + (st.show === 'draft') + '"><span class="ph-l">Drafts waiting</span><span class="ph-big">' + drafts + '</span><span class="ph-note">' + (drafts ? 'Waiting for Sam to publish' : 'Nothing waiting') + '</span></button>' +
+      var its = items(list), withPh = list.filter(function(p){ return p.img; }).length, need = list.length - withPh, pct = list.length ? Math.round(withPh / list.length * 100) : 0;
+      var drafts = C.queued().filter(function(d){ return d.area === 'products'; });
+      var cov = TIERS.map(function(t){ var n = its.filter(function(it){ return it.slots[t[0]]; }).length; return [t, n]; });
+      var gaps = its.reduce(function(n, it){ return n + ['S', 'P'].filter(function(t){ return !it.slots[t]; }).length; }, 0);
+      doc.getElementById('pl-stats').innerHTML = '<section class="lh" aria-label="Library health"><header class="lh-h"><b>Library health</b><span>' + list.length + ' products · ' + its.length + ' items · ' + fams.length + ' families</span></header><div class="lh-cols">' +
+        '<div class="lh-c"><p class="lh-k">Photos</p><div class="lh-ph">' + ring(pct) + '<div><p class="lh-big"><b>' + withPh + '</b> of ' + list.length + ' have a photo</p><p class="lh-sub' + (need ? ' warn' : '') + '">' + (need ? need + ' still need a real photo' : 'Every product has a photo') + '</p>' +
+          (need ? '<button type="button" class="lh-go" data-show="photo" aria-pressed="' + (st.show === 'photo') + '">' + (st.show === 'photo' ? 'Show everything' : 'Show them') + ' ' + I('arrow') + '</button>' : '') + '</div></div></div>' +
+        '<div class="lh-c"><p class="lh-k">Package coverage</p><ul class="lh-tiers">' + cov.map(function(x){ var t = x[0], n = x[1], w = its.length ? Math.round(n / its.length * 100) : 0;
+          return '<li class="t-' + t[0] + '"><span class="lh-tn"><i aria-hidden="true"></i>' + t[1] + '</span><span class="lh-tb"><i style="width:' + w + '%"></i></span><span class="lh-tc"><b>' + n + '</b>/' + its.length + '</span></li>'; }).join('') + '</ul>' +
+          '<p class="lh-sub">' + (gaps ? '<button type="button" class="lh-go" data-show="gap" aria-pressed="' + (st.show === 'gap') + '">' + gaps + ' Standard or Premium ' + (gaps === 1 ? 'slot' : 'slots') + ' empty ' + I('arrow') + '</button>' : 'Standard and Premium are covered') + '<span class="lh-note">Essential lines without a product are priced from a rate.</span></p></div>' +
+        '<div class="lh-c"><p class="lh-k">Drafts waiting</p><p class="lh-big' + (drafts.length ? ' warn' : '') + '"><b>' + drafts.length + '</b> ' + (drafts.length === 1 ? 'edit waits' : 'edits wait') + ' for Sam</p>' +
+          (drafts.length ? '<ul class="lh-dr">' + drafts.slice(0, 2).map(function(dd){ return '<li>' + esc(dd.title.replace(/^(New product|Product): /, '')) + '<small>' + esc(dd.by) + ', ' + C.ago(dd.at) + '</small></li>'; }).join('') + (drafts.length > 2 ? '<li class="more">and ' + (drafts.length - 2) + ' more</li>' : '') + '</ul><a class="lh-go" href="#/publish">Open the publish queue ' + I('arrow') + '</a>' : '<p class="lh-sub">Nothing waiting.</p>') + '</div>' +
         '</div></section>';
       var tc = function(t){ return t === 'all' ? list.length : list.filter(function(p){ return p.tier === t; }).length; };
       doc.getElementById('pl-t').innerHTML = [['all', 'All tiers']].concat(TIERS).map(function(t){ return '<button type="button" role="radio" data-tier="' + t[0] + '" aria-checked="' + (st.tier === t[0]) + '" tabindex="' + (st.tier === t[0] ? 0 : -1) + '">' + t[1] + ' <span class="pl-tn">' + tc(t[0]) + '</span></button>'; }).join('');
     }
-    /* One product as a card (DESIGN: product tile, a square photo, its name and tier) */
     /* How many priced houses each product prices, counted once per draw */
     var USE = {};
     function countUse(){
@@ -179,11 +185,25 @@
           if(st.show === 'draft') return pr.some(function(p){ return C.draftFor('products', p.id); });
           return true;
         });
-        el.innerHTML = rows.length ? '<p class="pl-count" aria-live="polite"><b>' + rows.length + '</b> ' + (rows.length === 1 ? 'item' : 'items') + (filtered ? ' match' : '') + '</p><div class="pl-items">' + rows.map(function(it){
-          var n = TIERS.filter(function(t){ return it.slots[t[0]]; }).length;
-          return '<section class="pl-item" data-item="' + esc(it.item) + '"><header class="pl-ih"><div><h2>' + esc(it.item) + '</h2><p>' + (C.FAMILY[it.fam] || it.fam) + '</p></div><span class="pl-cov" title="Packages with a product">' + n + ' of 3</span></header>' +
-            '<div class="pl-slots">' + TIERS.map(function(t){ return tile(it.slots[t[0]], t[0], canEdit); }).join('') + '</div></section>';
-        }).join('') + '</div>' : '<div class="c-empty">' + I('info') + '<p>' + (v ? 'No product or item matches “' + esc(st.q) + '”.' : 'Nothing here. Try everything.') + '</p></div>';
+        var cell = function(it, t){
+          var p = it.slots[t];
+          if(!p) return '<div class="bim-c bim-none t-' + t + '"><span class="bim-tl">' + TN[t] + '</span>' + (t === 'E' ? '<span class="bim-rate">Priced from a rate</span>' : canEdit ? '<button type="button" class="bim-add" data-add="' + t + '">' + I('plus') + 'Add product</button>' : '<span class="bim-rate">No product yet</span>') + '</div>';
+          var dr = C.draftFor('products', p.id);
+          return '<button type="button" class="bim-c t-' + t + (dr ? ' drafted' : '') + '" data-prod="' + p.id + '" aria-label="' + esc(p.name) + ', ' + TN[t] + ', ' + priceOf(p) + '"><span class="bim-tl">' + TN[t] + '</span>' +
+            '<span class="bim-th">' + (p.img ? photo(p) : '<span class="pl-nophoto">' + I('image') + '</span>') + '</span><span class="bim-tx"><b>' + esc(p.name) + '</b><span class="bim-ln">' + priceOf(p) +
+            (dr ? '<span class="bim-flag dr">Draft</span>' : !p.img ? '<span class="bim-flag">Photo needed</span>' : '<span class="bim-v">v' + (p.v || 1) + '</span>') + '</span></span></button>';
+        };
+        var fgroups = []; rows.forEach(function(it){ var g = fgroups[fgroups.length - 1]; if(!g || g.fam !== it.fam) fgroups.push(g = {fam:it.fam, its:[]}); g.its.push(it); });
+        el.innerHTML = rows.length ? '<p class="pl-count" aria-live="polite"><b>' + rows.length + '</b> ' + (rows.length === 1 ? 'item' : 'items') + (filtered ? ' match' : '') + '</p>' +
+          '<div class="bim" role="table" aria-label="Products by item and package"><div class="bim-hd" role="row"><span role="columnheader">Item</span>' + TIERS.map(function(t){ return '<span role="columnheader" class="t-' + t[0] + '"><i aria-hidden="true"></i>' + t[1] + '</span>'; }).join('') + '</div>' +
+          fgroups.map(function(g){
+            return '<div class="bim-fam" role="row"><span role="rowheader">' + (C.FAMILY[g.fam] || g.fam) + '<small>' + g.its.length + (g.its.length === 1 ? ' item' : ' items') + '</small></span></div>' + g.its.map(function(it){
+              var n = TIERS.filter(function(t){ return it.slots[t[0]]; }).length;
+              return '<div class="bim-row" role="row" data-item="' + esc(it.item) + '"><div class="bim-it" role="rowheader"><b>' + esc(it.item) + '</b><span class="bim-dots" aria-label="' + n + ' of 3 packages have a product">' + TIERS.map(function(t){ return '<i class="t-' + t[0] + (it.slots[t[0]] ? ' on' : '') + '"></i>'; }).join('') + '<small>' + n + ' of 3</small></span></div>' +
+                TIERS.map(function(t){ return '<div role="cell">' + cell(it, t[0]) + '</div>'; }).join('') + '</div>';
+            }).join('');
+          }).join('') + '</div>'
+          : '<div class="c-empty">' + I('info') + '<p>' + (v ? 'No product or item matches “' + esc(st.q) + '”.' : 'Nothing here. Try everything.') + '</p></div>';
       }
       view.querySelectorAll('#pl-view [data-view]').forEach(function(x){ var on = x.getAttribute('data-view') === st.view; x.setAttribute('aria-checked', on); x.tabIndex = on ? 0 : -1; });
       RI.fillIcons(view);

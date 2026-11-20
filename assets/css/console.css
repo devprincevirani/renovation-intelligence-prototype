@@ -2686,3 +2686,93 @@ dialog.rlb-sheet::backdrop{background:rgba(24,38,36,.45)}
 .pf-facts dt{font-size:.78rem;color:var(--muted)}
 .pf-facts dd{margin:0;font-size:.9rem;font-weight:600}
 @media (max-width:519px){ .pf-tcs{grid-template-columns:minmax(0,1fr)} .pf-tc{min-height:0;grid-template-columns:auto 1fr;align-items:center;gap:10px} .pf-foot .ax-btns{width:100%} }
+
+/* ---------- Product library: Library health and the By item matrix ----------
+   Library health answers "what needs me": photos as a ring with Show them, coverage per package as three bars,
+   drafts waiting with their names and the way to the publish queue.
+   By item is a compact matrix: one row per item with coverage dots, then Essential, Standard and Premium cells,
+   grouped by family. A filled cell is a product chip (thumbnail, name, price, state); an empty one is a quiet
+   "Priced from a rate" (Essential) or Add product. On a phone each item is a card with its packages as rows. */
+.lh{border:1px solid var(--border);border-radius:8px;background:var(--raised);margin-bottom:16px;overflow:hidden}
+.lh-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px;padding:12px 18px;border-bottom:1px solid var(--border-soft);background:#FBF9F5}
+.lh-h b{font-family:var(--display);font-weight:500;font-size:1.05rem}
+.lh-h span{font-size:.8rem;color:var(--muted)}
+.lh-cols{display:grid}
+.lh-c{display:grid;gap:10px;align-content:start;padding:16px 18px;border-top:1px solid var(--border-soft)}
+.lh-c:first-child{border-top:0}
+.lh-k{margin:0;font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lh-ph{display:flex;align-items:center;gap:14px}
+.lh-ring{flex:none;width:72px;height:72px}
+.lh-ring .tr{fill:none;stroke:var(--sunken);stroke-width:7}
+.lh-ring .vl{fill:none;stroke:var(--deep-forest);stroke-width:7;stroke-linecap:round}
+.lh-ring text{font-family:var(--display);font-size:15px;font-weight:500;fill:var(--text)}
+.lh-big{margin:0;font-size:.86rem;color:var(--muted)}
+.lh-big b{font-family:var(--display);font-weight:500;font-size:1.45rem;color:var(--text);margin-right:2px;font-variant-numeric:tabular-nums}
+.lh-big.warn b{color:var(--warn)}
+.lh-sub{display:grid;gap:4px;justify-items:start;margin:2px 0 0;font-size:.8rem;color:var(--muted)}
+.lh-sub.warn{color:var(--warn)}
+.lh-note{font-size:.74rem;color:var(--muted)}
+.lh-go{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:0;border:0;background:none;font:600 .82rem var(--body);color:var(--deep-forest);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--border-strong);cursor:pointer}
+.lh-go:hover{text-decoration-color:var(--deep-forest)}
+.lh-go[aria-pressed="true"]{color:var(--warn)}
+.lh-go:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2px}
+.lh-tiers{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.lh-tiers li{display:grid;grid-template-columns:96px minmax(0,1fr) 44px;align-items:center;gap:10px;font-size:.82rem}
+.lh-tn{display:inline-flex;align-items:center;gap:6px;font-weight:600}
+.lh-tn i{width:8px;height:8px;border-radius:50%;background:var(--border-strong)}
+.lh-tiers .t-S .lh-tn i{background:var(--ok)}.lh-tiers .t-P .lh-tn i{background:var(--bronze)}
+.lh-tb{display:block;height:8px;border-radius:2px;background:var(--sunken);overflow:hidden}
+.lh-tb i{display:block;height:100%;background:var(--deep-forest);border-radius:2px}
+.lh-tiers .t-E .lh-tb i{background:var(--border-strong)}
+.lh-tc{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+.lh-tc b{color:var(--text)}
+.lh-dr{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.lh-dr li{display:grid;font-size:.84rem;font-weight:600;line-height:1.3}
+.lh-dr small{font-weight:400;font-size:.74rem;color:var(--muted)}
+.lh-dr li.more{font-weight:400;color:var(--muted)}
+@media (min-width:900px){ .lh-cols{grid-template-columns:1fr 1.25fr 1fr} .lh-c{border-top:0;border-left:1px solid var(--border-soft)} .lh-c:first-child{border-left:0} }
+/* The By item matrix */
+.bim{border:1px solid var(--border);border-radius:8px;background:var(--raised);overflow:hidden}
+.bim-hd{display:none}
+.bim-fam{padding:8px 14px;background:var(--sunken);border-top:1px solid var(--border-soft)}
+.bim-fam:nth-child(2){border-top:0}
+.bim-fam span{display:flex;align-items:baseline;gap:8px;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.bim-fam small{font-size:.72rem;font-weight:500;letter-spacing:0;text-transform:none}
+.bim-row{display:grid;gap:8px;padding:12px 14px;border-top:1px solid var(--border-soft)}
+.bim-it{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.bim-it b{font-size:.95rem;font-weight:600}
+.bim-dots{display:inline-flex;align-items:center;gap:4px;flex:none}
+.bim-dots i{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--border-strong)}
+.bim-dots i.on.t-E{background:var(--border-strong)}.bim-dots i.on.t-S{background:var(--ok);border-color:var(--ok)}.bim-dots i.on.t-P{background:var(--bronze);border-color:var(--bronze)}
+.bim-dots small{margin-left:4px;font-size:.74rem;color:var(--muted)}
+.bim-c{display:grid;grid-template-columns:44px minmax(0,1fr);grid-template-areas:"th tl" "th tx";align-items:center;gap:0 10px;width:100%;min-height:56px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;background:var(--raised);font:inherit;color:var(--text);text-align:left;cursor:pointer;transition:border-color var(--fast),background var(--fast)}
+button.bim-c:hover{border-color:var(--border-strong);background:#FCFAF6}
+button.bim-c:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2px}
+.bim-c.drafted{border-color:#D9BF95;box-shadow:inset 3px 0 0 var(--bronze)}
+.bim-tl{grid-area:tl;font-size:.64rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.bim-th{grid-area:th;width:44px;height:44px;border-radius:4px;overflow:hidden;background:var(--sunken)}
+.bim-th img{width:100%;height:100%;object-fit:cover;display:block}
+.bim-th .pl-nophoto{height:100%}
+.bim-tx{grid-area:tx;display:grid;min-width:0;line-height:1.3}
+.bim-tx b{font-size:.84rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bim-ln{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.bim-v{padding:0 6px;border-radius:2px;background:var(--sunken);font-size:.7rem;font-weight:600;color:var(--muted)}
+.bim-flag{padding:0 6px;border-radius:2px;background:var(--warn-bg);font-size:.68rem;font-weight:600;color:var(--warn);white-space:nowrap}
+.bim-flag.dr{background:var(--warn-bg)}
+.bim-c.bim-none{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"tl act";background:#FBF9F5;border-color:var(--border-soft);cursor:default}
+.bim-rate{grid-area:act;padding:2px 8px;border-radius:2px;background:var(--sunken);font-size:.74rem;color:var(--muted);white-space:nowrap}
+.bim-add{grid-area:act;display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 10px;border:1px solid var(--border-strong);border-radius:4px;background:var(--raised);font:600 .8rem var(--body);color:var(--deep-forest);cursor:pointer;white-space:nowrap}
+.bim-add:hover{background:var(--sunken)}
+.bim-add:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2px}
+@media (min-width:720px){
+  .bim-hd,.bim-row{display:grid;grid-template-columns:minmax(130px,.9fr) repeat(3,minmax(0,1fr));gap:10px;align-items:center}
+  .bim-hd{padding:9px 14px;background:#FBF9F5;border-bottom:1px solid var(--border)}
+  .bim-hd span{display:inline-flex;align-items:center;gap:6px;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .bim-hd i{width:8px;height:8px;border-radius:50%;background:var(--border-strong)}
+  .bim-hd .t-S i{background:var(--ok)}.bim-hd .t-P i{background:var(--bronze)}
+  .bim-row{padding:10px 14px}
+  .bim-it{display:grid;gap:4px;justify-content:start}
+  .bim-c{grid-template-columns:44px minmax(0,1fr);grid-template-areas:"th tx"}
+  .bim-c .bim-tl{display:none}
+  .bim-c.bim-none{grid-template-columns:minmax(0,1fr);grid-template-areas:"act";justify-items:start;min-height:58px}
+}
