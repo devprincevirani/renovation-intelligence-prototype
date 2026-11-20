@@ -1587,3 +1587,30 @@ a.au-what:focus-visible{outline:2px solid var(--accent);outline-offset:2px;borde
 .lb.lb-sample::before{display:none}
 .us-name{display:flex;align-items:center;gap:8px;min-width:0}
 .us-name b{min-width:0}
+/* Users and staff tabs: underline tabs on a hairline, so page tabs never look like the filters beside them */
+.us-top{align-items:flex-end;border-bottom:1px solid var(--border)}
+.us-top .us-bar{margin-bottom:8px}
+#us-tab.c-seg{gap:24px;padding:0;border-radius:0;background:none;overflow-x:auto}
+#us-tab.c-seg button{min-height:44px;margin-bottom:-1px;padding:0 2px;border-radius:0;border-bottom:2px solid transparent;background:none;box-shadow:none;color:var(--muted);font-size:.9rem}
+#us-tab.c-seg button:hover{color:var(--text)}
+#us-tab.c-seg button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--bronze);box-shadow:none}
+#us-tab.c-seg button .n{background:var(--sunken);color:var(--muted)}
+#us-tab.c-seg button[aria-selected="true"] .n{background:var(--deep-forest);color:#fff}
+#us-tab.c-seg button:focus-visible{outline-offset:-2px}
+@media (max-width:1179px){.us-top{border-bottom:0}#us-tab.c-seg{flex:1 1 100%;border-bottom:1px solid var(--border)}.us-top .us-bar{margin-bottom:0}}
+/* Waitlist rows: one small outlined action, a quiet Resend, the invite date on the status line */
+.c-tbl td.us-actc{text-align:right;white-space:nowrap}
+.us-act{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 12px;border:1px solid var(--border-strong);border-radius:4px;background:var(--raised);color:var(--text);font:600 .82rem var(--body);cursor:pointer;transition:background var(--fast)}
+.us-act:hover{background:var(--sunken)}
+.us-ghost{min-height:32px;padding:0 8px;border:0;border-radius:4px;background:none;color:var(--muted);font:600 .82rem var(--body);cursor:pointer}
+.us-ghost:hover{background:var(--sunken);color:var(--text)}
+.us-act:focus-visible,.us-ghost:focus-visible{outline:2px solid var(--deep-forest);outline-offset:1px}
+@media (pointer:coarse){.us-act,.us-ghost{min-height:44px}}
+.c-tbl td>.us-act,.c-tbl td>.us-ghost{justify-self:start}
+.us-st{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.us-when{font-size:.76rem;color:var(--muted)}
+/* Selection takes over the header row: same place, no jump, no dark band */
+.c-tbl thead tr.us-selrow th{padding-block:4px;background:#E8EDEC;color:var(--text);text-transform:none;letter-spacing:0;font-size:.86rem;font-weight:400}
+.us-sel{display:flex;align-items:center;gap:12px}
+.us-sel b{font-weight:600}
+.us-sel .us-sel-go{margin-left:auto;min-height:32px;padding:0 14px;font-size:.84rem}

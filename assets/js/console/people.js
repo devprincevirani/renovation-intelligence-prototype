@@ -157,7 +157,7 @@
 
     function wlStatus(w){
       if(w.status === 'trial'){ var d = daysLeft(w.user); return d > 0 ? '<span class="lb ' + (d <= 3 ? 'lb-queued' : 'lb-pub') + '">On trial, ' + d + (d === 1 ? ' day' : ' days') + ' left</span>' : '<span class="lb lb-off">Trial ended</span>'; }
-      if(w.status === 'invited') return '<span class="lb lb-info">Invited</span><small class="us-sub">' + C.date(w.invitedAt) + '</small>';
+      if(w.status === 'invited') return '<span class="us-st"><span class="lb lb-info">Invited</span><span class="us-when">' + C.date(w.invitedAt) + '</span></span>';
       return '<span class="lb lb-off">Waiting</span>';
     }
     function bodyWaitlist(el){
@@ -166,19 +166,25 @@
       st.pick = st.pick.filter(function(e){ return waiting.some(function(w){ return w.email === e; }); });
       var all = waiting.length && st.pick.length === waiting.length;
       var cols = (canInvite ? [{label:'<span class="sr">Select</span><input type="checkbox" class="us-ck" id="us-all" aria-label="Select every waiting contact"' + (all ? ' checked' : '') + (waiting.length ? '' : ' disabled') + '>', cls:'us-ckc'}] : [])
-        .concat([{label:'Email'},{label:'Account type'},{label:'From'},{label:'Joined', num:true},{label:'Status'},{label:''}]);
+        .concat([{label:'Email'},{label:'Account type'},{label:'From'},{label:'Joined', num:true},{label:'Status'},{label:'', cls:'us-actc'}]);
       var tools = doc.getElementById('us-tools');
       tools.innerHTML = C.search('us-wq', 'Search by email', st.wq) +
         pick('us-wf', 'Status', [['all','All statuses',W.length],['waiting','Waiting',count(W, function(w){ return w.status; }, 'waiting')],['invited','Invited',count(W, function(w){ return w.status; }, 'invited')],['trial','On trial',count(W, function(w){ return w.status; }, 'trial')]], st.wf);
       el.innerHTML =
-        (canInvite && st.pick.length ? '<div class="us-bulk c-mt" role="region" aria-label="Selected contacts"><span><b>' + st.pick.length + ' selected</b></span><button type="button" class="linkbtn small" id="us-clear">Clear</button><button type="button" class="btn btn-sm us-bulk-go" id="us-bulk">' + RI.icon('mail','i-sm') + 'Invite ' + st.pick.length + ' to the trial</button></div>' : '') +
         '<div class="c-mt">' + C.table({cls:'us-wl', empty:'Nobody matches. Try another email, or show all.', cols:cols,
           rows:rows.map(function(w){
-            var act = !canInvite ? '' : w.status === 'waiting' ? '<button type="button" class="linkbtn small" data-trial="' + RI.esc(w.email) + '">Invite to the trial</button>' : w.status === 'invited' ? '<button type="button" class="linkbtn small" data-trial="' + RI.esc(w.email) + '">Send again</button>' : '';
+            var act = !canInvite ? '' : w.status === 'waiting' ? '<button type="button" class="us-act" data-trial="' + RI.esc(w.email) + '" aria-label="Invite ' + RI.esc(w.email) + ' to the trial">' + RI.icon('mail','i-sm') + 'Invite</button>' : w.status === 'invited' ? '<button type="button" class="us-ghost" data-trial="' + RI.esc(w.email) + '" data-again="1" title="Last sent ' + C.date(w.invitedAt) + '" aria-label="Resend the trial invite to ' + RI.esc(w.email) + '">Resend</button>' : '';
             var ck = canInvite ? [w.status === 'waiting' ? '<input type="checkbox" class="us-ck" data-pick="' + RI.esc(w.email) + '" aria-label="Select ' + RI.esc(w.email) + '"' + (st.pick.indexOf(w.email) > -1 ? ' checked' : '') + '>' : ''] : [];
             return {attr:st.pick.indexOf(w.email) > -1 ? 'class="us-picked"' : '', cells:ck.concat(['<b>' + RI.esc(w.email) + '</b>', w.type ? C.chip(cap(w.type)) : '<span class="muted">Not given</span>', w.source === 'home' ? 'Home page' : 'Waitlist page', C.date(w.at), wlStatus(w), act])};
           })}) + '</div>' +
         '<div class="c-mt">' + C.note(!pre ? 'Trial invites are for the contacts Sam invites before launch. Export the list from Contacts and feedback.' : sam ? 'A trial invite emails a link to sign up for a 15-day trial. Export the list from Contacts and feedback.' : 'Only Sam invites contacts to the trial. Export the list from Contacts and feedback.') + '</div>';
+      var hr = el.querySelector('.us-wl thead tr');
+      if(hr && canInvite && st.pick.length){
+        hr.classList.add('us-selrow');
+        hr.innerHTML = '<th scope="col" class="us-ckc">' + hr.firstElementChild.innerHTML + '</th><th scope="col" colspan="' + (cols.length - 1) + '"><div class="us-sel" role="region" aria-label="Selected contacts"><b>' + st.pick.length + ' selected</b><button type="button" class="us-ghost" id="us-clear">Clear</button>' +
+          '<button type="button" class="btn btn-primary us-sel-go" id="us-bulk">' + RI.icon('mail','i-sm') + 'Invite ' + st.pick.length + ' to the trial</button></div></th>';
+        var ah = hr.querySelector('#us-all'); if(ah) ah.indeterminate = !all;
+      }
       RI.fillIcons(el);
       RI.fillIcons(tools);
       tools.querySelector('#us-wq').addEventListener('input', function(){ st.wq = this.value.trim().toLowerCase(); var p = this.selectionStart; bodyWaitlist(el); var n = doc.getElementById('us-wq'); n.focus(); n.setSelectionRange(p, p); });
@@ -192,13 +198,13 @@
       var cl = el.querySelector('#us-clear'); if(cl) cl.addEventListener('click', function(){ st.pick = []; bodyWaitlist(el); });
       var bk = el.querySelector('#us-bulk'); if(bk) bk.addEventListener('click', function(){ trialDialog(st.pick.slice()); });
     }
-    function trialDialog(emails){
+    function trialDialog(emails, again){
       var one = emails.length === 1;
-      var d = C.dialog(one ? 'Invite to the trial' : 'Invite ' + emails.length + ' contacts to the trial',
+      var d = C.dialog(again ? 'Resend the trial invite' : one ? 'Invite to the trial' : 'Invite ' + emails.length + ' contacts to the trial',
         '<p>' + (one ? '<b>' + RI.esc(emails[0]) + '</b> gets' : 'These contacts get') + ' an email with a link to sign up for a 15-day trial.</p>' +
         (one ? '' : '<ul class="us-list">' + emails.map(function(e){ return '<li>' + RI.esc(e) + '</li>'; }).join('') + '</ul>') +
         '<div class="mail-sim"><div class="mh">' + RI.icon('mail','i-sm') + '<span><b>Trial invite</b> · You are invited to try Renovation Intelligence</span></div><div class="mb"><p>Sam invited you to try Renovation Intelligence before it opens. Sign up to start your 15-day trial.</p><a class="btn btn-primary btn-sm" href="' + RI.url('signup/?invite=demo-trial') + '">Sign up</a><p class="xsmall muted">Demo only: this opens the sample trial sign-up.</p></div></div>' +
-        '<div class="cta-row" style="justify-content:flex-end"><button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="button" class="btn btn-primary" id="tr-go">' + (one ? 'Send the invite' : 'Send ' + emails.length + ' invites') + '</button></div>');
+        '<div class="cta-row" style="justify-content:flex-end"><button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="button" class="btn btn-primary" id="tr-go">' + (again ? 'Send it again' : one ? 'Send the invite' : 'Send ' + emails.length + ' invites') + '</button></div>');
       RI.fillIcons(d);
       d.querySelector('#tr-go').addEventListener('click', function(){
         var t = Date.now(); emails.forEach(function(e){ inv[e] = t; C.log('Trial invite sent', e, '', 'users'); }); C.set('trialInvites', inv);
@@ -256,7 +262,7 @@
     view.querySelector('#us-tab').addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if(!b) return; tab = b.getAttribute('data-v'); view.querySelectorAll('#us-tab [data-v]').forEach(function(x){ x.setAttribute('aria-selected', x === b); }); history.replaceState(null, '', '#/users?tab=' + tab); body(); });
     view.addEventListener('click', function(e){
       var s = e.target.closest('[data-staff]'); if(s){ permsDialog(s.getAttribute('data-staff'), function(){ staff = staffList(); body(); }); return; }
-      var tr = e.target.closest('[data-trial]'); if(tr){ trialDialog([tr.getAttribute('data-trial')]); return; }
+      var tr = e.target.closest('[data-trial]'); if(tr){ trialDialog([tr.getAttribute('data-trial')], tr.hasAttribute('data-again')); return; }
       var d = e.target.closest('[data-dis]'), en = e.target.closest('[data-en]');
       if(d || en){
         var em = (d || en).getAttribute(d ? 'data-dis' : 'data-en'), off = !!d;
