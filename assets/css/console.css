@@ -1387,8 +1387,6 @@ a.au-what:focus-visible{outline:2px solid var(--accent);outline-offset:2px;borde
 .pg-per-s{display:none}
 @media (max-width:599px){
   .c-toolbar.au-bar{display:grid;gap:10px}
-  .au-bar .c-seg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));justify-self:stretch;width:100%}
-  .au-bar .c-seg button{justify-content:center;min-height:40px;padding:0 6px}
   .au-bar .c-tools{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
   .au-bar .c-search{grid-column:1/-1}
   .au-bar .c-select,.au-bar .c-select select{width:100%}
@@ -1396,7 +1394,6 @@ a.au-what:focus-visible{outline:2px solid var(--accent);outline-offset:2px;borde
 }
 @media (min-width:600px) and (max-width:1279px){
   .c-toolbar.au-bar{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;justify-content:stretch}
-  .au-bar .c-seg{justify-self:start}
   .au-bar .c-tools{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:10px;margin-left:0;justify-content:stretch}
   .au-bar .c-search{flex:none;min-width:0}
   .au-bar .c-select,.au-bar .c-select select{width:100%}
@@ -1410,7 +1407,6 @@ a.au-what:focus-visible{outline:2px solid var(--accent);outline-offset:2px;borde
   .au-bar .c-select select{min-width:150px}
 }
 @media (pointer:coarse){
-  .au-bar .c-seg button{min-height:40px}
   .au-bar .c-search input,.au-bar .c-select select{min-height:44px}
 }
 
@@ -1441,3 +1437,21 @@ a.au-what:focus-visible{outline:2px solid var(--accent);outline-offset:2px;borde
   .c-pager .pg-count{white-space:nowrap}
 }
 @media (pointer:coarse) and (min-width:720px){ .c-pager .pg-per .c-select select{min-height:44px} }
+
+/* ---------- Period filter (audit log), v54 ----------
+   A filter, not page tabs: it sits with the search and the selects, so it shares their height, border and radius.
+   Joined buttons with hairline dividers; the chosen period is Deep Forest, like the current page in the pager.
+   No shadow (DESIGN 4: shadows only for things that float). Phone: four equal buttons across the width, 44px. */
+.au-period{display:inline-grid;grid-auto-flow:column;grid-auto-columns:max-content;justify-self:start;border:1px solid var(--border-strong);border-radius:4px;background:var(--raised);overflow:hidden}
+.au-period button{position:relative;min-height:38px;padding:0 16px;border:0;border-left:1px solid var(--border);background:transparent;font:inherit;font-size:.86rem;font-weight:500;color:var(--text);white-space:nowrap;cursor:pointer;transition:background var(--fast),color var(--fast)}
+.au-period button:first-child{border-left:0}
+.au-period button:hover:not([aria-checked="true"]){background:#FCFAF6}
+.au-period button[aria-checked="true"]{background:var(--deep-forest);color:var(--on-accent);font-weight:600;cursor:default}
+.au-period button[aria-checked="true"]+button{border-left-color:var(--deep-forest)}
+.au-period button:focus-visible{outline:2px solid var(--deep-forest);outline-offset:-4px;z-index:1}
+.au-period button[aria-checked="true"]:focus-visible{outline-color:var(--on-accent)}
+@media (max-width:599px){
+  .au-period{display:grid;grid-auto-columns:minmax(0,1fr);justify-self:stretch;width:100%}
+  .au-period button{min-height:42px;padding:0 6px}
+}
+@media (pointer:coarse){ .au-period button{min-height:42px} }

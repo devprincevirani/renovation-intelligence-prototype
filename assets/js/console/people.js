@@ -153,7 +153,7 @@
     var people = all.map(function(e){ return e.by; }).filter(function(v, i, a){ return a.indexOf(v) === i; });
     var acts = all.map(function(e){ return e.action; }).filter(function(v, i, a){ return a.indexOf(v) === i; }).sort();
     view.innerHTML = C.page({kicker:'Admin', title:'Audit log', sub:'Every change: who made it, when, and why. Nothing here can be edited or removed.',
-      body:'<div class="c-toolbar au-bar">' + C.seg('au-when', [['all','All time'],['1','Today'],['7','7 days'],['30','30 days']], 'all') +
+      body:'<div class="c-toolbar au-bar">' + '<div class="au-period" id="au-when" role="radiogroup" aria-label="Period">' + [['all','All time'],['1','Today'],['7','7 days'],['30','30 days']].map(function(o, i){ return '<button type="button" role="radio" data-v="' + o[0] + '" aria-checked="' + (i === 0) + '" tabindex="' + (i === 0 ? 0 : -1) + '">' + o[1] + '</button>'; }).join('') + '</div>' +
         '<div class="c-tools">' + C.search('au-q', 'Search changes', '') +
         '<label class="c-select"><span class="sr">Person</span><select id="au-who"><option value="all">Everyone</option>' + people.map(function(p){ return '<option>' + RI.esc(p) + '</option>'; }).join('') + '</select></label>' +
         '<label class="c-select"><span class="sr">Action</span><select id="au-act"><option value="all">All actions</option>' + acts.map(function(a){ return '<option>' + RI.esc(a) + '</option>'; }).join('') + '</select></label></div></div>' +
@@ -194,8 +194,14 @@
       RI.fillIcons(doc.getElementById('au-list'));
     }
     function reset(){ st.page = 0; draw(); }
-    function setWhen(val){ st.when = val; view.querySelectorAll('#au-when [data-v]').forEach(function(x){ x.setAttribute('aria-selected', x.getAttribute('data-v') === val); }); }
+    function setWhen(val){ st.when = val; view.querySelectorAll('#au-when [data-v]').forEach(function(x){ var on = x.getAttribute('data-v') === val; x.setAttribute('aria-checked', on); x.tabIndex = on ? 0 : -1; }); }
     view.querySelector('#au-when').addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if(!b) return; setWhen(b.getAttribute('data-v')); reset(); });
+    /* A radio group: arrow keys move the choice, as people expect from a set of options */
+    view.querySelector('#au-when').addEventListener('keydown', function(e){
+      var k = e.key, bs = [].slice.call(this.querySelectorAll('[data-v]')), i = bs.indexOf(e.target); if(i < 0) return;
+      var n = k === 'ArrowRight' || k === 'ArrowDown' ? (i + 1) % bs.length : k === 'ArrowLeft' || k === 'ArrowUp' ? (i - 1 + bs.length) % bs.length : k === 'Home' ? 0 : k === 'End' ? bs.length - 1 : -1;
+      if(n < 0) return; e.preventDefault(); setWhen(bs[n].getAttribute('data-v')); bs[n].focus(); reset();
+    });
     view.querySelector('#au-q').addEventListener('input', function(){ st.q = this.value; reset(); });
     view.querySelector('#au-who').addEventListener('change', function(){ st.who = this.value; reset(); });
     view.querySelector('#au-act').addEventListener('change', function(){ st.act = this.value; reset(); });
