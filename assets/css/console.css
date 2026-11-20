@@ -3340,3 +3340,8 @@ button.bim-c:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2
   .rg-wtu em{display:block;margin:0 0 2px}
 }
 @media (max-width:999px){.rf-cls{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-right:-16px;padding-right:16px}.rf-cls::-webkit-scrollbar{display:none}}
+/* Condition sheets: the save bar stays at the bottom of the screen while the sheet scrolls (the wrapper sticks, not the bar inside it) */
+#cd-savewrap{position:sticky;bottom:12px;z-index:6}
+#cd-savewrap:empty{display:none}
+#cd-savewrap .c-savebar{position:static;box-shadow:0 8px 24px rgba(32,59,56,.24)}
+@media (max-width:599px){#cd-savewrap{bottom:calc(8px + env(safe-area-inset-bottom,0px))}#cd-savewrap .c-savebar .btn{flex:1 1 0;min-height:44px}}
