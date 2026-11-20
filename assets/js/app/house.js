@@ -19,7 +19,7 @@
 
   /* ---------- Draft ---------- */
   function draft(view, h){
-    var steps = [['house','The house',!!(h.facts && h.facts.sqft)],['photos','Photos by room',A.photoCount(h) > 0],['measurements','Room sizes (optional)',Object.keys(h.sizes || {}).length > 0],['review','Review and submit',false]];
+    var steps = [['house','Tell us about the home',!!(h.facts && h.facts.sqft)],['rooms','Rooms and photos, then submit',false]];
     var done = steps.filter(function(s){ return s[2]; }).length;
     view.innerHTML = '<div class="app-wrap">' + A.houseHead(h) +
       '<section class="panel-s draft-p"><div class="dp-top"><div><h2>Finish entering your house</h2><p class="muted">Saved as a draft. Pick up where you left off.</p></div><div class="ring" style="--p:' + (done / steps.length) + '"><span>' + done + '<small>of ' + steps.length + '</small></span></div></div>' +
@@ -41,7 +41,7 @@
           '<ol class="stages" id="stages">' + A.STAGES.map(function(s, i){ return '<li data-s="' + i + '"><span class="sg-k">' + RI.icon('check','i-sm') + '</span><span><b>' + s[1] + '</b><span class="xsmall muted">' + s[2] + '</span></span></li>'; }).join('') + '</ol>' +
           '<div class="notice notice-info" id="slow" hidden>' + RI.icon('clock') + '<span><b>This is taking longer than usual.</b> We are on it. You do not need to do anything.</span></div>' +
           '<p class="xsmall muted run-leave">' + RI.icon('mail','i-sm') + 'You can leave this page. We email you when the price is ready.</p>' +
-          '<button type="button" class="linkbtn demo-slow" id="demo-slow">Demo: show a slow run</button></div>' +
+          (RI.devTools ? '<button type="button" class="linkbtn demo-slow" id="demo-slow">Team: show a slow run</button>' : '') + '</div>' +
       '</section></div>';
     RI.CURRENT = est;
     var plan = RI.Plan.mount(view.querySelector('#rs-plan'), {onSelect:function(){}});
@@ -49,7 +49,7 @@
     strip.innerHTML = photos.slice(0, 40).map(function(p, i){ return '<img src="' + p[1].src + '" alt="" data-i="' + i + '">'; }).join('');
     var TAGS = ['Cabinets, 92%','Countertop, 71%','Flooring, 88%','Doors, 90%','Walls, 84%','Light fixture, 79%','Vanity, 86%','Tub, 64%','Trim, 81%'];
     var lastRead = -1;
-    view.querySelector('#demo-slow').addEventListener('click', function(){ h.run.slow = true; A.put(h); this.hidden = true; RI.toast('The run will take longer, to show that state.', 'clock'); });
+    var ds = view.querySelector('#demo-slow'); if(ds) ds.addEventListener('click', function(){ h.run.slow = true; A.put(h); this.hidden = true; RI.toast('The run will take longer, to show that state.', 'clock'); });
     function tick(){
       var fresh = A.get(h.id); if(!fresh){ return; } h = fresh;
       var r = A.runState(h);
@@ -60,7 +60,7 @@
       view.querySelector('#run-h').textContent = A.STAGES[r.stage][1];
       view.querySelector('#run-sub').textContent = r.status === 'reading' ? 'Photo ' + Math.min(r.photos, r.read + 1) + ' of ' + r.photos + '. ' + A.STAGES[1][2] + '.' : A.STAGES[r.stage][2] + '.';
       var left = 0, acc = 0; A.STAGES.forEach(function(s, i){ var d = i === 1 ? A.readMs(h) : s[3]; if(i === 6 && h.run.slow) d += 9000; if(i >= r.stage) left += d; }); left -= (r.stageProgress || 0) * (r.stage === 1 ? A.readMs(h) : A.STAGES[r.stage][3]);
-      view.querySelector('#run-eta').textContent = 'About ' + Math.max(1, Math.round(left / 1000)) + ' seconds left in this demo';
+      view.querySelector('#run-eta').textContent = 'About ' + Math.max(1, Math.round(left / 1000)) + ' seconds left';
       view.querySelectorAll('#stages li').forEach(function(li, i){ li.className = i < r.stage ? 'done' : i === r.stage ? 'cur' : ''; });
       view.querySelector('#slow').hidden = !r.slow;
       view.querySelector('#hh-pill').innerHTML = A.pill(h);
@@ -81,59 +81,140 @@
     tick(); A.every(tick, 400);
   }
 
-  /* ---------- Price ready (free) ---------- */
+  /* ---------- Price ready (free): one room open, the rest locked and counted, the promise beside the button ---------- */
+  /* The price for one house, from RI.OFFERS: the base price, or a true offer when Sam has switched one on */
+  A.PRICE = RI.OFFERS.price;
+  A.priceFor = function(h){
+    var O = RI.OFFERS, s = A.me() || {}, paidOther = A.mine().some(function(x){ return x.paid && (!h || x.id !== h.id); });
+    if(O.secondHouse.on && paidOther) return {amount:O.secondHouse.price, note:'Second house price'};
+    var onList = (RI.store.get('waitlist', []) || []).some(function(w){ return w.email === (s.email || '').toLowerCase(); }) || s.demo;
+    var ends = new Date(O.founding.ends + 'T23:59:59');
+    if(O.founding.on && onList && Date.now() < ends) return {amount:O.founding.price, note:'Founding price, until ' + ends.toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})};
+    return {amount:O.price, note:''};
+  };
   function ready(view, h){
     var est = A.estimate(h); RI.CURRENT = est; RI.track('price_viewed', {house:h.id});
     var T = {}; ['E','S','P'].forEach(function(k){ T[k] = RI.totals(k, {}); });
-    var held = A.heldCount(est), max = Math.ceil(T.P.high / 25000) * 25000;
+    var held = A.heldCount(est), max = Math.ceil(T.P.high / 25000) * 25000, sel = 'S';
     var unk = []; est.rooms.forEach(function(r){ r.items.forEach(function(it){ if(RI.isHeld(it)) unk.push([r, it]); }); });
-    var paid = h.paid || h.trialOpen, trial = !paid && isTrial();
-    function highlights(k){
-      var items = []; est.rooms.forEach(function(r){ r.items.forEach(function(it){ if(!RI.isHeld(it) && it.pk[k][1] != null) items.push([it.pk[k][2], r.name, it.pk[k][0]]); }); });
-      return items.sort(function(a, b){ return b[0] - a[0]; }).slice(0, 3).map(function(x){ return '<li><b>' + x[1] + '</b> ' + RI.esc(x[2]) + '</li>'; }).join('');
+    var paid = h.paid || h.trialOpen, credit = !paid && A.creditsLeft() > 0;
+    /* The open room: the largest share of the Standard total */
+    var open = est.rooms.filter(function(r){ return r.key !== 'whole'; }).sort(function(a, b){ return RI.totals('S', {}, b.key).high - RI.totals('S', {}, a.key).high; })[0];
+    var photoN = A.photoCount(h), zip = (h.addr && h.addr.zip) || (h.facts && h.facts.zip) || '';
+    function roomPhoto(r){ var ps = []; Object.keys(h.photos || {}).forEach(function(k){ if(k === r.key || k.indexOf(r.key + '-') === 0) h.photos[k].forEach(function(p){ if(p.state === 'done') ps.push(p.src); }); }); return ps[0] || null; }
+    /* ---------- What a goal does to this house, room by room (no room prices: those open with the presentation) ---------- */
+    var ROOMMAX = 1; ['E','S','P'].forEach(function(k){ est.rooms.forEach(function(r){ ROOMMAX = Math.max(ROOMMAX, RI.totals(k, {}, r.key).high); }); });
+    var LEVELS = ['Kept as is', 'Light refresh', 'Update', 'Major update'];
+    function pkName(k){ return RI.PACKAGES.filter(function(p){ return p.key === k; })[0].name; }
+    function level(r, k){
+      var t = RI.totals(k, {}, r.key);
+      if(r.items.every(RI.isHeld)) return {i:-1, name:'Needs a photo', cls:'held'};
+      if(!t.high) return {i:0, name:LEVELS[0], cls:'l0'};
+      var x = t.high / ROOMMAX, i = x < .12 ? 1 : x < .35 ? 2 : 3;
+      return {i:i, name:LEVELS[i], cls:'l' + i};
     }
-    view.innerHTML = '<div class="app-wrap">' + A.houseHead(h) +
-      '<section class="price-s"><header class="ps-head"><div><p class="label">Your price by package' + (h.version > 1 ? ' · version ' + h.version : '') + '</p><h2>Three goals, one house</h2><p class="muted small">Ready ' + A.ago(h.run.start + 25000) + '. From ' + A.photoCount(h) + ' photos' + (Object.keys(h.sizes || {}).length ? ' and your room sizes' : '') + '.</p></div>' +
+    function mainChange(r, k){
+      var best = null; r.items.forEach(function(it){ if(RI.isHeld(it)) return; var a = it.pk[k]; if(a[1] != null && (!best || a[2] > best[2])) best = a; });
+      if(best) return best[0];
+      var hd = r.items.filter(RI.isHeld)[0];
+      return hd ? hd.fix + ' would show what this room needs' : 'Everything here is sound and kept';
+    }
+    function prodImgs(r, k){
+      var out = []; r.items.forEach(function(it){ if(RI.isHeld(it)) return; var a = it.pk[k], m = RI.PRODUCT_IMG[it.id]; if(a[1] != null && m && m[k] && out.length < 3) out.push([RI.img(m[k]), a[3] || it.name]); });
+      return out;
+    }
+    /* Parts, not rooms: what changes, what is kept and what still needs a photo or a size under this goal */
+    function goalSummary(k){
+      var changed = 0, kept = 0, need = 0;
+      est.rooms.forEach(function(r){ r.items.forEach(function(it){ if(RI.isHeld(it)) need++; else if(it.pk[k][1] != null) changed++; else kept++; }); });
+      return {changed:changed, kept:kept, need:need};
+    }
+    function sumHtml(g){
+      return '<span><b>' + g.changed + '</b> part' + (g.changed === 1 ? '' : 's') + ' changed</span><span><b>' + g.kept + '</b> kept as is</span>' + (g.need ? '<span class="need"><b>' + g.need + '</b> need' + (g.need === 1 ? 's' : '') + ' a photo or size</span>' : '');
+    }
+    function goalSum(k){
+      var g = goalSummary(k), ph = [];
+      est.rooms.forEach(function(r){ prodImgs(r, k).forEach(function(x){ if(ph.length < 4 && !ph.some(function(y){ return y[0] === x[0]; })) ph.push(x); }); });
+      return '<p class="pk-sum">' + sumHtml(g) + '</p>' +
+        (ph.length ? '<span class="pk-ph">' + ph.map(function(x){ return '<img src="' + x[0] + '" alt="" title="' + RI.esc(x[1]) + '" loading="lazy">'; }).join('') + '</span>' : '');
+    }
+    function meter(l){ return '<span class="hm-meter" aria-hidden="true">' + [1,2,3].map(function(n){ return '<i' + (l.i >= n ? ' class="on"' : '') + '></i>'; }).join('') + '</span>'; }
+    function mapHtml(){
+      var g = goalSummary(sel), t = RI.totals(sel, {});
+      return '<header class="hm-head"><div><p class="label">Your house under each goal</p><h2>What the <span class="hm-goal">' + pkName(sel) + '</span> plan does to your house</h2></div>' +
+          '<div class="seg hm-seg" role="group" aria-label="Goal"><span class="seg-thumb"></span>' + RI.PACKAGES.map(function(p){ return '<button type="button" data-goal="' + p.key + '" aria-pressed="' + (p.key === sel) + '">' + p.name + '</button>'; }).join('') + '</div></header>' +
+        '<div class="hm-strip">' + sumHtml(g) + '<span class="hm-tot">Whole house <b class="range-txt">' + RI.range(t.low, t.high) + '</b></span></div>' +
+        '<div class="hm-legend" aria-hidden="true">' + LEVELS.map(function(n, i){ return '<span>' + meter({i:i}) + n + '</span>'; }).join('') + '<span class="held">' + meter({i:-1}) + 'Needs a photo</span></div>' +
+        '<div class="hm-grid">' + est.rooms.map(function(r){
+          var l = level(r, sel), ph = roomPhoto(r), pr = prodImgs(r, sel), part = r.items.some(RI.isHeld) && l.i >= 0;
+          return '<article class="hm-room ' + l.cls + '" data-room="' + r.key + '">' +
+            '<div class="hm-ph">' + (ph ? '<img src="' + ph + '" alt="' + RI.esc(r.name) + '" loading="lazy">' : '<span class="hm-noph">' + RI.icon(r.key === 'whole' ? 'house' : 'camera') + '</span>') + '<span class="hm-tag">' + l.name + '</span></div>' +
+            '<div class="hm-b"><div class="hm-top"><b>' + RI.esc(r.name) + '</b>' + meter(l) + '</div>' +
+              '<p>' + RI.esc(mainChange(r, sel)) + '.</p>' +
+              (pr.length ? '<span class="hm-prods">' + pr.map(function(x){ return '<img src="' + x[0] + '" alt="" title="' + RI.esc(x[1]) + '" loading="lazy">'; }).join('') + '</span>' : '') +
+              '<span class="hm-foot">' + (r === open ? RI.icon('eye','i-sm') + 'Open below, free' : RI.icon('lock','i-sm') + 'Price in the presentation') + (part ? '<span class="hm-part">Partial</span>' : '') + '</span></div></article>';
+        }).join('') + '</div>';
+    }
+    function openRoom(){ return RI.RoomCard.html(open, sel, {photo:roomPhoto(open), range:RI.range(RI.totals(sel, {}, open.key).low, RI.totals(sel, {}, open.key).high)}); }
+    var pf = A.priceFor(h), price = '$' + pf.amount;
+    view.innerHTML = '<div class="app-wrap px-page">' + A.houseHead(h) +
+      '<section class="price-s"><header class="ps-head"><div><p class="label">Your price by package' + (h.version > 1 ? ' · version ' + h.version : '') + '</p><h2>Three goals, one house</h2><p class="muted small">' + (zip ? 'Priced for ZIP ' + RI.esc(zip) + '. ' : '') + 'From ' + photoN + ' photos' + (Object.keys(h.sizes || {}).length ? ' and your room sizes' : '') + '.</p></div>' +
         (held.u + held.m ? '<span class="state state-partial">Partial: ' + (held.u + held.m) + ' line' + (held.u + held.m > 1 ? 's' : '') + ' not priced yet</span>' : '<span class="state state-priced">Every line priced</span>') + '</header>' +
-        '<div class="pk-cards" data-scale="0,' + max + '">' + RI.PACKAGES.map(function(p, i){
-          return '<article class="pk-card' + (p.key === 'S' ? ' is-default' : '') + '" style="--i:' + i + '"><header><h3>' + p.name + (p.key === 'S' ? ' <span class="default">Default view</span>' : '') + '</h3><p>' + p.goal + '</p></header>' +
+        '<div class="seg pk-seg-m" role="group" aria-label="Goal"><span class="seg-thumb"></span>' + RI.PACKAGES.map(function(p){ return '<button type="button" data-goal="' + p.key + '" aria-pressed="' + (p.key === sel) + '">' + p.name + '</button>'; }).join('') + '</div>' +
+        '<div class="pk-cards" data-scale="0,' + max + '" role="tablist" aria-label="Goal">' + RI.PACKAGES.map(function(p, i){
+          return '<article class="pk-card' + (p.key === sel ? ' is-default' : '') + '" data-goal="' + p.key + '" role="tab" tabindex="0" aria-selected="' + (p.key === sel) + '" style="--i:' + i + '"><header><h3>' + p.name + (p.key === 'S' ? ' <span class="default">Default view</span>' : '') + '</h3><p>' + p.goal + '</p></header>' +
             '<p class="pk-range">' + RI.range(T[p.key].low, T[p.key].high) + '</p><div class="rl thick' + (held.u + held.m ? ' partial' : '') + '" data-low="' + T[p.key].low + '" data-high="' + T[p.key].high + '"></div>' +
-            '<ul class="pk-hl">' + highlights(p.key) + '</ul></article>';
+            goalSum(p.key) + '</article>';
         }).join('') + '</div><div class="pk-axis" data-scale="0,' + max + '"><div class="axis" data-ticks="0,' + max / 2 + ',' + max + '"></div></div>' +
       '</section>' +
+      '<div class="px-layout"><div class="px-sec">' +
+        '<section class="hm" id="px-map" aria-live="polite">' + mapHtml() + '</section>' +
+        '<div class="px-open-h"><p class="label">Open now, free</p><h2>One room, in full</h2></div><div id="px-open">' + openRoom() + '</div></div>' +
+        '<aside class="px-side px-pin" aria-label="Open the full presentation"><p class="label">The full presentation</p><h2>' + (paid ? 'Your presentation is open' : 'Open every room') + '</h2>' +
+          '<ul><li>Every room with its photo and products</li><li>Switch goals, turn items on or off</li><li>Guidance on the roof, heating, water heater and panel</li><li>A PDF and a private link</li></ul>' +
+          (paid ? '<a class="btn btn-primary btn-block px-btn" href="#/houses/' + h.id + '/presentation">Open presentation ' + RI.icon('arrow','i-sm i-arrow') + '</a>'
+            : credit ? '<button type="button" class="btn btn-primary btn-block px-btn" id="credit-open">Open with a credit</button><p class="small muted">You have ' + A.creditsLeft() + ' credit' + (A.creditsLeft() === 1 ? '' : 's') + ' left.</p>'
+            : '<a class="btn btn-primary btn-block px-btn" href="#/houses/' + h.id + '/checkout" id="pay">Open the full presentation, ' + price + '</a><p class="px-promise">One payment for this house. Yours to keep. PDF and a private link included.' + (RI.OFFERS.priceIsSample ? ' <span class="state state-sample">Sample price</span>' : '') + '</p>' + (pf.note ? '<p class="small muted">' + RI.esc(pf.note) + '.</p>' : '') + (RI.devTools && RI.OFFERS.reminderEmail.on ? '<p class="xsmall muted">Team: one reminder email ' + RI.OFFERS.reminderEmail.days + ' days after the price is ready, if still locked. Then nothing more.</p>' : '')) +
+          '<a class="textlink small" href="' + RI.url('sample/') + '" id="px-sample" target="_blank" rel="noopener">See a sample first ' + RI.icon('arrow','i-sm') + '</a>' +
+          '<p class="xsmall muted">An estimate, never a quote. No subscription.</p></aside></div>' +
       '<div class="tabs-s" role="tablist" aria-label="Details">' +
         '<button role="tab" aria-selected="true" data-tab="unk">What we could not confirm <span class="n">' + unk.length + '</span></button>' +
         '<button role="tab" aria-selected="false" data-tab="dec">What each goal does</button>' +
-        '<button role="tab" aria-selected="false" data-tab="ph">Photos <span class="n">' + A.photoCount(h) + '</span></button></div>' +
+        '<button role="tab" aria-selected="false" data-tab="ph">Photos <span class="n">' + photoN + '</span></button></div>' +
       '<div class="tab-p" id="tab-unk">' + (unk.length ? '<p class="small muted">These lines are left out of every total and never shown as zero. Each one says what would settle it.</p><ul class="unk">' + unk.map(function(x){
           var fixPhotos = x[1].state === 'unverified', link = '#/houses/' + h.id + '/intake/' + (fixPhotos ? 'photos' : 'measurements');
           return '<li><span class="state ' + (fixPhotos ? 'state-unverified' : 'state-measure') + '">' + (fixPhotos ? 'Unverified' : 'Needs measurement') + '</span><span><b>' + x[0].name + ', ' + x[1].name.toLowerCase() + '</b><span class="small muted">' + RI.esc(x[1].fix) + ' would settle it.</span></span><a class="btn btn-secondary btn-sm" href="' + link + '" data-fix>' + (fixPhotos ? 'Add the photo' : 'Add the size') + '</a></li>';
         }).join('') + '</ul><p class="xsmall muted">Adding a photo or a size runs the house again. You get a new version; the old one is kept.</p>' : '<p class="muted">Every line is priced. Nothing is missing.</p>') + '</div>' +
-      '<div class="tab-p" id="tab-dec" hidden><p class="small muted">The same parts, three goals. Decisions are made before any pricing, from the same evidence.</p><div class="scroll-x"><table class="dec"><thead><tr><th>Part</th>' + RI.PACKAGES.map(function(p){ return '<th>' + p.name + '</th>'; }).join('') + '</tr></thead><tbody>' +
-        est.rooms.map(function(r){ return '<tr class="dec-room"><th colspan="4">' + r.name + '</th></tr>' + r.items.map(function(it){ return '<tr><td data-label="Part">' + RI.esc(it.name) + (RI.isHeld(it) ? ' <span class="state ' + (it.state === 'measure' ? 'state-measure' : 'state-unverified') + '">' + (it.state === 'measure' ? 'Needs measurement' : 'Unverified') + '</span>' : '') + '</td>' + ['E','S','P'].map(function(k){ var a = it.pk[k]; return '<td data-label="' + RI.PACKAGES.filter(function(x){ return x.key === k; })[0].name + '" class="' + (a[1] == null ? 'keep' : '') + '">' + RI.esc(a[0]) + '</td>'; }).join('') + '</tr>'; }).join(''); }).join('') +
+      '<div class="tab-p" id="tab-dec" hidden><p class="small muted">The same parts under three goals.</p><div class="scroll-x"><table class="dec"><thead><tr><th>Part</th>' + RI.PACKAGES.map(function(p){ return '<th>' + p.name + '</th>'; }).join('') + '</tr></thead><tbody>' +
+        est.rooms.map(function(r){ return '<tr class="dec-room"><th colspan="4">' + r.name + '</th></tr>' + r.items.map(function(it){ return '<tr><td data-label="Part">' + RI.esc(it.name) + (RI.isHeld(it) ? ' <span class="state ' + (it.state === 'measure' ? 'state-measure' : 'state-unverified') + '">' + (it.state === 'measure' ? 'Needs measurement' : 'Unverified') + '</span>' : '') + '</td>' + ['E','S','P'].map(function(k){ var a = it.pk[k]; return '<td data-label="' + RI.PACKAGES.filter(function(p){ return p.key === k; })[0].name + '">' + (a ? RI.esc(a[0]) : '') + '</td>'; }).join('') + '</tr>'; }).join(''); }).join('') +
         '</tbody></table></div></div>' +
       '<div class="tab-p" id="tab-ph" hidden>' + A.photosByRoom(h) + '</div>' +
-      '<section class="sys-teaser" aria-labelledby="h-sys"><div><p class="label">House systems</p><h2 id="h-sys">Guidance, never a price in your totals</h2><p class="small muted">What to look for, typical lifespans and planning ranges for the four systems a renovation does not touch. Full guidance is in the presentation.</p></div>' +
-        '<ul>' + est.mechanicals.map(function(m){ return '<li>' + RI.icon('info','i-sm') + '<span><b>' + m.name + '</b><span class="xsmall muted">' + m.src + '</span></span><span class="st st-draft">' + RI.icon('lock','i-sm') + 'In the presentation</span></li>'; }).join('') + '</ul></section>' +
-      '<section class="pay-s">' +
-        '<div class="pay-prev" aria-hidden="true"><div class="pp-sheet"><div class="pp-bar"><span>Essential</span><span class="on">Standard</span><span>Premium</span></div>' + est.rooms.slice(0, 4).map(function(r){ var t = RI.totals('S', {}, r.key); return '<div class="pp-row"><b>' + r.name + '</b><span>' + (t.high ? RI.money(t.low) + ' to ' + RI.money(t.high) : (r.items.some(RI.isHeld) ? 'Not priced yet' : 'No cost')) + '</span></div>'; }).join('') + '<div class="pp-fade"></div></div></div>' +
-        '<div class="pay-copy"><p class="label">The full presentation</p><h2>' + (paid ? 'Your presentation is open' : 'Every room, every line, every product') + '</h2>' +
-          '<ul class="ticks"><li>' + RI.icon('check') + '<span>Room by room and trade by trade, with the product for each line</span></li><li>' + RI.icon('check') + '<span>Switch goals and turn items on or off. Totals update at once</span></li><li>' + RI.icon('check') + '<span>Guidance on the roof, heating and cooling, water heater and panel</span></li><li>' + RI.icon('check') + '<span>A PDF and a private link to share</span></li>' + (A.isPro() ? '<li>' + RI.icon('check') + '<span>Task lists per trade, for your crews</span></li>' : '') + '</ul>' +
-          (paid ? '<a class="btn btn-primary" href="#/houses/' + h.id + '/presentation">Open presentation ' + RI.icon('arrow','i-sm i-arrow') + '</a>'
-            : trial ? '<div class="cta-row"><button type="button" class="btn btn-primary" id="trial-open">Open with your trial</button><span class="small muted">Included in your 15-day trial</span></div>'
-            : '<div class="cta-row"><a class="btn btn-primary" href="#/houses/' + h.id + '/checkout" id="pay">Open the full presentation, $49</a><span class="small muted">One payment for this house. <span class="state state-sample">Sample price</span></span></div>') +
-        '</div></section>' +
       '<p class="disc-line">' + RI.icon('info','i-sm') + 'This is an estimate for planning, never a contractor\'s bid. Lines we could not confirm are left out of the totals. A contractor still needs to see the house.</p>' +
       '</div>';
-    RI.initRanges(view);
+    RI.initRanges(view); RI.RoomCard.wire(view);
     view.querySelectorAll('.pk-card .rl').forEach(function(r, i){ r.classList.remove('drawn'); setTimeout(function(){ r.classList.add('drawn'); }, 250 + i * 220); });
+    /* The goal switch changes the open room and the locked cards live */
+    function setGoal(k){
+      sel = k; view.querySelectorAll('.pk-card').forEach(function(c){ var on = c.getAttribute('data-goal') === k; c.classList.toggle('is-default', on); c.setAttribute('aria-selected', on); });
+      var ms = view.querySelector('.pk-seg-m'); ms.querySelectorAll('[data-goal]').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-goal') === k); }); RI.syncSeg(ms);
+      view.querySelector('#px-open').innerHTML = openRoom(); RI.RoomCard.wire(view);
+      var map = view.querySelector('#px-map'); map.innerHTML = mapHtml(); RI.fillIcons && RI.fillIcons(map); RI.syncSeg(map.querySelector('.hm-seg'));
+      map.classList.remove('hm-flash'); void map.offsetWidth; map.classList.add('hm-flash');
+    }
+    view.querySelector('#px-map').addEventListener('click', function(e){ var c = e.target.closest('.hm-seg [data-goal]'); if(c) setGoal(c.getAttribute('data-goal')); });
+    RI.syncSeg(view.querySelector('.hm-seg'));
+    view.querySelector('.pk-cards').addEventListener('click', function(e){ var c = e.target.closest('[data-goal]'); if(c) setGoal(c.getAttribute('data-goal')); });
+    view.querySelector('.pk-seg-m').addEventListener('click', function(e){ var c = e.target.closest('[data-goal]'); if(c) setGoal(c.getAttribute('data-goal')); });
+    RI.syncSeg(view.querySelector('.pk-seg-m'));
+    view.querySelector('.pk-cards').addEventListener('keydown', function(e){ if((e.key === 'Enter' || e.key === ' ') && e.target.closest('[data-goal]')){ e.preventDefault(); setGoal(e.target.closest('[data-goal]').getAttribute('data-goal')); } });
+    var sm = view.querySelector('#px-sample'); if(sm) sm.addEventListener('click', function(){ RI.track('sample_opened_from_price', {house:h.id}); });
+    var pay = view.querySelector('#pay');
     var tabs = view.querySelectorAll('.tabs-s [data-tab]');
     tabs.forEach(function(t){ t.addEventListener('click', function(){ tabs.forEach(function(x){ x.setAttribute('aria-selected', x === t); }); ['unk','dec','ph'].forEach(function(k){ view.querySelector('#tab-' + k).hidden = k !== t.getAttribute('data-tab'); }); }); });
     view.querySelector('.tabs-s').addEventListener('keydown', function(e){ if(e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return; var arr = [].slice.call(tabs), i = arr.indexOf(doc.activeElement); if(i < 0) return; var n = arr[(i + (e.key === 'ArrowRight' ? 1 : arr.length - 1)) % arr.length]; n.focus(); n.click(); });
-    var to = view.querySelector('#trial-open'); if(to) to.addEventListener('click', function(){ h.trialOpen = true; A.put(h); RI.toast('Opened with your trial.'); A.go('#/houses/' + h.id + '/presentation'); });
-    if(!A.hasCheckout){ var pay = view.querySelector('#pay'); if(pay){ pay.removeAttribute('href'); pay.setAttribute('aria-disabled', 'true'); pay.classList.add('is-off'); pay.textContent = 'The presentation arrives in milestone 4'; } }
+    var to = view.querySelector('#credit-open'); if(to) to.addEventListener('click', function(){ h.trialOpen = true; A.put(h); RI.toast('Opened with a credit.'); A.go('#/houses/' + h.id + '/presentation'); });
+    if(!A.hasCheckout){ if(pay){ pay.removeAttribute('href'); pay.setAttribute('aria-disabled', 'true'); pay.classList.add('is-off'); pay.textContent = 'The presentation arrives in milestone 4'; } }
   }
-  function isTrial(){ var s = A.me(); if(!s) return false; if(s.demo) return s.role === 'builder'; var u = RI.users.get(s.email) || {}; return !!u.trial && Date.now() < (u.at || 0) + 15 * 86400000; }
 
   A.route('/houses/:id', function(view, p){
     var h = A.get(p.id); if(!h){ view.innerHTML = A.notFound(); return; }

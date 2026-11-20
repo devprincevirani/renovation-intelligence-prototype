@@ -7,7 +7,7 @@
   function cta(){ return '<a class="btn btn-primary" data-cta data-arrow href="' + RI.url('waitlist/') + '">Join the waitlist</a>'; }
   if(!h){
     box.innerHTML = '<div class="empty"><div class="mark bronze">' + RI.icon('lock') + '</div><h1>This link has expired or is not valid</h1><p class="muted">The person who shared it may have turned it off. You can still get an estimate for your own house.</p>' +
-      '<div class="cta-row" style="justify-content:center"><a class="btn btn-primary" href="' + RI.url('') + '">Get this for your house</a><a class="textlink" href="' + RI.url('sample/') + '">See a sample estimate</a></div><p class="xsmall muted">Demo note: share links open in the same browser that created them.</p></div>';
+      '<div class="cta-row" style="justify-content:center"><a class="btn btn-primary" href="' + RI.url('') + '">Get this for your house</a><a class="textlink" href="' + RI.url('sample/') + '">See a sample estimate</a></div><p class="xsmall muted">Note: share links open in the same browser that created them.</p></div>';
     RI.fillIcons(box); return;
   }
   var est = A.estimate(h); RI.CURRENT = est; RI.track('share_viewed');
