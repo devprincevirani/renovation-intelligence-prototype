@@ -123,6 +123,7 @@ Each named version is a full copy in `../prototype-versions/<name>/`. To go back
 | v61-users-one-row | Users and staff: the tabs, the search and the state or status dropdown share one row (tabs left, search and dropdown right). Tablet: the search and dropdown move under the tabs on one line. Phone: search and dropdown side by side under the tabs |
 | v62-funnel-no-tag | Funnel header: the Sample tag removed; the line reads "Last 30 days, <dates>. Invented numbers." |
 | v63-funnel-period | Funnel gets a 7 / 30 / 90 days choice in the header (same joined buttons as the audit log, arrow keys work, 30 by default, ?days=7 or ?days=90 in the link). Each period has its own sample numbers, date line, trend lines and "vs the N days before" change |
+| v64-sample-tag | Sample tag redesigned as a note on where a row comes from, not a state: outlined, sentence case, no dot, no fill, muted text (Rules and Photo accuracy too). On Users and staff, Demo access logins carry a "Demo" tag beside the name, with a tooltip, instead of "Sample" in the Account type column. Trial and Invited keep the info blue under their own style |
 | v6-cost | Redesigns the renovation cost section: finder and schematic area map, house type line drawings, rate explorer with a size slider, and "typical vs your house"; carried into area and house type pages |
 
 ## Folder layout

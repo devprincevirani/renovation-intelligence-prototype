@@ -80,6 +80,8 @@
   var GROUPS = [['Houses', ['houses.view', 'houses.grade']], ['Rulebook and pricing', ['rulebook.view', 'rulebook.edit', 'pricing.edit', 'content.edit', 'accuracy.manage', 'backtests.run']],
     ['People and records', ['users.view', 'contacts.export', 'funnel.view', 'audit.view']]];
   var SAM_ONLY = ['Publish or discard a draft', 'Invite staff and set permissions', 'Invite contacts to the trial', 'Disable an account'];
+  /* Demo access logins: a note on where the row comes from, not a state, so it is quiet and sits by the name */
+  var DEMO_TAG = '<span class="lb lb-sample" title="A Demo access login for trying the prototype. It cannot be disabled.">Demo</span>';
   var cap = function(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; };
   function daysLeft(u){ return TRIAL_DAYS - Math.floor((now - u.at) / DAY); }
   function userState(u){
@@ -92,7 +94,7 @@
     var s = userState(u);
     if(s === 'disabled') return '<span class="lb lb-bad">Disabled</span>';
     if(s === 'unverified') return '<span class="lb lb-off">Not verified</span>';
-    if(s === 'trial'){ var d = daysLeft(u); return '<span class="lb ' + (d <= 3 ? 'lb-queued' : 'lb-sample') + '">Trial, ' + d + (d === 1 ? ' day' : ' days') + ' left</span>'; }
+    if(s === 'trial'){ var d = daysLeft(u); return '<span class="lb ' + (d <= 3 ? 'lb-queued' : 'lb-info') + '">Trial, ' + d + (d === 1 ? ' day' : ' days') + ' left</span>'; }
     return '<span class="lb lb-pub">Active</span>';
   }
 
@@ -143,8 +145,8 @@
           rows:rows.map(function(u){
             var act = '';
             if(sam && !u.demo) act = u.disabled ? '<button type="button" class="linkbtn small" data-en="' + RI.esc(u.email) + '">Enable</button>' : '<button type="button" class="linkbtn small danger" data-dis="' + RI.esc(u.email) + '">Disable</button>';
-            return {attr:u.disabled ? 'class="us-off"' : '', cells:['<span class="c-person">' + C.av(u.name) + '<span><b>' + RI.esc(u.name) + '</b><small>' + RI.esc(u.email) + '</small></span></span>',
-              C.chip(RI.esc(u.type)) + (u.demo ? ' ' + C.lbl('sample') : ''), stateLbl(u), String(u.houses), u.news ? 'Yes' : '<span class="muted">No</span>', C.date(u.at), act]};
+            return {attr:u.disabled ? 'class="us-off"' : '', cells:['<span class="c-person">' + C.av(u.name) + '<span><span class="us-name"><b>' + RI.esc(u.name) + '</b>' + (u.demo ? DEMO_TAG : '') + '</span><small>' + RI.esc(u.email) + '</small></span></span>',
+              C.chip(RI.esc(u.type)), stateLbl(u), String(u.houses), u.news ? 'Yes' : '<span class="muted">No</span>', C.date(u.at), act]};
           })}) + '</div>' +
         '<div class="c-mt">' + C.note('Account type changes what a person sees, never what they may do. Disabling an account ends its sessions at once; its houses stay.') + '</div>';
       RI.fillIcons(el);
@@ -155,7 +157,7 @@
 
     function wlStatus(w){
       if(w.status === 'trial'){ var d = daysLeft(w.user); return d > 0 ? '<span class="lb ' + (d <= 3 ? 'lb-queued' : 'lb-pub') + '">On trial, ' + d + (d === 1 ? ' day' : ' days') + ' left</span>' : '<span class="lb lb-off">Trial ended</span>'; }
-      if(w.status === 'invited') return '<span class="lb lb-sample">Invited</span><small class="us-sub">' + C.date(w.invitedAt) + '</small>';
+      if(w.status === 'invited') return '<span class="lb lb-info">Invited</span><small class="us-sub">' + C.date(w.invitedAt) + '</small>';
       return '<span class="lb lb-off">Waiting</span>';
     }
     function bodyWaitlist(el){
@@ -229,7 +231,7 @@
       var rows = [{cells:['<span class="c-person">' + C.av('Sam', 'sam') + '<span><b>Sam</b><small>admin@demo.ri</small></span></span>', '<span class="c-chip sam">Super admin</span>', C.lbl('published').replace('Published', 'Active'), '<span class="c-chip">All</span>', '<span class="muted">Created on the server</span>', '']}];
       staff.forEach(function(x){
         rows.push({attr:sam ? 'data-staff="' + RI.esc(x.email) + '" tabindex="0" role="button"' : '', cells:['<span class="c-person">' + C.av(x.name || x.email) + '<span><b>' + RI.esc(x.name || 'Not accepted yet') + '</b><small>' + RI.esc(x.email) + '</small></span></span>', '<span class="c-chip">Staff</span>',
-          x.status === 'invited' ? '<span class="lb lb-sample">Invited</span>' : x.status === 'disabled' ? '<span class="lb lb-bad">Disabled</span>' : C.lbl('published').replace('Published', 'Active'),
+          x.status === 'invited' ? '<span class="lb lb-info">Invited</span>' : x.status === 'disabled' ? '<span class="lb lb-bad">Disabled</span>' : C.lbl('published').replace('Published', 'Active'),
           permChips(x.perms), x.status === 'invited' ? 'Invited ' + C.ago(x.invitedAt) + ' · link works 7 days' : 'Joined ' + C.ago(x.joinedAt || x.invitedAt),
           sam ? '<span class="linkbtn small">Manage</span>' : '']});
       });

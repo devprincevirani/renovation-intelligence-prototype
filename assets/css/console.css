@@ -1581,3 +1581,9 @@ a.au-what:focus-visible{outline:2px solid var(--accent);outline-offset:2px;borde
 .us-top .us-pick{flex:none}
 @media (max-width:1179px){.us-top .us-bar .c-search{flex:1 1 auto;max-width:420px}}
 @media (max-width:599px){.us-top .us-bar .c-search{max-width:none}.us-top .us-pick select{min-width:0;max-width:170px;min-height:44px}.us-top .c-search input{min-height:44px}}
+/* Sample and demo: where a row comes from, not a state. Outlined, sentence case, no dot, no fill (DESIGN 3: colour carries meaning) */
+.lb-info{color:#33607E;background:#E7F2FA}
+.lb.lb-sample{gap:0;padding:1px 7px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:.72rem;font-weight:600;letter-spacing:0;text-transform:none;cursor:help}
+.lb.lb-sample::before{display:none}
+.us-name{display:flex;align-items:center;gap:8px;min-width:0}
+.us-name b{min-width:0}
