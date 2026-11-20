@@ -127,8 +127,8 @@
 
     view.innerHTML = C.page({kicker:'Admin', title:'Users and staff', sub:'Users, account types, staff invites and permissions.',
       actions:sam ? '<div class="us-head" id="us-head" aria-live="polite"></div><button type="button" class="btn btn-primary" id="inv-new">' + RI.icon('user','i-sm') + 'Invite staff</button>' : '',
-      body:'<div class="us-top">' + '<div class="us-tabs" id="us-tab" role="tablist" aria-label="Sections">' + [['users', 'Users', U.length, 'user', 'Accounts and account types'], ['staff', 'Staff', staff.length + 1, 'key', 'Sam\'s team and what each can do'], ['waitlist', 'Waitlist and trial', W.length, 'mail', 'People waiting, and trial invites']].map(function(t){
-        return '<button type="button" role="tab" data-v="' + t[0] + '" aria-selected="' + (t[0] === tab) + '"><span class="ut-ic">' + RI.icon(t[3], 'i-sm') + '</span><span class="ut-t"><b>' + t[1] + '</b><small>' + t[4] + '</small></span><span class="ut-n">' + t[2] + '</span></button>';
+      body:'<div class="us-top">' + '<div class="us-tabs" id="us-tab" role="tablist" aria-label="Sections">' + [['users', 'Users', U.length, 'user'], ['staff', 'Staff', staff.length + 1, 'key'], ['waitlist', 'Waitlist and trial', W.length, 'mail']].map(function(t){
+        return '<button type="button" role="tab" data-v="' + t[0] + '" aria-selected="' + (t[0] === tab) + '"><span class="ut-ic">' + RI.icon(t[3], 'i-sm') + '</span><span class="ut-t">' + t[1] + '</span><span class="ut-n">' + t[2] + '</span></button>';
       }).join('') + '</div>' + '<div id="us-tools" class="us-bar"></div></div><div id="us-body"></div>'});
 
     function count(list, fn, v){ return list.filter(function(x){ return fn(x) === v; }).length; }
