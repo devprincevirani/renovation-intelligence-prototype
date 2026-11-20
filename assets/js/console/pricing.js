@@ -14,7 +14,7 @@
     C.set('rates', RI.RATES.map(function(r, i){ return {name:r[0], desc:r[1], unit:r[2], lo:r[3], hi:r[4], region:'Sample region', src:i % 2 ? 'Sam\'s price book' : 'Supplier list, Nov 2026', v:i === 0 ? 7 : 2 + i % 4, at:now - (4 + i * 2) * DAY}; }));
   });
   C.APPLY.products = function(d){ var l = C.get('products', []); l.forEach(function(p){ if(p.id === d.ref){ Object.assign(p, d.after); p.v++; p.at = Date.now(); } }); C.set('products', l); };
-  C.APPLY.rates = function(d){ var l = C.get('rates', []), r = l[+d.ref]; if(r){ r.lo = d.after.lo; r.hi = d.after.hi; r.v++; r.at = Date.now(); C.set('rates', l); } };
+  C.APPLY.rates = function(d){ var l = C.get('rates', []), r = l[+d.ref]; if(r){ r.lo = d.after.lo; r.hi = d.after.hi; if(d.after.src) r.src = d.after.src; r.v = (r.v || 0) + 1; r.at = Date.now(); C.set('rates', l); } };
 
   /* A small range line: the bar from Low to High on a shared scale, as on the user's screens */
   function rline(lo, hi, max){ return '<span class="pr-rl" aria-hidden="true"><i style="left:' + (lo / max * 100).toFixed(1) + '%;width:' + Math.max(1.5, (hi - lo) / max * 100).toFixed(1) + '%"></i></span>'; }
@@ -60,34 +60,174 @@
     draw();
   }, {nav:'products', perm:'rulebook.view'});
 
-  /* ---------- Rates ---------- */
-  C.route('/rates', function(view){
-    var list = C.get('rates', []), canEdit = C.can('pricing.edit'), edit = {};
-    view.innerHTML = C.page({kicker:'Pricing', title:'Rates', sub:'Installed Low and High per line, by region, with the date and the source. A published rate is what check 4 looks for.',
-      body:'<div class="c-toolbar"><label class="c-select"><span class="sr">Region</span><select id="ra-r"><option>Sample region</option></select></label><span class="small muted">One region in version one.</span></div><div id="ra-list"></div>'});
-    function draw(){
-      doc.getElementById('ra-list').innerHTML = '<div class="ra">' + list.map(function(r, i){
-        var e = edit[i], lo = e ? e.lo : r.lo, hi = e ? e.hi : r.hi, dr = C.draftFor('rates', String(i)), max = Math.max(r.hi, hi) * 1.6;
-        return '<article class="ra-card' + (e ? ' editing' : '') + '"><header><div><h2>' + RI.esc(r.name) + '</h2><p>' + RI.esc(r.desc) + '</p></div>' + (e ? C.lbl('draft', 'not saved') : dr ? C.lbl('queued') : C.lbl('published', 'v' + r.v)) + '</header>' +
-          '<div class="ra-val"><span class="ra-n">' + money2(lo) + '<em>to</em>' + money2(hi) + '<small>per ' + r.unit + '</small></span>' + rline(lo, hi, max) + '</div>' +
-          (e ? '<div class="ra-ed"><label>Low<input class="input" type="number" step="0.1" data-lo="' + i + '" value="' + lo + '"></label><label>High<input class="input" type="number" step="0.1" data-hi="' + i + '" value="' + hi + '"></label><button type="button" class="btn btn-secondary btn-sm" data-cancel="' + i + '">Cancel</button><button type="button" class="btn btn-primary btn-sm" data-save="' + i + '">Save as draft</button></div>' :
-            '<footer><span class="small muted">' + RI.esc(r.region) + ' · ' + RI.esc(r.src) + ' · ' + C.date(r.at) + '</span>' + (canEdit && !dr ? '<button type="button" class="linkbtn small" data-ed="' + i + '">Edit</button>' : dr ? '<a class="small" href="#/publish">In the queue</a>' : '') + '</footer>') + '</article>';
-      }).join('') + '</div>' + C.note('Sample rates. Low and High only, never one number. Sam\'s rate library replaces them.');
-      RI.fillIcons(doc.getElementById('ra-list'));
+  /* ---------- Rates (APP_FLOW 7, BACKLOG M3-09, M3-22, M4-25, SCHEMA rates and rate_versions, PDF 59) ----------
+     The rate library: a Low and a High installed rate per activity and unit, with region, effective date, source,
+     status and versions. Never one number. Staff with pricing.edit save a draft; only Sam publishes. Nothing is
+     overwritten: every version stays visible, and an older one can be restored as a new draft (SECURITY 18).
+     Mobile first: one list that is a stack of cards on a phone and a compact table on a computer; a rate opens in
+     a sheet (full screen on a phone, a side panel on a computer). */
+  var RT_TRADES = ['Flooring', 'Painting', 'Carpentry', 'Cabinets', 'Plumbing', 'Electrical', 'Drywall'];
+  var RT_META = {
+    'LVP flooring':['R-FL-LVP-SF', 'Flooring'], 'Interior painting':['R-PT-WALL-SF', 'Painting'], 'Hardwood refinish':['R-FL-HWR-SF', 'Flooring'],
+    'Baseboard':['R-CP-BASE-LF', 'Carpentry'], 'Cabinet refinish':['R-CB-REF-LF', 'Cabinets'], 'Interior door':['R-CP-DOOR-EA', 'Carpentry'],
+    'Bath vanity':['R-PL-VAN-EA', 'Plumbing'], 'Light fixture':['R-EL-FIX-EA', 'Electrical']
+  };
+  /* More sample lines so the library reads at a real size. One has no rate yet: SCHEMA lets Low and High both be empty */
+  var RT_EXTRA = [
+    ['Carpet', 'Pad and carpet, stretched in', 'sq ft', 3.2, 5.6, 'R-FL-CPT-SF', 'Flooring'],
+    ['Tile floor', 'Ceramic, thinset and grout', 'sq ft', 11, 18, 'R-FL-TILE-SF', 'Flooring'],
+    ['Ceiling painting', 'Flat white over primer', 'sq ft', 1.4, 2.6, 'R-PT-CEIL-SF', 'Painting'],
+    ['Exterior door', 'Pre-hung steel, installed', 'each', 1400, 2500, 'R-CP-EXD-EA', 'Carpentry'],
+    ['Laminate countertop', 'Post-formed, installed', 'linear ft', 38, 64, 'R-CB-CTL-LF', 'Cabinets'],
+    ['Kitchen faucet', 'Pull-down, installed', 'each', 380, 690, 'R-PL-FAU-EA', 'Plumbing'],
+    ['Shower valve', 'Pressure balanced, trim included', 'each', null, null, 'R-PL-SHV-EA', 'Plumbing'],
+    ['Outlets and switches', 'Device and plate, standard', 'each', 45, 85, 'R-EL-DEV-EA', 'Electrical'],
+    ['Drywall patch', 'Patch, tape, finish and prime', 'each', 180, 340, 'R-DW-PATCH-EA', 'Drywall']
+  ];
+  var RT_WHY = ['Supplier list for the quarter', 'Two installers raised their prices', 'The lab house back-test showed High too low', 'Matched to Sam\'s price book', 'Measured jobs ran larger than the guide'];
+  /* Rates seeded before this screen lacked a code and a trade; add them, and the extra lines, once */
+  function rtList(){
+    var list = C.get('rates', []), changed = false;
+    list.forEach(function(r){ if(!r.code){ var m = RT_META[r.name] || ['R-' + r.name.slice(0, 3).toUpperCase(), 'Carpentry']; r.code = m[0]; r.trade = m[1]; changed = true; } });
+    RT_EXTRA.forEach(function(x, i){ if(list.some(function(r){ return r.code === x[5]; })) return;
+      list.push({name:x[0], desc:x[1], unit:x[2], lo:x[3], hi:x[4], code:x[5], trade:x[6], region:'Sample region', src:x[3] == null ? '' : i % 2 ? 'Sam\'s price book' : 'Supplier list, Nov 2026', v:x[3] == null ? 0 : 1 + (i * 3) % 5, at:now - (3 + i * 3) * DAY}); changed = true; });
+    if(changed) C.set('rates', list);
+    return list;
+  }
+  var rtMoney = function(n){ return n == null ? '' : '$' + (n < 100 ? n.toFixed(2) : Math.round(n).toLocaleString('en-US')); };
+  var rtRange = function(lo, hi, unit){ return lo == null ? '<span class="rlb-none">No rate yet</span>' : '<span class="rlb-r"><b>' + rtMoney(lo) + '</b><em>to</em><b>' + rtMoney(hi) + '</b></span>' + (unit ? '<small>per ' + RI.esc(unit) + '</small>' : ''); };
+  var rtShort = function(t){ return new Date(t).toLocaleDateString('en-US', {month:'short', day:'numeric'}); };
+  /* Versions: the ones published in this browser come from the publish queue (with their before values);
+     older ones are sample history so the timeline shows its shape */
+  function rtHistory(r, i){
+    if(r.lo == null) return [];
+    var pubs = C.drafts().filter(function(d){ return d.area === 'rates' && d.ref === String(i) && d.status === 'published'; }).sort(function(a, b){ return b.doneAt - a.doneAt; });
+    var top = pubs[0] && pubs[0].toV === r.v ? pubs[0] : null;
+    var out = [{v:r.v, lo:r.lo, hi:r.hi, src:r.src, at:r.at, by:top ? top.by : (r.v % 2 ? 'Marcus Hill' : 'Dana Reyes'), pub:top ? top.doneBy : 'Sam', why:top ? top.why : RT_WHY[r.v % RT_WHY.length], cur:true}];
+    var prev = top && top.before ? top.before : null;
+    for(var k = r.v - 1, n = 1; k >= 1 && n <= 5; k--, n++){
+      var f = 1 - 0.035 * n, lo = prev && n === 1 ? prev.lo : Math.round(r.lo * f * 20) / 20, hi = prev && n === 1 ? prev.hi : Math.round(r.hi * f * 20) / 20;
+      if(r.lo >= 100){ lo = Math.round(lo); hi = Math.round(hi); }
+      out.push({v:k, lo:lo, hi:hi, src:k % 2 ? 'Sam\'s price book' : 'Supplier list, ' + new Date(r.at - n * 28 * DAY).toLocaleDateString('en-US', {month:'short', year:'numeric'}), at:r.at - n * 28 * DAY, by:k % 2 ? 'Marcus Hill' : 'Dana Reyes', pub:'Sam', why:k === 1 ? 'First published rate' : RT_WHY[k % RT_WHY.length]});
     }
+    return out;
+  }
+
+  C.route('/rates', function(view){
+    var list = rtList(), canEdit = C.can('pricing.edit'), st = {q:'', trade:'all', s:'all'}, open = null;
+    var stateOf = function(r, i){ return r.lo == null ? 'none' : C.draftFor('rates', String(i)) ? 'queued' : 'pub'; };
+    var count = function(s){ return list.filter(function(r, i){ return s === 'all' || stateOf(r, i) === s; }).length; };
+    view.innerHTML = C.page({kicker:'Pricing', title:'Rates', sub:'The rate library: a Low and a High installed rate per activity and unit, with the region, effective date and source. Check 4 prices a line only from a published rate.',
+      body:'<div class="rlb-tools">' + C.search('rlb-q', 'Search by activity or code', '') +
+        '<label class="c-select rlb-sel"><span class="sr">Trade</span><select id="rlb-trade"><option value="all">All trades</option>' + RT_TRADES.map(function(t){ return '<option>' + t + '</option>'; }).join('') + '</select></label>' +
+        '<span class="rlb-region">' + RI.icon('pin', 'i-sm') + 'Sample region<small>One region in version one</small></span></div>' +
+        '<div class="rlb-status" id="rlb-s" role="radiogroup" aria-label="Status"></div><div id="rlb-body"></div>' +
+        '<div class="c-mt">' + C.note('Sample rates. Low and High only, never one number. Sam\'s rate library replaces them.') + '</div>'});
+
+    function statusLbl(r, i){
+      var s = stateOf(r, i);
+      if(s === 'none') return '<span class="lb lb-off">No rate yet</span>';
+      if(s === 'queued') return '<span class="lb lb-queued">In the queue</span>';
+      return '<span class="lb lb-pub">Published v' + r.v + '</span>';
+    }
+    function draw(){
+      var q = st.q, rows = list.map(function(r, i){ return {r:r, i:i}; }).filter(function(x){ var r = x.r;
+        return (st.trade === 'all' || r.trade === st.trade) && (st.s === 'all' || stateOf(r, x.i) === st.s) && (!q || (r.name + ' ' + r.code + ' ' + r.desc).toLowerCase().indexOf(q) > -1); });
+      doc.getElementById('rlb-s').innerHTML = [['all', 'All'], ['pub', 'Published'], ['queued', 'In the queue'], ['none', 'No rate yet']].map(function(o){
+        return '<button type="button" role="radio" data-s="' + o[0] + '" aria-checked="' + (st.s === o[0]) + '">' + o[1] + '<span class="n">' + count(o[0]) + '</span></button>'; }).join('');
+      var none = count('none');
+      var html = (none && st.s !== 'none' ? '<button type="button" class="rlb-alert" data-s="none">' + RI.icon('warn', 'i-sm') + '<span><b>' + none + (none === 1 ? ' activity has' : ' activities have') + ' no rate yet.</b> Lines that use ' + (none === 1 ? 'it' : 'them') + ' show &ldquo;Not priced yet&rdquo; until Sam publishes a Low and a High.</span>' + RI.icon('arrow', 'i-sm') + '</button>' : '');
+      if(!rows.length){ doc.getElementById('rlb-body').innerHTML = html + '<div class="c-empty">' + RI.icon('search') + '<p>No rate matches. Try another word, or show all trades.</p></div>'; RI.fillIcons(doc.getElementById('rlb-body')); return; }
+      html += '<ul class="rlb-list" role="list"><li class="rlb-head" aria-hidden="true"><span>Activity</span><span>Unit</span><span class="num">Low</span><span class="num">High</span><span>Effective</span><span>Source</span><span>Status</span><span></span></li>';
+      RT_TRADES.forEach(function(t){
+        var g = rows.filter(function(x){ return x.r.trade === t; }); if(!g.length) return;
+        html += '<li class="rlb-grp"><span>' + t + '</span><small>' + g.length + (g.length === 1 ? ' rate' : ' rates') + '</small></li>';
+        g.forEach(function(x){ var r = x.r, i = x.i, d = C.draftFor('rates', String(i));
+          html += '<li class="rlb-row' + (r.lo == null ? ' is-none' : '') + (open === i ? ' is-open' : '') + '"><button type="button" class="rlb-hit" data-i="' + i + '" aria-label="Open ' + RI.esc(r.name) + '">' +
+            '<span class="rlb-name"><b>' + RI.esc(r.name) + '</b><small><code>' + r.code + '</code> &middot; ' + RI.esc(r.desc) + '</small></span>' +
+            '<span class="rlb-unit">' + RI.esc(r.unit) + '</span>' +
+            '<span class="rlb-lo num">' + (r.lo == null ? '<span class="muted">&ndash;</span>' : rtMoney(r.lo)) + '</span><span class="rlb-hi num">' + (r.hi == null ? '<span class="muted">&ndash;</span>' : rtMoney(r.hi)) + '</span>' +
+            '<span class="rlb-val">' + rtRange(r.lo, r.hi, r.unit) + '</span>' +
+            '<span class="rlb-eff">' + (r.lo == null ? '<span class="muted">&ndash;</span>' : C.date(r.at)) + '</span><span class="rlb-src">' + (r.src ? RI.esc(r.src) : '<span class="muted">&ndash;</span>') + '</span>' +
+            '<span class="rlb-meta">' + (r.lo == null ? 'Waiting for Sam\'s Low and High' : 'Effective ' + rtShort(r.at) + ' &middot; ' + RI.esc(r.src)) + (d ? ' &middot; <b class="rlb-q">Draft: ' + rtMoney(d.after.lo) + ' to ' + rtMoney(d.after.hi) + '</b>' : '') + '</span>' +
+            '<span class="rlb-st">' + statusLbl(r, i) + '</span><span class="rlb-go">' + RI.icon('chev', 'i-sm') + '</span></button></li>';
+        });
+      });
+      doc.getElementById('rlb-body').innerHTML = html + '</ul>';
+      RI.fillIcons(doc.getElementById('rlb-body')); RI.fillIcons(doc.getElementById('rlb-s'));
+    }
+
+    /* ---------- One rate: current values, the edit, the queue, every version ---------- */
+    var sheet = doc.createElement('dialog'); sheet.className = 'rlb-sheet'; sheet.setAttribute('aria-labelledby', 'rlb-h'); view.appendChild(sheet);
+    sheet.addEventListener('close', function(){ open = null; draw(); });
+    sheet.addEventListener('click', function(e){ if(e.target === sheet) sheet.close(); });
+    function bars(r, nlo, nhi){
+      var hasNew = nlo != null && nhi != null && (nlo !== r.lo || nhi !== r.hi), max = Math.max(r.hi || 0, hasNew ? nhi : 0) * 1.25 || 1;
+      var bar = function(lo, hi, cls, label){ return '<div class="rlb-bar ' + cls + '"><span>' + label + '</span><span class="rlb-track"><i style="left:' + (lo / max * 100).toFixed(1) + '%;width:' + Math.max(1.5, (hi - lo) / max * 100).toFixed(1) + '%"></i></span><b>' + rtMoney(lo) + ' to ' + rtMoney(hi) + '</b></div>'; };
+      return '<div class="rlb-bars">' + (r.lo != null ? bar(r.lo, r.hi, 'cur', 'Now') : '') + (hasNew ? bar(nlo, nhi, 'new', 'Draft') : '') + '</div>';
+    }
+    function pctTxt(a, b){ if(a == null || !b) return ''; var p = Math.round((b - a) / a * 100); return p === 0 ? 'no change' : (p > 0 ? '+' : '') + p + '%'; }
+    function openSheet(i){
+      open = i; var r = list[i], d = C.draftFor('rates', String(i)), hist = rtHistory(r, i), ed = {lo:d ? d.after.lo : r.lo, hi:d ? d.after.hi : r.hi, src:(d && d.after.src) || r.src || ''};
+      sheet.innerHTML = '<div class="rlb-sh">' +
+        '<header class="rlb-sh-h"><button type="button" class="rlb-x" data-close aria-label="Close">' + RI.icon('x') + '</button><div><p class="rlb-code"><code>' + r.code + '</code> &middot; ' + r.trade + '</p><h2 id="rlb-h">' + RI.esc(r.name) + '</h2><p class="muted">' + RI.esc(r.desc) + '</p></div>' + statusLbl(r, i) + '</header>' +
+        '<div class="rlb-sh-b">' +
+          '<section class="rlb-now"><div class="rlb-big">' + rtRange(r.lo, r.hi, r.unit) + '</div>' + (r.lo == null ? '<p class="rlb-why">Lines that use this activity show &ldquo;Not priced yet&rdquo; (check 4) until Sam publishes a Low and a High. Nothing is shown as zero.</p>' : '') +
+            '<div id="rlb-bars">' + bars(r, ed.lo, ed.hi) + '</div>' +
+            '<dl class="rlb-facts"><div><dt>Effective</dt><dd>' + (r.lo == null ? '&ndash;' : C.date(r.at)) + '</dd></div><div><dt>Source</dt><dd>' + (r.src ? RI.esc(r.src) : '&ndash;') + '</dd></div><div><dt>Region</dt><dd>' + RI.esc(r.region) + '</dd></div><div><dt>Version</dt><dd>' + (r.v ? 'v' + r.v : 'None yet') + '</dd></div></dl></section>' +
+          (d ? '<section class="rlb-queue">' + RI.icon('clock', 'i-sm') + '<div><b>In the publish queue: ' + rtMoney(d.after.lo) + ' to ' + rtMoney(d.after.hi) + '</b><span>Saved by ' + RI.esc(d.by) + ' ' + C.ago(d.at) + (d.why ? ': &ldquo;' + RI.esc(d.why) + '&rdquo;' : '') + '</span><a href="#/publish">Open the publish queue</a></div></section>' : '') +
+          (canEdit ? '<section class="rlb-edit"><h3>' + (r.lo == null ? 'Add a Low and a High' : d ? 'Change the draft' : 'Change this rate') + '</h3><p class="small muted">Saved as a draft. It goes live when Sam publishes it, after a back-test.</p>' +
+            '<div class="rlb-fields"><label><span>Low</span><span class="rlb-in"><i>$</i><input class="input" type="number" inputmode="decimal" step="0.05" min="0" id="rlb-lo" value="' + (ed.lo == null ? '' : ed.lo) + '"></span></label>' +
+            '<label><span>High</span><span class="rlb-in"><i>$</i><input class="input" type="number" inputmode="decimal" step="0.05" min="0" id="rlb-hi" value="' + (ed.hi == null ? '' : ed.hi) + '"></span></label>' +
+            '<label class="rlb-wide"><span>Source</span><input class="input" type="text" id="rlb-src" value="' + RI.esc(ed.src) + '" placeholder="For example: Supplier list, Dec 2026"></label></div>' +
+            '<p class="rlb-delta" id="rlb-delta" aria-live="polite"></p></section>' : '<p class="rlb-ro">' + RI.icon('lock', 'i-sm') + 'You can read rates. Changing one needs the pricing.edit permission.</p>') +
+          (hist.length ? '<section class="rlb-hist"><h3>Versions</h3><ol>' + hist.map(function(h){
+            return '<li' + (h.cur ? ' class="cur"' : '') + '><span class="rlb-dot" aria-hidden="true"></span><div class="rlb-hv"><div class="rlb-hv-t"><b>v' + h.v + '</b>' + (h.cur ? '<span class="lb lb-pub">Live</span>' : '') + '<span class="rlb-hv-r">' + rtMoney(h.lo) + ' to ' + rtMoney(h.hi) + '</span></div>' +
+              '<small>Effective ' + C.date(h.at) + ' &middot; ' + RI.esc(h.src) + '</small><small>Drafted by ' + RI.esc(h.by) + ', published by ' + RI.esc(h.pub) + '</small>' + (h.why ? '<p>&ldquo;' + RI.esc(h.why) + '&rdquo;</p>' : '') +
+              (!h.cur && canEdit ? '<button type="button" class="us-act rlb-restore" data-v="' + h.v + '">' + RI.icon('refresh', 'i-sm') + 'Restore v' + h.v + '</button>' : '') + '</div></li>';
+          }).join('') + '</ol><p class="small muted">Nothing is overwritten. Restoring saves the older values as a new draft.</p></section>' : '') +
+        '</div>' +
+        (canEdit ? '<footer class="rlb-sh-f"><button type="button" class="btn btn-secondary" data-close>Cancel</button><button type="button" class="btn btn-primary" id="rlb-save">' + RI.icon('check', 'i-sm') + 'Save as draft</button></footer>' : '') + '</div>';
+      RI.fillIcons(sheet);
+      if(!sheet.open) sheet.showModal();
+      draw();
+      var lo = sheet.querySelector('#rlb-lo'), hi = sheet.querySelector('#rlb-hi'), src = sheet.querySelector('#rlb-src'), dl = sheet.querySelector('#rlb-delta');
+      function live(){
+        var a = lo.value === '' ? null : +lo.value, b = hi.value === '' ? null : +hi.value, msg = '', bad = false;
+        if(a == null || b == null) msg = 'Enter both a Low and a High.', bad = true;
+        else if(a <= 0) msg = 'Low must be more than zero.', bad = true;
+        else if(b < a) msg = 'High must be at least Low.', bad = true;
+        else if(r.lo != null && a === r.lo && b === r.hi && src.value.trim() === (r.src || '')) msg = 'No change yet.';
+        else msg = r.lo == null ? 'New rate: ' + rtMoney(a) + ' to ' + rtMoney(b) + ' per ' + r.unit + '.' : 'Low ' + pctTxt(r.lo, a) + ', High ' + pctTxt(r.hi, b) + '.';
+        dl.textContent = msg; dl.classList.toggle('bad', bad);
+        sheet.querySelector('#rlb-bars').innerHTML = bars(r, bad ? null : a, bad ? null : b);
+        return !bad && msg !== 'No change yet.';
+      }
+      if(lo){ [lo, hi, src].forEach(function(x){ x.addEventListener('input', live); }); live(); }
+      var sv = sheet.querySelector('#rlb-save'); if(sv) sv.addEventListener('click', function(){
+        if(!live()){ (lo.value === '' ? lo : hi).focus(); return; }
+        var a = +lo.value, b = +hi.value, s = src.value.trim() || r.src;
+        var sum = r.lo == null ? 'New Low and High per ' + r.unit + ': ' + rtMoney(a) + ' to ' + rtMoney(b) : 'Low and High per ' + r.unit + ': ' + rtMoney(r.lo) + ' to ' + rtMoney(r.hi) + ' becomes ' + rtMoney(a) + ' to ' + rtMoney(b);
+        sheet.close();
+        C.askWhy('Rate: ' + r.name, sum, function(why){ C.addDraft({area:'rates', ref:String(i), title:'Rate: ' + r.name + ', sample region', summary:sum, after:{lo:a, hi:b, src:s}, why:why}); RI.toast('Saved as a draft. It waits in the publish queue.', 'check'); C.render(); });
+      });
+      sheet.querySelectorAll('.rlb-restore').forEach(function(b){ b.addEventListener('click', function(){
+        var h = hist.filter(function(x){ return x.v === +b.getAttribute('data-v'); })[0]; if(!h) return;
+        var sum = 'Restore v' + h.v + ': ' + rtMoney(r.lo) + ' to ' + rtMoney(r.hi) + ' becomes ' + rtMoney(h.lo) + ' to ' + rtMoney(h.hi) + ' per ' + r.unit;
+        sheet.close();
+        C.askWhy('Rate: ' + r.name, sum, function(why){ C.addDraft({area:'rates', ref:String(i), title:'Rate: ' + r.name + ', sample region (restore v' + h.v + ')', summary:sum, after:{lo:h.lo, hi:h.hi, src:h.src}, why:why}); RI.toast('Saved as a draft to restore v' + h.v + '.', 'check'); C.render(); });
+      }); });
+      sheet.querySelectorAll('[data-close]').forEach(function(b){ b.addEventListener('click', function(){ sheet.close(); }); });
+    }
+
+    view.querySelector('#rlb-q').addEventListener('input', function(){ st.q = this.value.trim().toLowerCase(); draw(); });
+    view.querySelector('#rlb-trade').addEventListener('change', function(){ st.trade = this.value; draw(); });
     view.addEventListener('click', function(e){
-      var ed = e.target.closest('[data-ed]'); if(ed){ var i = +ed.getAttribute('data-ed'); edit[i] = {lo:list[i].lo, hi:list[i].hi}; draw(); var f = doc.querySelector('[data-lo="' + i + '"]'); if(f) f.focus(); return; }
-      var ca = e.target.closest('[data-cancel]'); if(ca){ delete edit[+ca.getAttribute('data-cancel')]; draw(); return; }
-      var sv = e.target.closest('[data-save]'); if(sv){ var k = +sv.getAttribute('data-save'), r = list[k], x = edit[k];
-        if(!(x.lo > 0 && x.hi >= x.lo)){ RI.toast('High must be at least Low.', 'warn'); return; }
-        if(x.lo === r.lo && x.hi === r.hi){ delete edit[k]; draw(); return; }
-        var sum = 'Low and High per ' + r.unit + ': ' + money2(r.lo) + ' to ' + money2(r.hi) + ' becomes ' + money2(x.lo) + ' to ' + money2(x.hi);
-        C.askWhy('Rate: ' + r.name, sum, function(why){ C.addDraft({area:'rates', ref:String(k), title:'Rate: ' + r.name + ', sample region', summary:sum, after:{lo:x.lo, hi:x.hi}, why:why}); delete edit[k]; RI.toast('Saved as a draft. It waits in the publish queue.', 'check'); C.render(); }); }
+      var s = e.target.closest('[data-s]'); if(s && view.contains(s) && !sheet.contains(s)){ st.s = s.getAttribute('data-s'); draw(); return; }
+      var h = e.target.closest('.rlb-hit'); if(h){ openSheet(+h.getAttribute('data-i')); }
     });
-    view.addEventListener('input', function(e){ var lo = e.target.getAttribute('data-lo'), hi = e.target.getAttribute('data-hi'); if(lo != null) edit[+lo].lo = +e.target.value; if(hi != null) edit[+hi].hi = +e.target.value;
-      var i = lo != null ? +lo : hi != null ? +hi : -1; if(i < 0) return; var card = e.target.closest('.ra-card'), x = edit[i], max = Math.max(list[i].hi, x.hi) * 1.6;
-      card.querySelector('.ra-n').innerHTML = money2(x.lo || 0) + '<em>to</em>' + money2(x.hi || 0) + '<small>per ' + list[i].unit + '</small>'; card.querySelector('.pr-rl').outerHTML = rline(x.lo || 0, x.hi || 0, max); });
-    draw();
+    var want = C.query().code; draw();
+    if(want){ var wi = list.map(function(r){ return r.code; }).indexOf(want); if(wi > -1) openSheet(wi); }
   }, {nav:'rates', perm:'rulebook.view'});
 
   /* ---------- Check results ---------- */
