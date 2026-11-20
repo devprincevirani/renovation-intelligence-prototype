@@ -170,7 +170,6 @@
       '<div class="o3-head"><div><p class="c-kicker">Console</p><h1>Overview <span class="o3-tag h-aside">Proposal for Sam</span></h1><p>' + new Date().toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric', year:'numeric'}) + '. What moved in the console this week.</p></div>' +
         '<div class="o3-act"><span class="o3-seg" role="group" aria-label="Data in the charts"><button type="button" data-mode="example" aria-pressed="' + (mode === 'example') + '">Example data</button><button type="button" data-mode="browser" aria-pressed="' + (mode === 'browser') + '">This browser</button></span>' +
         (canQueue ? '<a class="btn btn-primary" href="#/publish">' + I('refresh', 'i-sm') + 'Open the publish queue</a>' : '') + '</div></div>' +
-      (mode === 'example' ? '<p class="o3-ex">' + I('info', 'i-sm') + '<span><b>Example data</b> in the charts, to show the layout at the scale of a working pilot. The lists use this browser.</span></p>' : '<p class="o3-ex">' + I('info', 'i-sm') + '<span><b>This browser</b>: the prototype\'s ' + plural(all.length, 'house', 'houses') + ', so the numbers are small.</span></p>') +
       kpis +
       '<div class="o3-g' + (right ? ' o3-r1' : '') + '">' + trend + (right ? '<div class="o3-col">' + right + '</div>' : '') + '</div>' +
       '<div class="o3-g' + (act ? ' o3-r2' : '') + '">' + why + act + '</div>' + gradeCard + '</div>';
