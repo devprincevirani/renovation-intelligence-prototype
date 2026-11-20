@@ -98,9 +98,9 @@
 })();
 
 /* ---------- Funnel (APP_FLOW 3, BACKLOG M4-19, SEO_CONVERSION 9) ----------
-   Opens on the sample month, labelled as sample. Four headline numbers (intakes, free views, paid presentations, shares),
-   the path from sign up to a paid presentation with the loss at each step, where people leave and what each screen does
-   about it, then before sign up and after paying. "This browser" counts the events recorded while using the prototype. */
+   Shows the sample month, labelled as sample. Four headline numbers (intakes, free views, paid presentations, shares),
+   the nine steps from visit to share, where people leave and what each screen does about it, then before sign up
+   and after paying. */
 (function(){
   var RI = window.RI, C = RI.Con, doc = document, DAY = 86400000;
   var I = function(n, c){ return RI.icon(n, c || ''); }, fmt = function(n){ return Math.round(n).toLocaleString('en-US'); };
@@ -138,30 +138,26 @@
 
 
   C.route('/funnel', function(view){
-    var mode = C.query().mode || 'sample', ev = RI.store.get('events', []);
     var today = new Date(); today.setHours(0, 0, 0, 0);
     var from = new Date(+today - 29 * DAY), md = function(d){ return d.toLocaleDateString('en-US', {month:'short', day:'numeric'}); };
     var range = md(from) + ' to ' + md(today) + ', ' + today.getFullYear();
 
-    function counts(){ if(mode === 'sample') return SAMPLE; var c = {}; ev.forEach(function(e){ c[e.e] = (c[e.e] || 0) + 1; }); return c; }
-    var src = '<div class="au-period fn-src" id="fu-mode" role="radiogroup" aria-label="Data">' + [['sample','Sample month'],['browser','This browser']].map(function(o){ return '<button type="button" role="radio" data-v="' + o[0] + '" aria-checked="' + (o[0] === mode) + '" tabindex="' + (o[0] === mode ? 0 : -1) + '">' + o[1] + '</button>'; }).join('') + '</div>';
-    view.innerHTML = C.page({kicker:'Customers', title:'Funnel', sub:'', actions:src, body:'<div id="fu-body"></div>'});
+    /* Always the sample month, labelled as sample. Real counts come from the funnel events on the server (M4-19) */
+    view.innerHTML = C.page({kicker:'Customers', title:'Funnel', sub:C.lbl('sample') + ' <span>Last 30 days, ' + range + '. Invented numbers.</span>', body:'<div id="fu-body"></div>'});
 
     function card(o){ return '<section class="c3' + (o.cls ? ' ' + o.cls : '') + '" aria-labelledby="fn-' + o.id + '"><header class="c3-h"><div><h2 id="fn-' + o.id + '">' + o.title + '</h2>' + (o.sub ? '<p>' + o.sub + '</p>' : '') + '</div>' + (o.aside || '') + '</header>' + o.body + (o.foot ? '<footer class="c3-f sp">' + o.foot + '</footer>' : '') + '</section>'; }
 
     function body(){
-      var c = counts(), n = function(e){ return c[e] || 0; }, sample = mode === 'sample';
-      view.querySelector('.c-sub') || view.querySelector('.c-head-t').insertAdjacentHTML('beforeend', '<p class="c-sub"></p>');
-      view.querySelector('.c-sub').innerHTML = sample ? C.lbl('sample') + ' <span>Last 30 days, ' + range + '. Invented numbers.</span>' : 'Counted from ' + ev.length + ' events recorded in this browser while using the prototype.';
+      var n = function(e){ return SAMPLE[e] || 0; };
 
       /* ---------- Four headline numbers (BACKLOG M4-19) ---------- */
-      var kpi = function(icon, label, e, note){
+      var kpi = function(icon, label, e){
         var v = n(e);
-        return '<div class="k3"><span class="k3-h"><span class="k3-ic">' + I(icon, 'i-sm') + '</span>' + label + '</span><span class="k3-m"><b>' + fmt(v) + '</b>' + (sample ? spark(SERIES[e], 'fg') : '') + '</span>' +
-          '<span class="k3-f">' + (sample ? delta(v, BEFORE[e]) + '<span>vs the 30 days before</span>' : '<span>' + note + '</span>') + '</span></div>';
+        return '<div class="k3"><span class="k3-h"><span class="k3-ic">' + I(icon, 'i-sm') + '</span>' + label + '</span><span class="k3-m"><b>' + fmt(v) + '</b>' + spark(SERIES[e], 'fg') + '</span>' +
+          '<span class="k3-f">' + delta(v, BEFORE[e]) + '<span>vs the 30 days before</span></span></div>';
       };
-      var kpis = '<div class="k3s fn-k">' + kpi('house', 'Houses submitted', 'intake_submitted', 'In this browser') + kpi('eye', 'Free price views', 'price_viewed', 'In this browser') +
-        kpi('file', 'Paid presentations', 'payment_completed', 'In this browser') + kpi('share', 'Shares', 'share_created', 'In this browser') + '</div>';
+      var kpis = '<div class="k3s fn-k">' + kpi('house', 'Houses submitted', 'intake_submitted') + kpi('eye', 'Free price views', 'price_viewed') +
+        kpi('file', 'Paid presentations', 'payment_completed') + kpi('share', 'Shares', 'share_created') + '</div>';
 
       /* ---------- From visit to share ----------
          One bar per step on a square-root scale, so the later steps stay readable next to the visitors.
@@ -203,10 +199,6 @@
         C.note('Counted on our own server, one event per step, not by an ad tracker (SEO_CONVERSION 9).');
       RI.fillIcons(doc.getElementById('fu-body'));
     }
-    var grp = view.querySelector('#fu-mode');
-    function setMode(v){ mode = v; grp.querySelectorAll('[data-v]').forEach(function(x){ var on = x.getAttribute('data-v') === v; x.setAttribute('aria-checked', on); x.tabIndex = on ? 0 : -1; }); history.replaceState(null, '', '#/funnel?mode=' + v); body(); }
-    grp.addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if(b) setMode(b.getAttribute('data-v')); });
-    grp.addEventListener('keydown', function(e){ var bs = [].slice.call(grp.querySelectorAll('[data-v]')), i = bs.indexOf(e.target); if(i < 0) return; var d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0; if(!d) return; e.preventDefault(); var t = bs[(i + d + bs.length) % bs.length]; setMode(t.getAttribute('data-v')); t.focus(); });
     body();
   }, {nav:'funnel', perm:'funnel.view'});
 })();
