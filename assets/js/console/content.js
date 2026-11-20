@@ -95,24 +95,111 @@
     });
     body();
   }, {nav:'feedback', perm:'contacts.export'});
+})();
 
-  /* ---------- Funnel ---------- */
-  var STEPS = [['page_view','Arrives','Home or area page'],['waitlist_joined','Joins the waitlist','Before launch'],['signup_completed','Signs up','Sign up'],['intake_started','Starts the intake','Intake wizard'],['intake_submitted','Submits the house','Intake wizard'],['price_viewed','Sees the price','House page'],['checkout_started','Starts to pay','House page'],['payment_completed','Pays','Checkout'],['presentation_opened','Reads the presentation','Presentation'],['share_created','Shares it','Share link'],['feedback_sent','Gives feedback','Presentation']];
+/* ---------- Funnel (APP_FLOW 3, BACKLOG M4-19, SEO_CONVERSION 9) ----------
+   Opens on the sample month, labelled as sample. Four headline numbers (intakes, free views, paid presentations, shares),
+   the path from sign up to a paid presentation with the loss at each step, where people leave and what each screen does
+   about it, then before sign up and after paying. "This browser" counts the events recorded while using the prototype. */
+(function(){
+  var RI = window.RI, C = RI.Con, doc = document, DAY = 86400000;
+  var I = function(n, c){ return RI.icon(n, c || ''); }, fmt = function(n){ return Math.round(n).toLocaleString('en-US'); };
+  var pct = function(a, b){ return b ? a / b * 100 : 0; };
+  /* The path, with what makes people leave and what the screen does about it (APP_FLOW 3) */
+  var FLOW = [
+    {e:'signup_completed', l:'Signs up', s:'Sign up', why:'Too many fields', fix:'Email, password, account type. Nothing else'},
+    {e:'intake_started', l:'Starts the intake', s:'Intake wizard', why:'Long forms, lost progress', fix:'Fewest inputs, saved at every step, measurements optional'},
+    {e:'intake_submitted', l:'Submits the house', s:'Intake wizard', why:'Long forms, lost progress', fix:'Fewest inputs, saved at every step, measurements optional'},
+    {e:'price_ready', l:'Price ready', s:'House page', why:'Does not know if it is working', fix:'Live progress, and an email when the price is ready', sys:true},
+    {e:'price_viewed', l:'Sees the price', s:'House page', why:'Does not trust the number', fix:'Low and High, the "partial" label, what is unverified and why'},
+    {e:'checkout_started', l:'Starts to pay', s:'House page', why:'Does not know what the money buys', fix:'A clear list and preview of what the presentation holds'},
+    {e:'payment_completed', l:'Pays', s:'Stripe Checkout', why:'Payment friction', fix:'Stripe\'s own page; return straight into the presentation'},
+    {e:'presentation_opened', l:'Reads it', s:'Presentation', why:'Hard to read on a phone', fix:'Sticky package switch and total, rooms that open and close'}
+  ];
+  /* Sample month: invented numbers that show the layout, labelled as sample */
+  var SAMPLE = {page_view:1840, waitlist_joined:212, signup_completed:96, intake_started:71, intake_submitted:52, price_ready:51, price_viewed:49, checkout_started:21, payment_completed:14, presentation_opened:14, share_created:6, share_viewed:23, feedback_sent:5};
+  var BEFORE = {intake_submitted:44, price_viewed:41, payment_completed:10, share_created:4};
+  var SERIES = {intake_submitted:[4,5,6,6,7,7,8,9], price_viewed:[4,4,5,6,7,7,8,8], payment_completed:[1,1,1,2,2,2,2,3], share_created:[0,1,0,1,1,1,1,1]};
+
+  function spark(arr, tone){
+    var w = 112, h = 34, max = Math.max(1, Math.max.apply(null, arr)), n = arr.length;
+    var pts = arr.map(function(v, i){ return [i / (n - 1) * (w - 6) + 3, h - 4 - v / max * (h - 10)]; });
+    var line = 'M' + pts.map(function(p){ return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' L'), last = pts[n - 1];
+    return '<svg class="k3-sp ' + tone + '" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true"><path class="f" d="' + line + ' L' + last[0].toFixed(1) + ',' + h + ' L3,' + h + ' Z"/><path class="l" d="' + line + '"/><circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="3"/></svg>';
+  }
+  function delta(now, before){
+    var d = now - before, txt = d === 0 ? 'No change' : (d > 0 ? '+' : '') + Math.round(d / before * 100) + '%';
+    return '<span class="k3-d ' + (d === 0 ? 'flat' : d > 0 ? 'good' : 'bad') + '">' + txt + '</span>';
+  }
+
   C.route('/funnel', function(view){
-    var mode = C.query().mode || 'browser', ev = RI.store.get('events', []);
-    var SAMPLE = {page_view:1840, waitlist_joined:212, signup_completed:96, intake_started:71, intake_submitted:52, price_viewed:49, checkout_started:21, payment_completed:14, presentation_opened:14, share_created:6, feedback_sent:5};
-    function counts(){ var c = {}; if(mode === 'sample') return SAMPLE; ev.forEach(function(e){ c[e.e] = (c[e.e] || 0) + 1; }); return c; }
-    view.innerHTML = C.page({kicker:'Customers', title:'Funnel', sub:'The path from a stranger to a paid presentation, one event per step (APP_FLOW 3). Where people leave, and what each screen does about it.',
-      body:C.seg('fu-mode', [['browser','This browser'],['sample','Sample month']], mode) + '<div id="fu-body" class="c-mt"></div>'});
+    var mode = C.query().mode || 'sample', ev = RI.store.get('events', []);
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var from = new Date(+today - 29 * DAY), md = function(d){ return d.toLocaleDateString('en-US', {month:'short', day:'numeric'}); };
+    var range = md(from) + ' to ' + md(today) + ', ' + today.getFullYear();
+
+    function counts(){ if(mode === 'sample') return SAMPLE; var c = {}; ev.forEach(function(e){ c[e.e] = (c[e.e] || 0) + 1; }); return c; }
+    var src = '<div class="au-period fn-src" id="fu-mode" role="radiogroup" aria-label="Data">' + [['sample','Sample month'],['browser','This browser']].map(function(o){ return '<button type="button" role="radio" data-v="' + o[0] + '" aria-checked="' + (o[0] === mode) + '" tabindex="' + (o[0] === mode ? 0 : -1) + '">' + o[1] + '</button>'; }).join('') + '</div>';
+    view.innerHTML = C.page({kicker:'Customers', title:'Funnel', sub:'', actions:src, body:'<div id="fu-body"></div>'});
+
+    function card(o){ return '<section class="c3' + (o.cls ? ' ' + o.cls : '') + '" aria-labelledby="fn-' + o.id + '"><header class="c3-h"><div><h2 id="fn-' + o.id + '">' + o.title + '</h2>' + (o.sub ? '<p>' + o.sub + '</p>' : '') + '</div>' + (o.aside || '') + '</header>' + o.body + (o.foot ? '<footer class="c3-f sp">' + o.foot + '</footer>' : '') + '</section>'; }
+
     function body(){
-      var c = counts(), top = Math.max(1, c.page_view || 0), prev = null;
-      doc.getElementById('fu-body').innerHTML = (mode === 'sample' ? '<div class="ru-note">' + C.lbl('sample') + '<span>Invented numbers to show the layout. Real counts come from the events the product records on its own server.</span></div>' : '<div class="ru-note">' + RI.icon('info','i-sm') + '<span>Counted from ' + ev.length + ' events recorded in this browser while using the prototype.</span></div>') +
-        '<ol class="fu">' + STEPS.map(function(s, i){ var n = c[s[0]] || 0, pc = n / top * 100, conv = prev != null && prev > 0 && s[0] !== 'waitlist_joined' ? Math.round(n / prev * 100) : null; if(s[0] !== 'waitlist_joined') prev = n;
-          return '<li class="fu-s' + (s[0] === 'waitlist_joined' ? ' side' : '') + '"><div class="fu-l"><b>' + s[1] + '</b><small><code>' + s[0] + '</code> · ' + s[2] + '</small></div><div class="fu-bar"><i style="width:' + Math.max(n ? 1.2 : 0, pc).toFixed(1) + '%"></i></div><div class="fu-n"><b>' + n.toLocaleString('en-US') + '</b>' + (conv != null ? '<small' + (conv < 40 ? ' class="fu-drop"' : '') + '>' + conv + '% of the step before</small>' : '') + '</div></li>'; }).join('') + '</ol>' +
-        C.note('Before launch, the first step ends in the waitlist instead. Counts are kept on our own server, not by an ad tracker.');
+      var c = counts(), n = function(e){ return c[e] || 0; }, sample = mode === 'sample';
+      view.querySelector('.c-sub') || view.querySelector('.c-head-t').insertAdjacentHTML('beforeend', '<p class="c-sub"></p>');
+      view.querySelector('.c-sub').innerHTML = sample ? C.lbl('sample') + ' <span>Last 30 days, ' + range + '. Invented numbers.</span>' : 'Counted from ' + ev.length + ' events recorded in this browser while using the prototype.';
+
+      /* ---------- Four headline numbers (BACKLOG M4-19) ---------- */
+      var kpi = function(icon, label, e, note){
+        var v = n(e);
+        return '<div class="k3"><span class="k3-h"><span class="k3-ic">' + I(icon, 'i-sm') + '</span>' + label + '</span><span class="k3-m"><b>' + fmt(v) + '</b>' + (sample ? spark(SERIES[e], 'fg') : '') + '</span>' +
+          '<span class="k3-f">' + (sample ? delta(v, BEFORE[e]) + '<span>vs the 30 days before</span>' : '<span>' + note + '</span>') + '</span></div>';
+      };
+      var kpis = '<div class="k3s fn-k">' + kpi('house', 'Houses submitted', 'intake_submitted', 'In this browser') + kpi('eye', 'Free price views', 'price_viewed', 'In this browser') +
+        kpi('file', 'Paid presentations', 'payment_completed', 'In this browser') + kpi('share', 'Shares', 'share_created', 'In this browser') + '</div>';
+
+      /* ---------- From sign up to a paid presentation ---------- */
+      var top = Math.max.apply(null, [1].concat(FLOW.map(function(s){ return n(s.e); }))), steps = FLOW.map(function(s, i){ var v = n(s.e), p = i ? n(FLOW[i - 1].e) : null; return {s:s, v:v, p:p, keep:p ? v / p : null, lost:p ? Math.max(0, p - v) : 0}; });
+      var leaks = steps.filter(function(x){ return x.p && !x.s.sys && x.lost > 0; }).sort(function(a, b){ return (1 - a.keep) - (1 - b.keep); }).reverse();
+      var big = leaks[0];
+      var paidRate = pct(n('payment_completed'), n('signup_completed'));
+      var chart = '<ol class="fn" aria-label="People at each step">' + steps.map(function(x, i){
+        var k = pct(x.v, top), p = x.p != null ? pct(x.p, top) : k, isBig = big && x === big;
+        return '<li class="fn-s' + (isBig ? ' big' : '') + '" style="--k:' + k.toFixed(1) + '%;--p:' + p.toFixed(1) + '%;--pf:' + (p / 100).toFixed(3) + '">' +
+          '<span class="fn-bar" aria-hidden="true"><i class="fn-lost"></i><i class="fn-kept"></i></span>' +
+          '<span class="fn-v"><b>' + fmt(x.v) + '</b>' + (x.lost ? '<small>' + fmt(x.lost) + ' left</small>' : '') + '</span>' +
+          '<span class="fn-l"><b>' + x.s.l + '</b><small>' + x.s.s + '</small></span>' +
+          '<span class="fn-c">' + (x.keep == null ? '<span class="fn-first">Start</span>' : '<span class="fn-chip' + (isBig ? ' big' : '') + '">' + Math.round(x.keep * 100) + '% kept</span>') + '</span>' +
+          '<span class="sr">' + x.s.l + ': ' + fmt(x.v) + (x.keep != null ? ', ' + Math.round(x.keep * 100) + '% of the step before' : '') + '.</span></li>';
+      }).join('') + '</ol>';
+      var path = card({id:'path', cls:'fn-card', title:'From sign up to a paid presentation', sub:'People who reached each step. The light part is who left at that step.',
+        aside:'<div class="fn-head"><b>' + paidRate.toFixed(1) + '%</b><span>of sign ups pay</span></div>',
+        body:'<div class="c3-b">' + chart + '<div class="fn-key" aria-hidden="true"><span><i class="k"></i>Reached the step</span><span><i class="l"></i>Left at the step</span>' + (big ? '<span><i class="b"></i>Biggest drop</span>' : '') + '</div></div>'});
+
+      /* ---------- Where people leave, and what each screen does about it ---------- */
+      var leave = card({id:'leave', title:'Where people leave', sub:'The three biggest drops, and what the screen does about each',
+        body:leaks.length ? '<ol class="lk">' + leaks.slice(0, 3).map(function(x, i){
+          var gone = Math.round((1 - x.keep) * 100);
+          return '<li><span class="lk-n">' + (i + 1) + '</span><div class="lk-b"><p class="lk-t">' + FLOW[FLOW.indexOf(x.s) - 1].l + ' ' + I('arrow', 'i-sm') + ' ' + x.s.l + '</p>' +
+            '<div class="lk-m"><span class="lk-bar"><i style="width:' + gone + '%"></i></span><span><b>' + gone + '%</b> leave · ' + fmt(x.lost) + ' people</span></div>' +
+            '<dl class="lk-d"><div><dt>Why they leave</dt><dd>' + x.s.why + '</dd></div><div><dt>What the ' + x.s.s.toLowerCase() + ' does</dt><dd>' + x.s.fix + '</dd></div></dl></div></li>';
+        }).join('') + '</ol>' : '<div class="e3"><p>No drops to show yet. Use the prototype as a homeowner to record a few steps.</p></div>'});
+
+      /* ---------- Before sign up, and after paying ---------- */
+      var flow = function(items){ return '<ol class="fq">' + items.map(function(it){ return '<li><span class="fq-ic">' + I(it[0], 'i-sm') + '</span><span class="fq-l">' + it[1] + (it[3] ? '<small>' + it[3] + '</small>' : '') + '</span><b>' + fmt(it[2]) + '</b></li>'; }).join('') + '</ol>'; };
+      var pre = card({id:'pre', title:'Before sign up', sub:'Before launch, people join the waitlist; Sam invites them in',
+        body:flow([['eye', 'Visitors', n('page_view'), 'Home and area pages'], ['mail', 'Joined the waitlist', n('waitlist_joined'), Math.round(pct(n('waitlist_joined'), n('page_view')) * 10) / 10 + '% of visitors'], ['user', 'Signed up', n('signup_completed'), Math.round(pct(n('signup_completed'), n('waitlist_joined'))) + '% of the waitlist, on a 15-day trial']])});
+      var post = card({id:'post', title:'After paying', sub:'Reading, passing it on, and telling Sam',
+        body:flow([['file', 'Read the presentation', n('presentation_opened'), Math.round(pct(n('presentation_opened'), n('payment_completed'))) + '% of payers'], ['share', 'Shared a link', n('share_created'), Math.round(pct(n('share_created'), n('presentation_opened'))) + '% of readers'], ['eye', 'Share views', n('share_viewed'), n('share_created') ? (n('share_viewed') / n('share_created')).toFixed(1) + ' views per link' : ''], ['mail', 'Sent feedback', n('feedback_sent'), '']])});
+
+      doc.getElementById('fu-body').innerHTML = kpis + path + '<div class="o3-g fn-r2">' + leave + '<div class="o3-col">' + pre + post + '</div></div>' +
+        C.note('Counted on our own server, one event per step, not by an ad tracker (SEO_CONVERSION 9).');
       RI.fillIcons(doc.getElementById('fu-body'));
     }
-    view.querySelector('#fu-mode').addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if(!b) return; mode = b.getAttribute('data-v'); view.querySelectorAll('#fu-mode [data-v]').forEach(function(x){ x.setAttribute('aria-selected', x === b); }); history.replaceState(null, '', '#/funnel?mode=' + mode); body(); });
+    var grp = view.querySelector('#fu-mode');
+    function setMode(v){ mode = v; grp.querySelectorAll('[data-v]').forEach(function(x){ var on = x.getAttribute('data-v') === v; x.setAttribute('aria-checked', on); x.tabIndex = on ? 0 : -1; }); history.replaceState(null, '', '#/funnel?mode=' + v); body(); }
+    grp.addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if(b) setMode(b.getAttribute('data-v')); });
+    grp.addEventListener('keydown', function(e){ var bs = [].slice.call(grp.querySelectorAll('[data-v]')), i = bs.indexOf(e.target); if(i < 0) return; var d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0; if(!d) return; e.preventDefault(); var t = bs[(i + d + bs.length) % bs.length]; setMode(t.getAttribute('data-v')); t.focus(); });
     body();
   }, {nav:'funnel', perm:'funnel.view'});
 })();
