@@ -8,7 +8,7 @@ The pages use relative links, so serve the folder rather than opening the files 
 
 ```
 cd prototype
-python3 -m http.server 4173
+python3 tools/serve.py      # same as python3 -m http.server 4173, but the browser never keeps old copies of JS and CSS
 ```
 
 Open http://localhost:4173
