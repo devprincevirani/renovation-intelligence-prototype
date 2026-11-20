@@ -2941,3 +2941,100 @@ button.bim-c:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2
 .pc-was{margin:2px 0 0;font-size:.76rem;color:var(--muted)}
 .pc.drafted{border-color:var(--border)}
 @media (max-width:519px){ .pc-noph b{display:block;margin-top:18px} .pc-noph .i{display:none} .pc-drb{font-size:.66rem;padding:2px 6px} }
+
+/* ---------- Rules and families (v110), mobile first ----------
+   Phone: families as chips you scroll sideways, then the family heading, search and class chips, rules as cards.
+   Computer: a sticky family list on the left and the rules on the right, a compact table grouped by family. */
+.rf-sample{display:flex;align-items:flex-start;gap:10px;margin:0 0 16px;font-size:.84rem;color:var(--muted)}
+.rf-sample b{color:var(--text);font-weight:600}
+.rf-layout{display:grid;gap:16px;min-width:0}
+.rf-side{min-width:0}
+.rf-side-h{display:none}
+.rf-fams{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 4px;margin:0 -2px}
+.rf-fams::-webkit-scrollbar{display:none}
+.rf-fams button{flex:none;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border:1px solid var(--border-strong);border-radius:4px;background:var(--raised);color:var(--text);font:600 .86rem var(--body);cursor:pointer;white-space:nowrap;transition:background var(--fast),border-color var(--fast)}
+.rf-fams button:hover{background:var(--sunken)}
+.rf-fams button:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2px}
+.rf-fcode{display:inline-flex;align-items:center;color:#815E3A}
+.rf-fcode code{font-size:.72rem;font-weight:700;color:#815E3A}
+.rf-fname{display:grid;line-height:1.2}
+.rf-fname small{display:none}
+.rf-fn{display:inline-grid;place-items:center;min-width:22px;height:20px;padding:0 6px;border-radius:2px;background:var(--sunken);font-size:.74rem;font-variant-numeric:tabular-nums}
+.rf-fams button.rf-none{border-style:dashed;color:var(--muted)}
+.rf-fams button.rf-none .rf-fn{background:transparent}
+.rf-fams button[aria-checked="true"]{background:var(--deep-forest);border-color:var(--deep-forest);color:#fff}
+.rf-fams button[aria-checked="true"] .rf-fcode,.rf-fams button[aria-checked="true"] code{color:#D8C9B5}
+.rf-fams button[aria-checked="true"] .rf-fn{background:rgba(255,255,255,.16)}
+.rf-main{min-width:0}
+.rf-head{margin-bottom:12px}
+.rf-hcode{margin:0;font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#815E3A}
+.rf-hcode code{font-size:.74rem;letter-spacing:0;margin-right:4px}
+.rf-head h2{margin:2px 0 0;font-size:1.35rem;line-height:1.2}
+.rf-head p:last-child{margin:4px 0 0;font-size:.88rem;color:var(--muted)}
+.rf-tools{display:grid;gap:10px;margin-bottom:14px}
+.rf-tools .c-search input{width:100%;min-height:44px}
+.rf-cls{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.rf-cls::-webkit-scrollbar{display:none}
+.rf-cls button{flex:none;display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 12px;border:1px solid var(--border-strong);border-radius:4px;background:var(--raised);color:var(--text);font:600 .84rem var(--body);cursor:pointer}
+.rf-cls button .n{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:2px;background:var(--sunken);font-size:.72rem}
+.rf-cls button[aria-checked="true"]{background:var(--deep-forest);border-color:var(--deep-forest);color:#fff}
+.rf-cls button[aria-checked="true"] .n{background:rgba(255,255,255,.18)}
+.rf-cls button:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2px}
+@media (pointer:coarse){.rf-cls button{min-height:44px}}
+
+/* The rules: cards on a phone */
+.rf-thead{display:none}
+.rf-grp{margin-bottom:16px}
+.rf-grp h3{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 0 8px;font:600 .74rem var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.rf-grp h3 button{display:inline-flex;align-items:baseline;gap:6px;min-height:32px;padding:0;border:0;background:none;color:var(--text);font:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer}
+.rf-grp h3 button:hover{text-decoration:underline;text-underline-offset:3px}
+.rf-grp h3 code{font-size:.74rem;color:#815E3A}
+.rf-grp h3 span{letter-spacing:0;text-transform:none;font-weight:500}
+.rf-rows{list-style:none;margin:0;padding:0;border:1px solid var(--border);border-radius:8px;background:var(--raised);overflow:hidden}
+.rf-rows li+li{border-top:1px solid var(--border-soft)}
+.rf-row{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"code cls" "txt txt" "tests st";gap:6px 12px;padding:14px 16px;color:inherit;text-decoration:none;transition:background var(--fast)}
+.rf-row:hover{background:#FCFBF8}
+.rf-row:focus-visible{outline:2px solid var(--deep-forest);outline-offset:-2px}
+.rf-code{grid-area:code}
+.rf-code code{font-size:.78rem;font-weight:700;color:#815E3A}
+.rf-class{grid-area:cls;justify-self:end}
+.rf-txt{grid-area:txt;display:grid;gap:3px;min-width:0}
+.rf-txt b{font-weight:600;font-size:.95rem;line-height:1.35}
+.rf-txt small{font-size:.82rem;color:var(--muted);line-height:1.4}
+.rf-tests{grid-area:tests;display:inline-flex;align-items:center;gap:4px;font-size:.78rem;color:var(--muted);align-self:center}
+.rf-tests .i{color:var(--ok)}
+.rf-tests.none{color:var(--bad)}.rf-tests.none .i{color:var(--bad)}
+.rf-st{grid-area:st;display:grid;justify-items:end;gap:4px}
+.rf-go{display:none}
+
+@media (min-width:1000px){
+  .rf-layout{grid-template-columns:250px minmax(0,1fr);gap:24px;align-items:start}
+  .rf-side{position:sticky;top:76px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--raised)}
+  .rf-side-h{display:block;margin:0 0 8px 4px;font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .rf-fams{display:grid;gap:2px;overflow:visible;padding:0;margin:0}
+  .rf-fams button{display:grid;grid-template-columns:34px minmax(0,1fr) auto;min-height:40px;padding:6px 8px;border:0;border-radius:4px;background:none;white-space:normal;text-align:left;font-size:.86rem}
+  .rf-fams button:hover{background:var(--sunken)}
+  .rf-fams button.rf-none{border:0}
+  .rf-fname small{display:block;font-size:.7rem;font-weight:500;color:var(--muted)}
+  .rf-fams button[aria-checked="true"] .rf-fname small{color:#D8C9B5}
+  .rf-tools{grid-template-columns:minmax(220px,320px) minmax(0,1fr);align-items:center}
+  .rf-cls{justify-content:flex-end}
+  .rf-thead{display:grid;grid-template-columns:118px minmax(0,1fr) 104px 84px 150px 20px;gap:0 16px;padding:0 16px 8px;font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .rf-row{grid-template-columns:118px minmax(0,1fr) 104px 84px 150px 20px;grid-template-areas:none;align-items:center;gap:0 16px;padding:12px 16px}
+  .rf-code,.rf-class,.rf-txt,.rf-tests,.rf-st{grid-area:auto}
+  .rf-class{justify-self:start}
+  .rf-st{justify-items:start}
+  .rf-go{display:grid;place-items:center;color:var(--muted)}
+  .rf-go .i{transform:rotate(-90deg)}
+  .rf-row:hover .rf-go{color:var(--text)}
+}
+.rf-fams{align-items:center}
+.rf-cls{flex-wrap:wrap;overflow:visible}
+.rf-rows li.rf-thead+li{border-top:0}
+@media (min-width:1000px){
+  .rf-tools{grid-template-columns:minmax(0,1fr);gap:10px}
+  .rf-tools .c-search{max-width:420px}
+  .rf-cls{justify-content:flex-start}
+  .rf-rows .rf-thead{padding:10px 16px;background:#FBF9F5;border-bottom:1px solid var(--border-soft)}
+}
+.rf-fams button[aria-checked="true"],.rf-fams button[aria-checked="true"]:hover{background:var(--deep-forest);color:#fff}

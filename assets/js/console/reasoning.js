@@ -233,25 +233,75 @@
   /* Lines across every run that use a rule, or fall in a family */
   function allLines(){ var out = []; A.all().forEach(function(h){ var m = C.model(h); if(m) m.lines.forEach(function(l){ l.h = h; out.push(l); }); }); return out; }
 
-  /* ---------- Rules and families ---------- */
+  /* ---------- Rules and families (APP_FLOW 7, BACKLOG M2-23 and M4-26, SCHEMA rule_families and rules) ----------
+     Master and detail: the twelve families on the left (chips you scroll on a phone), the rules of the chosen
+     family on the right, filtered by class and words. Every rule shows its code, statement, plain words, class,
+     tests and version, and a waiting draft is a second line under the published version. */
   C.route('/rules', function(view){
-    var rules = C.get('rules', []), st = {fam:C.query().fam || 'all', cls:'all', q:''};
-    var cnt = function(f){ return rules.filter(function(r){ return f === 'all' || r.fam === f; }).length; };
-    view.innerHTML = C.page({kicker:'Rulebook', title:'Rules and families', sub:'The rule registry, grouped by the twelve families. Every rule has a reason, a worked example, a version and the tests that prove it. A rule without a test cannot be published.',
-      body:'<div class="ru-note">' + C.lbl('sample') + '<span>Showing the ' + rules.length + ' rules named in the developer guide: the twelve core rules, Sam\'s approved component rules, and the dependency and quantity rules. The full registry of 221 rules loads from Sam\'s grouped list.</span></div>' +
-        '<div class="ru-fams" id="ru-fams"><button type="button" data-fam="all" aria-pressed="' + (st.fam === 'all') + '"><b>All families</b><span>' + rules.length + ' rules</span></button>' + C.FAMILIES.map(function(f){ var n = cnt(f[0]); return '<button type="button" data-fam="' + f[0] + '" aria-pressed="' + (st.fam === f[0]) + '"' + (n ? '' : ' class="empty"') + '><code>' + f[0] + '</code><b>' + f[1] + '</b><span>' + (n ? n + ' rule' + (n > 1 ? 's' : '') : 'None shown yet') + '</span></button>'; }).join('') + '</div>' +
-        '<div class="c-toolbar c-mt">' + C.seg('ru-cls', [['all','All classes']].concat(Object.keys(C.CLASSES).map(function(k){ return [k, C.CLASSES[k][0]]; })), 'all') + '<div class="c-tools">' + C.search('ru-q', 'Code or words', '') + '</div></div><div id="ru-list"></div>'});
-    function draw(){
-      var v = st.q.toLowerCase(), list = rules.filter(function(r){ return (st.fam === 'all' || r.fam === st.fam) && (st.cls === 'all' || r.cls === st.cls) && (!v || (r.code + ' ' + r.text + ' ' + r.plain).toLowerCase().indexOf(v) > -1); });
-      doc.getElementById('ru-list').innerHTML = C.table({empty:'No rule matches.', cols:[{label:'Rule'},{label:'In plain words'},{label:'Family'},{label:'Class'},{label:'Version', num:true},{label:'State'}],
-        rows:list.map(function(r){ var dr = C.draftFor('rules', r.code); return {attr:'data-go="#/rules/' + r.code + '" tabindex="0" role="link"', cells:['<span class="ru-c"><code>' + r.code + '</code><b>' + RI.esc(r.text) + '</b></span>', RI.esc(r.plain), '<code>' + r.fam + '</code> ' + C.FAMILIES.filter(function(f){ return f[0] === r.fam; })[0][1], '<span class="cls cls-' + r.cls + '">' + C.CLASSES[r.cls][0] + '</span>', 'v' + r.v, dr ? C.lbl('queued') : C.lbl('published')]}; })});
-      RI.fillIcons(doc.getElementById('ru-list'));
+    var rules = C.get('rules', []), q0 = C.query(), st = {fam:q0.fam || 'all', cls:'all', q:''};
+    var FAM = {}; C.FAMILIES.forEach(function(f){ FAM[f[0]] = f; });
+    var match = function(r, fam, cls){ var v = st.q.toLowerCase();
+      return (fam === 'all' || r.fam === fam) && (cls === 'all' || r.cls === cls) && (!v || (r.code + ' ' + r.text + ' ' + r.plain).toLowerCase().indexOf(v) > -1); };
+    var count = function(fam, cls){ return rules.filter(function(r){ return match(r, fam, cls); }).length; };
+    view.innerHTML = C.page({kicker:'Rulebook', title:'Rules and families', sub:'The rule registry in twelve families. Every rule has a reason, a worked example, a version and the tests that prove it. A rule without a test cannot be published.',
+      body:'<p class="rf-sample">' + C.lbl('sample') + '<span>Showing <b>' + rules.length + ' of 221</b> rules: the core rules, the approved component rules, and the dependency and quantity rules. The full registry loads from Sam\'s grouped list.</span></p>' +
+        '<div class="rf-layout"><aside class="rf-side" aria-label="Rule families"><p class="rf-side-h">Families</p><div class="rf-fams" id="rf-fams" role="radiogroup" aria-label="Family"></div></aside>' +
+        '<section class="rf-main" aria-live="polite"><div class="rf-head" id="rf-head"></div>' +
+          '<div class="rf-tools">' + C.search('rf-q', 'Search by code or words', '') + '<div class="rf-cls" id="rf-cls" role="radiogroup" aria-label="Class"></div></div>' +
+          '<div id="rf-list"></div></section></div>'});
+
+    var THEAD = '<li class="rf-thead" aria-hidden="true"><span>Code</span><span>Rule</span><span>Class</span><span>Tests</span><span>Status</span><span></span></li>';
+    function stateOf(r){
+      var dr = C.draftFor('rules', r.code);
+      return '<span class="lb lb-pub">Published <span class="lb-v">v' + r.v + '</span></span>' + (dr ? '<span class="rlb-qline">' + RI.icon('clock', 'i-sm') + 'v' + (r.v + 1) + ' in the queue</span>' : '');
     }
-    view.querySelector('#ru-fams').addEventListener('click', function(e){ var b = e.target.closest('[data-fam]'); if(!b) return; st.fam = b.getAttribute('data-fam'); view.querySelectorAll('#ru-fams [data-fam]').forEach(function(x){ x.setAttribute('aria-pressed', x === b); }); draw(); });
-    view.querySelector('#ru-cls').addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if(!b) return; st.cls = b.getAttribute('data-v'); view.querySelectorAll('#ru-cls [data-v]').forEach(function(x){ x.setAttribute('aria-selected', x === b); }); draw(); });
-    view.querySelector('#ru-q').addEventListener('input', function(){ st.q = this.value; draw(); });
-    view.addEventListener('click', function(e){ var r = e.target.closest('[data-go]'); if(r) C.go(r.getAttribute('data-go')); });
-    view.addEventListener('keydown', function(e){ var r = e.target.closest('[data-go]'); if(r && e.key === 'Enter') C.go(r.getAttribute('data-go')); });
+    function row(r){
+      var t = (r.tests || []).length;
+      return '<li><a class="rf-row" href="#/rules/' + r.code + '">' +
+        '<span class="rf-code"><code>' + r.code + '</code></span>' +
+        '<span class="rf-txt"><b>' + RI.esc(r.text) + '</b><small>' + RI.esc(r.plain) + '</small></span>' +
+        '<span class="rf-class"><span class="cls cls-' + r.cls + '" title="' + C.CLASSES[r.cls][1] + '">' + C.CLASSES[r.cls][0] + '</span></span>' +
+        '<span class="rf-tests' + (t ? '' : ' none') + '">' + RI.icon(t ? 'check' : 'warn', 'i-sm') + t + (t === 1 ? ' test' : ' tests') + '</span>' +
+        '<span class="rf-st">' + stateOf(r) + '</span><span class="rf-go">' + RI.icon('chev', 'i-sm') + '</span></a></li>';
+    }
+    function draw(){
+      /* Families: count what the class and words would show in each */
+      doc.getElementById('rf-fams').innerHTML = [['all', 'All families', '']].concat(C.FAMILIES).map(function(f){
+        var n = count(f[0], st.cls), total = rules.filter(function(r){ return f[0] === 'all' || r.fam === f[0]; }).length, on = st.fam === f[0];
+        return '<button type="button" role="radio" aria-checked="' + on + '" data-fam="' + f[0] + '"' + (total ? '' : ' class="rf-none"') + ' title="' + RI.esc(f[2] || 'Every family') + '">' +
+          (f[0] === 'all' ? '<span class="rf-fcode">' + RI.icon('list', 'i-sm') + '</span>' : '<span class="rf-fcode"><code>' + f[0] + '</code></span>') +
+          '<span class="rf-fname">' + RI.esc(f[1]) + (total ? '' : '<small>Loads with the full list</small>') + '</span><span class="rf-fn">' + n + '</span></button>';
+      }).join('');
+      var f = FAM[st.fam];
+      doc.getElementById('rf-head').innerHTML = f ? '<p class="rf-hcode"><code>' + f[0] + '</code> Family</p><h2>' + RI.esc(f[1]) + '</h2><p>' + RI.esc(f[2]) + '</p>' :
+        '<p class="rf-hcode">Rule registry</p><h2>All families</h2><p>Twelve families, from what the house is to how the rulebook learns.</p>';
+      doc.getElementById('rf-cls').innerHTML = [['all', 'All classes', 'Every class']].concat(Object.keys(C.CLASSES).map(function(k){ return [k, C.CLASSES[k][0], C.CLASSES[k][1]]; })).map(function(c){
+        return '<button type="button" role="radio" aria-checked="' + (st.cls === c[0]) + '" data-cls="' + c[0] + '" title="' + c[2] + '">' + c[1] + '<span class="n">' + count(st.fam, c[0]) + '</span></button>';
+      }).join('');
+      var list = rules.filter(function(r){ return match(r, st.fam, st.cls); }), html;
+      if(!list.length){
+        var total = st.fam === 'all' ? rules.length : rules.filter(function(r){ return r.fam === st.fam; }).length;
+        html = '<div class="c-empty">' + RI.icon(total ? 'search' : 'info') + '<p>' + (total ? 'No rule matches. Try other words or show every class.' : 'No rule from this family is in the sample yet. Its rules load with Sam\'s grouped list of 221.') + '</p>' +
+          (total ? '' : '<button type="button" class="btn btn-secondary btn-sm" data-fam="all">Show all families</button>') + '</div>';
+      } else if(st.fam === 'all'){
+        html = C.FAMILIES.map(function(fm){ var g = list.filter(function(r){ return r.fam === fm[0]; }); if(!g.length) return '';
+          return '<section class="rf-grp"><h3><button type="button" data-fam="' + fm[0] + '"><code>' + fm[0] + '</code>' + RI.esc(fm[1]) + '</button><span>' + g.length + (g.length === 1 ? ' rule' : ' rules') + '</span></h3><ul class="rf-rows">' + THEAD + g.map(row).join('') + '</ul></section>'; }).join('');
+      } else html = '<ul class="rf-rows rf-solo">' + THEAD + list.map(row).join('') + '</ul>';
+      doc.getElementById('rf-list').innerHTML = html;
+      RI.fillIcons(view);
+    }
+    function pickFam(fam){ st.fam = fam; history.replaceState(null, '', '#/rules' + (fam === 'all' ? '' : '?fam=' + fam)); draw();
+      var b = view.querySelector('#rf-fams [aria-checked="true"]'); if(b && b.scrollIntoView) b.scrollIntoView({block:'nearest', inline:'nearest'}); }
+    view.addEventListener('click', function(e){
+      var fb = e.target.closest('[data-fam]'); if(fb){ pickFam(fb.getAttribute('data-fam')); return; }
+      var cb = e.target.closest('[data-cls]'); if(cb){ st.cls = cb.getAttribute('data-cls'); draw(); }
+    });
+    view.querySelector('#rf-fams').addEventListener('keydown', function(e){
+      if(['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].indexOf(e.key) < 0) return; e.preventDefault();
+      var bs = [].slice.call(this.querySelectorAll('[data-fam]')), i = bs.indexOf(doc.activeElement), d = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : -1;
+      var nb = bs[(i + d + bs.length) % bs.length]; pickFam(nb.getAttribute('data-fam')); this.querySelector('[data-fam="' + nb.getAttribute('data-fam') + '"]').focus();
+    });
+    view.querySelector('#rf-q').addEventListener('input', function(){ st.q = this.value.trim(); draw(); });
     draw();
   }, {nav:'rules', perm:'rulebook.view'});
 
