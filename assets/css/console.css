@@ -1748,3 +1748,20 @@ dialog.dlg.dlg-drawer[open]{display:flex;animation:ax-in var(--slow) var(--ease-
 @media (max-width:899px){.c-tbl.us-cards thead{display:none}.us-meta>span{white-space:nowrap}}
 /* The page's entry animation leaves a transform that would trap the fixed bar inside the page */
 @media (max-width:599px){.con-view .c-page:has(.us-head #us-bulk){animation:none;transform:none}}
+/* v69: the selection as one joined control */
+.us-selgrp{display:inline-flex;align-items:stretch;height:40px;border:1px solid var(--deep-forest);border-radius:4px;background:var(--raised);overflow:hidden}
+.us-sg-n{display:inline-flex;align-items:center;gap:8px;padding:0 4px 0 10px;font-size:.88rem;color:var(--text);white-space:nowrap}
+.us-sg-n b{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 6px;border-radius:2px;background:var(--deep-forest);color:#fff;font-size:.8rem;font-weight:700}
+.us-sg-x{display:inline-grid;place-items:center;width:36px;border:0;background:none;color:var(--muted);cursor:pointer;transition:background var(--fast),color var(--fast)}
+.us-sg-x:hover{background:var(--sunken);color:var(--text)}
+.us-sg-go{display:inline-flex;align-items:center;gap:8px;margin-left:4px;padding:0 16px;border:0;background:var(--deep-forest);color:#fff;font:600 .9rem var(--body);white-space:nowrap;cursor:pointer;transition:background var(--fast)}
+.us-sg-go:hover{background:#2E4B48}
+.us-sg-x:focus-visible,.us-sg-go:focus-visible{outline:2px solid var(--deep-forest);outline-offset:-4px}
+.us-sg-go:focus-visible{outline-color:#fff}
+.us-h-div{width:1px;height:24px;background:var(--border)}
+@media (pointer:coarse){.us-selgrp{height:44px}.us-sg-x{width:44px}}
+@media (max-width:599px){
+  .us-head:has(#us-bulk) .us-selgrp{flex:1;height:48px}
+  .us-head:has(#us-bulk) .us-sg-go{margin-left:auto}
+  .us-head:has(#us-bulk) .us-h-div{display:none}
+}

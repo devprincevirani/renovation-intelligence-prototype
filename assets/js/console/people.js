@@ -128,7 +128,7 @@
     var U = users(), W = waitlist(), staff = staffList();
 
     view.innerHTML = C.page({kicker:'Admin', title:'Users and staff', sub:'Users, account types, staff invites and permissions.',
-      actions:sam ? '<div class="us-head" id="us-head" aria-live="polite"></div><button type="button" class="btn btn-primary" id="inv-new">' + RI.icon('mail','i-sm') + 'Invite staff</button>' : '',
+      actions:sam ? '<div class="us-head" id="us-head" aria-live="polite"></div><button type="button" class="btn btn-primary" id="inv-new">' + RI.icon('user','i-sm') + 'Invite staff</button>' : '',
       body:'<div class="us-top">' + C.seg('us-tab', [['users','Users',U.length],['staff','Staff',staff.length + 1],['waitlist','Waitlist and trial',W.length]], tab) + '<div id="us-tools" class="us-bar"></div></div><div id="us-body"></div>'});
 
     function count(list, fn, v){ return list.filter(function(x){ return fn(x) === v; }).length; }
@@ -245,8 +245,10 @@
     function headActs(){
       var slot = doc.getElementById('us-head'), staffBtn = doc.getElementById('inv-new'); if(!slot) return;
       var on = tab === 'waitlist' && canInvite, n = on ? st.pick.length : 0;
-      slot.innerHTML = !on ? '' : n ? '<span class="us-h-sel"><b>' + n + ' selected</b><button type="button" class="us-ghost" id="us-clear">Clear</button></span>' +
-        '<button type="button" class="btn btn-primary" id="us-bulk">' + RI.icon('mail','i-sm') + 'Invite ' + n + ' to the trial</button>' :
+      /* One control for the selection: the count, clear, and the action, joined; a divider keeps it apart from Invite staff */
+      slot.innerHTML = !on ? '' : n ? '<div class="us-selgrp" role="group" aria-label="' + n + ' contacts selected"><span class="us-sg-n"><b>' + n + '</b>selected</span>' +
+        '<button type="button" class="us-sg-x" id="us-clear" aria-label="Clear the selection" title="Clear the selection">' + RI.icon('x','i-sm') + '</button>' +
+        '<button type="button" class="us-sg-go" id="us-bulk">' + RI.icon('mail','i-sm') + 'Invite to the trial</button></div><span class="us-h-div" aria-hidden="true"></span>' :
         '<span class="us-h-hint">Tick waiting contacts to invite several at once</span>';
       if(staffBtn){ staffBtn.classList.toggle('btn-primary', !n); staffBtn.classList.toggle('btn-secondary', !!n); }
       RI.fillIcons(slot);
