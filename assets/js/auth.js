@@ -69,7 +69,7 @@
         $('wl-form').hidden = true; var d = $('wl-done'); d.hidden = false;
         $('wl-done-t').textContent = found ? 'You were already on the list' : 'You are on the list';
         $('wl-done-b').innerHTML = 'We will write to <b>' + RI.esc(v) + '</b> once, when we open on April 1, 2027.' + (found ? ' We updated your details.' : '') +
-          mailSim('You are on the waitlist', '<p>Thanks for joining. We will write once, when Renovation Intelligence opens in Metro Detroit on April 1, 2027.</p><p class="xsmall muted">Demo only. In the product this arrives as a real email.</p>');
+          mailSim('You are on the waitlist', '<p>Thanks for joining. We will write once, when Renovation Intelligence opens on April 1, 2027.</p><p class="xsmall muted">Demo only. In the product this arrives as a real email.</p>');
         if(!found) RI.track('waitlist_joined', {source:'waitlist'});
         d.focus();
       });

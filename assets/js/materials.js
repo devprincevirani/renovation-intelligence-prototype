@@ -1,5 +1,5 @@
 /* Material boards: the sample kitchen under each package, shown as finish samples.
-   Photos are representative finishes from Wikimedia Commons (credits at /photo-credits/).
+   Photos are representative finishes from Wikimedia Commons (credits in CREDITS.md).
    In the product each sample is a real item from Sam's product library. Each tile links to a
    sample item, so the action text and the ranges come from the same data as the presentation. */
 (function(){

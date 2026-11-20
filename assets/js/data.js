@@ -234,7 +234,7 @@
       short:'One story, usually on a full basement. Built from the 1950s to the 1990s.',
       needs:'Kitchen cabinets refinished or replaced, carpet to LVP, interior doors and trim, a basement finished long ago.',
       era:'1950s to 1990s', stories:'One', basement:'Usually full', size:'1,000 to 1,800 sq ft',
-      intro:['The brick ranch is the most common house in Metro Detroit suburbs. Everything is on one floor, usually over a full basement, with an attached or detached garage.',
+      intro:['The brick ranch is one of the most common houses in older suburbs. Everything is on one floor, usually over a full basement, with an attached or detached garage.',
              'Because the shell is brick, the work is almost always inside: kitchens and baths that are sound but dated, carpet over hardwood or slab, hollow-core doors, and a basement finished decades ago.'],
       work:[0,1,4,5,3,6],
       faq:[['What does a Standard update usually include in a ranch?','Most often: cabinets refinished, a new countertop, carpet replaced with LVP on the main floor, all walls painted and dated light fixtures replaced. Your own estimate lists each line for your house.'],
