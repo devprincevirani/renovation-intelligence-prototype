@@ -168,7 +168,7 @@
         nums.map(function(n){ return n === null ? '<span class="pg-gap" aria-hidden="true">…</span>' : '<button type="button" class="pg-n pg-num" data-pg="' + n + '" aria-label="Page ' + (n + 1) + '"' + (n === p ? ' aria-current="page"' : '') + '>' + (n + 1) + '</button>'; }).join('') +
         '<span class="pg-mob" aria-hidden="true">Page <b>' + (p + 1) + '</b> of ' + pages + '</span>' +
         arr(p + 1, 'next', 'Next page') + '</div>' : '') +
-      (o.perOpts ? '<label class="pg-per"><span>Rows per page</span><span class="c-select sm"><select data-per>' + o.perOpts.map(function(n){ return '<option value="' + n + '"' + (n === o.per ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></span></label>' : '') +
+      (o.perOpts ? '<label class="pg-per"><span class="pg-per-w">Rows per page</span><span class="pg-per-s" aria-hidden="true">Show</span><span class="c-select sm"><select data-per>' + o.perOpts.map(function(n){ return '<option value="' + n + '"' + (n === o.per ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></span></label>' : '') +
       '</nav>';
   };
   C.seg = function(id, opts, cur){ return '<div class="c-seg" id="' + id + '" role="tablist">' + opts.map(function(o){ return '<button type="button" role="tab" data-v="' + o[0] + '" aria-selected="' + (o[0] === cur) + '">' + o[1] + (o[2] != null ? '<span class="n">' + o[2] + '</span>' : '') + '</button>'; }).join('') + '</div>'; };

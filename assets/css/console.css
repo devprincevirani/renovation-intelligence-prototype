@@ -1378,3 +1378,66 @@ a.au-what:focus-visible{outline:2px solid var(--accent);outline-offset:2px;borde
   .au-why-in{display:none}
   .au-tbl th.au-c-what{width:31%}
 }
+
+/* ---------- Filter bar and pager, responsive pass (v53) ----------
+   Filter bar (audit log): phone stacks period, search, then the two filters side by side, all 44px;
+   tablet and small laptops put the period on its own row and give the search the spare width;
+   wide screens keep one row. Pager: phone is Previous, page x of y, Next, then the count and a short
+   "Show" select under a hairline; tablet uses arrow-only buttons so the page numbers always fit. */
+.pg-per-s{display:none}
+@media (max-width:599px){
+  .c-toolbar.au-bar{display:grid;gap:10px}
+  .au-bar .c-seg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));justify-self:stretch;width:100%}
+  .au-bar .c-seg button{justify-content:center;min-height:40px;padding:0 6px}
+  .au-bar .c-tools{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+  .au-bar .c-search{grid-column:1/-1}
+  .au-bar .c-select,.au-bar .c-select select{width:100%}
+  .au-bar .c-search input,.au-bar .c-select select{min-height:44px}
+}
+@media (min-width:600px) and (max-width:1279px){
+  .c-toolbar.au-bar{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;justify-content:stretch}
+  .au-bar .c-seg{justify-self:start}
+  .au-bar .c-tools{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:10px;margin-left:0;justify-content:stretch}
+  .au-bar .c-search{flex:none;min-width:0}
+  .au-bar .c-select,.au-bar .c-select select{width:100%}
+}
+@media (min-width:600px) and (max-width:767px){
+  .au-bar .c-tools{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .au-bar .c-search{grid-column:1/-1}
+}
+@media (min-width:1280px){
+  .au-bar .c-search{flex:0 1 300px}
+  .au-bar .c-select select{min-width:150px}
+}
+@media (pointer:coarse){
+  .au-bar .c-seg button{min-height:40px}
+  .au-bar .c-search input,.au-bar .c-select select{min-height:44px}
+}
+
+/* Pager on a phone */
+@media (max-width:719px){
+  .c-tbl-wrap+.c-pager{padding:12px}
+  .c-pager{grid-template-columns:minmax(0,1fr) auto;gap:12px 0}
+  .c-pager .pg-nums{grid-column:1/-1;order:-1;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px}
+  .c-pager .pg-arr{width:100%;height:44px}
+  .c-pager .pg-next{justify-self:end}
+  .c-pager .pg-arr:disabled{background:transparent;border-color:var(--border);opacity:.6}
+  .c-pager .pg-mob{padding:0 4px;font-size:.84rem}
+  .c-pager .pg-count{grid-column:1;order:1;justify-self:stretch;align-self:stretch;display:block;text-align:left;padding-top:22px;border-top:1px solid var(--border)}
+  .c-pager .pg-per{grid-column:2;order:2;justify-self:stretch;justify-content:flex-end;padding-top:12px;border-top:1px solid var(--border);padding-left:12px}
+  .c-pager .pg-per-w{display:none}
+  .c-pager .pg-per-s{display:inline}
+  .c-pager .pg-per .c-select select{min-height:40px}
+  .c-pager:not(:has(.pg-nums)) .pg-count,.c-pager:not(:has(.pg-nums)) .pg-per{padding-top:0;border-top:0}
+  .c-pager:not(:has(.pg-nums)) .pg-count{align-self:center}
+}
+/* Pager on a tablet and up: same height for every control; arrows only until there is room for words */
+@media (min-width:720px){
+  .c-pager .pg-per .c-select select{min-height:38px}
+}
+@media (min-width:720px) and (max-width:1279px){
+  .c-pager .pg-arr{min-width:40px;padding:0 10px}
+  .c-pager .pg-arr-t{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .c-pager .pg-count{white-space:nowrap}
+}
+@media (pointer:coarse) and (min-width:720px){ .c-pager .pg-per .c-select select{min-height:44px} }
