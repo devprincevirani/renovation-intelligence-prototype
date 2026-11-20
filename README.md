@@ -107,6 +107,7 @@ Each named version is a full copy in `../prototype-versions/<name>/`. To go back
 | v45-no-photo-credits | Photo credits page removed, with its links in the Pages menu, footer, legal side menus, home page and area photo captions. The full credits list (needed by the CC BY-SA licenses) moved to CREDITS.md in the repository |
 | v46-global | (Not used) Removed the region entirely, including the city pages and area sections |
 | v47-no-metro-detroit | Current. Only the words "Metro Detroit" removed, from the logo tagline, page titles and copy (home, waitlist and its email, contact, cost hub, house type pages, rate notes). The five area pages, the home areas section, the cost hub map and area finder, and the footer Areas column all stay |
+| v48-admin-back | Admin console brought back from v42 on top of v47: admin/index.html, assets/css/console.css, assets/js/console/, the "Admin console" group in the Pages menu and the staff invite permission text. Sample rate region renamed from "Metro Detroit" to "Sample region". Everything since v42 is kept (simple How it works, no photo credits page, no "Metro Detroit") |
 | v6-cost | Redesigns the renovation cost section: finder and schematic area map, house type line drawings, rate explorer with a size slider, and "typical vs your house"; carried into area and house type pages |
 
 ## Folder layout
