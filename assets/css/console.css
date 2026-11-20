@@ -2626,3 +2626,63 @@ dialog.rlb-sheet::backdrop{background:rgba(24,38,36,.45)}
   .pl-groups .pc-grp+.pc-grp{margin-top:0}
   .pl-groups .pc-grid{grid-template-columns:repeat(var(--n),250px)}
 }
+
+/* ---------- Product form (Add a product, Edit product) ----------
+   A live preview that looks like the card, then three numbered sections. The package is three option cards:
+   an open one is a choice, a taken one names its product (one product per item per package). A photo drop area,
+   "$" in front of the price, and a footer with the draft note beside the buttons. */
+.pf{gap:18px}
+.pf-pre{display:grid;gap:6px;padding:12px;border-radius:8px;background:var(--sunken)}
+.pf-pre-k{font-size:.66rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.pf-card{display:flex;gap:12px;align-items:center;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--raised)}
+.pf-ph{flex:none;width:72px;height:72px;border-radius:4px;overflow:hidden;background:var(--sunken)}
+.pf-ph img{width:100%;height:100%;object-fit:cover;display:block}
+.pf-ph .pl-nophoto{height:100%}
+.pf-ct{display:grid;gap:2px;justify-items:start;min-width:0}
+.pf-ct b{font-size:.95rem;font-weight:600;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.pf-ct b.pf-none{color:var(--muted);font-weight:500}
+.pf-for{font-size:.76rem;color:var(--muted)}
+.pf-pr{font-size:.8rem;color:var(--muted)}
+.pf-pr b{font-family:var(--display);font-weight:500;font-size:1.15rem;color:var(--text)}
+.pf-tier{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border:1px solid var(--border);border-radius:2px;background:var(--raised);font-size:.72rem;font-weight:600;color:var(--muted)}
+.pf-tier i{width:7px;height:7px;border-radius:50%;background:var(--border-strong)}
+.pf-tier.t-E,.pf-tier.t-S,.pf-tier.t-P{color:var(--text)}
+.pf-tier.t-S i{background:var(--ok)}.pf-tier.t-P i{background:var(--bronze)}
+.pf-sec{display:grid;gap:14px;padding-top:16px;border-top:1px solid var(--border-soft)}
+.pf-h{display:flex;align-items:center;gap:10px;margin:0;font-size:1rem}
+.pf-h span{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--deep-forest);color:var(--on-accent);font-family:var(--body);font-size:.74rem;font-weight:700}
+.pf-wide,.pf-wide select{width:100%}
+.pf-tcs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.pf-tc{position:relative;display:grid;gap:4px;align-content:start;min-height:72px;padding:10px 12px;border:1px solid var(--border-strong);border-radius:8px;background:var(--raised);cursor:pointer;transition:border-color var(--fast),background var(--fast)}
+.pf-tc input{position:absolute;opacity:0;pointer-events:none}
+.pf-tc-h{display:inline-flex;align-items:center;gap:6px;font-size:.9rem;font-weight:600}
+.pf-tc-h i{width:8px;height:8px;border-radius:50%;background:var(--border-strong)}
+.pf-tc.t-S .pf-tc-h i{background:var(--ok)}.pf-tc.t-P .pf-tc-h i{background:var(--bronze)}
+.pf-tc small{font-size:.74rem;color:var(--muted);line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.pf-tc:hover:not(.taken){border-color:var(--deep-forest)}
+.pf-tc:has(input:checked){border-color:var(--deep-forest);box-shadow:inset 0 0 0 1px var(--deep-forest);background:#F6F8F6}
+.pf-tc:has(input:checked) small{color:var(--deep-forest);font-weight:600}
+.pf-tc:has(input:focus-visible){outline:2px solid var(--deep-forest);outline-offset:2px}
+.pf-tc.taken{border-color:var(--border);background:var(--page);cursor:not-allowed}
+.pf-tc.taken .pf-tc-h{color:var(--muted)}
+.field.invalid .pf-tcs .pf-tc:not(.taken){border-color:var(--bad)}
+.pf-drop{display:flex;align-items:center;gap:14px;padding:12px;border:1px solid var(--border-strong);border-radius:8px;background:var(--page);cursor:pointer;transition:border-color var(--fast),background var(--fast)}
+.pf-drop:hover,.pf-drop.over{border-color:var(--deep-forest);background:#F6F8F6}
+.pf-dv{flex:none;width:88px;height:88px;border-radius:4px;overflow:hidden;background:var(--sunken)}
+.pf-dv img{width:100%;height:100%;object-fit:cover;display:block}
+.pf-dv .pl-nophoto{height:100%}
+.pf-dt{display:grid;gap:4px}
+.pf-dt b{font-size:.9rem;font-weight:600;color:var(--deep-forest)}
+.pf-dt small{font-size:.78rem;color:var(--muted);line-height:1.4}
+.pf-rm{justify-self:start;margin-top:6px;color:var(--bad)}
+.pf-money{position:relative}
+.pf-money span{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:600;pointer-events:none}
+.pf-money .input{padding-left:30px;font-variant-numeric:tabular-nums}
+.pf-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px}
+.pf-fn{display:flex;align-items:flex-start;gap:6px;margin:0;flex:1 1 220px;font-size:.78rem;color:var(--muted);line-height:1.4}
+.pf-fn .i{flex:none;margin-top:1px}
+.pf-facts{display:grid;gap:10px;margin:0}
+.pf-facts div{display:grid;grid-template-columns:90px minmax(0,1fr);align-items:center;gap:8px}
+.pf-facts dt{font-size:.78rem;color:var(--muted)}
+.pf-facts dd{margin:0;font-size:.9rem;font-weight:600}
+@media (max-width:519px){ .pf-tcs{grid-template-columns:minmax(0,1fr)} .pf-tc{min-height:0;grid-template-columns:auto 1fr;align-items:center;gap:10px} .pf-foot .ax-btns{width:100%} }

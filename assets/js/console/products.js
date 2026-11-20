@@ -213,7 +213,12 @@
       var e = d.querySelector('#pl-edit'); if(e) e.addEventListener('click', function(){ d.close(); form(p); });
     }
 
-    /* The form for a new product or an edit. A new product picks an item, then only its empty tiers */
+    /* The form for a new product or an edit.
+       A live preview at the top looks like the product card and follows the typing. Then three sections:
+       where it goes (item, and the package as three option cards where a taken slot shows its product and cannot be
+       picked: one product per item per package), the product (a photo drop area and the name), and the price (price
+       with its unit, source and supplier page). Editing shows the item and package as facts, not choices. */
+    var SOURCES = ['Sam\'s price book', 'Supplier list, Nov 2026', 'Supplier quote'];
     function form(p, preset){
       var isNew = !p, its = items(list), a = p || {name:'', price:'', per:'each', src:'Sam\'s price book', link:'', img:''};
       var img = a.img || '';
@@ -221,38 +226,73 @@
       var withGap = its.filter(function(it){ return open(it).length; });
       var pickItem = preset ? preset.item : (withGap[0] || {}).item;
       var itemOf = function(name){ return its.filter(function(x){ return x.item === name; })[0]; };
-      var tierOpts = function(name){ var it = itemOf(name), o = it ? open(it) : []; return o.map(function(t){ return '<label class="pl-tr"><input type="radio" name="pl-tier" value="' + t[0] + '"' + ((preset && preset.tier === t[0]) || o.length === 1 ? ' checked' : '') + '><span>' + t[1] + '</span></label>'; }).join(''); };
-      var d = C.dialog(isNew ? 'Add a product' : 'Edit: ' + esc(a.name),
-        '<form class="ax-scroll pl-form" id="pl-form" novalidate>' +
-          (isNew ? '<div class="field"><label for="pl-item">Item</label><span class="c-select"><select id="pl-item">' + withGap.map(function(it){ return '<option' + (it.item === pickItem ? ' selected' : '') + '>' + esc(it.item) + '</option>'; }).join('') + '</select></span><span class="help">Only items with an empty slot are listed: one product per item per package.</span></div>' +
-            '<div class="field" id="pl-tf"><span class="flabel">Package</span><div class="pl-trs" id="pl-trs">' + tierOpts(pickItem) + '</div><span class="err" id="pl-terr"></span></div>'
-            : '<p class="pl-for">For <b>' + esc(a.item) + '</b> · ' + TN[a.tier] + ' · ' + a.id + '</p>') +
-          '<div class="field"><span class="flabel">Photo</span><div class="pl-up"><span class="pl-upv" id="pl-upv">' + photo({img:img}) + '</span><div><label class="btn btn-secondary btn-sm" for="pl-file">' + I('image') + (img ? 'Change photo' : 'Upload a photo') + '</label><input type="file" id="pl-file" accept="image/*" class="sr"><span class="help">A square photo of the real product, as the presentation shows it.</span></div></div></div>' +
-          '<div class="field"><label for="pl-n">Product name</label><input class="input" id="pl-n" value="' + esc(a.name) + '" placeholder="For example: Painted shaker, soft close"><span class="err"></span></div>' +
-          '<div class="pl-2"><div class="field"><label for="pl-pr">Price</label><div class="in-suf"><input class="input" id="pl-pr" inputmode="decimal" value="' + (a.price === '' ? '' : a.price) + '" placeholder="0"><span>$</span></div><span class="err"></span></div>' +
-            '<div class="field"><label for="pl-per">Per</label><span class="c-select"><select id="pl-per">' + PER.map(function(u){ return '<option value="' + u + '"' + (u === (a.per || 'each') ? ' selected' : '') + '>' + (u === 'each' ? 'Each' : u) + '</option>'; }).join('') + '</select></span></div></div>' +
-          '<p class="pl-help">One price for the product. The Low and High of a line comes from this price and the rates together.</p>' +
-          '<div class="field"><label for="pl-src">Source</label><input class="input" id="pl-src" value="' + esc(a.src || '') + '"></div>' +
-          '<div class="field"><label for="pl-ln">Supplier page <span class="opt">(optional)</span></label><input class="input" id="pl-ln" type="url" value="' + esc(a.link || '') + '" placeholder="https://"></div>' +
-          C.note('Saving makes a draft. It waits in the publish queue; only Sam publishes. Old runs keep the version they were priced with.') +
-        '</form><div class="ax-foot"><div class="ax-btns"><button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="submit" form="pl-form" class="btn btn-primary">Save as draft</button></div></div>');
+      /* The three packages for an item: an open one is a choice, a taken one names its product */
+      var tierCards = function(name){
+        var it = itemOf(name), o = it ? open(it) : [], only = o.length === 1;
+        return TIERS.map(function(t){
+          var taken = it && it.slots[t[0]], on = !taken && ((preset && preset.tier === t[0]) || only);
+          return '<label class="pf-tc t-' + t[0] + (taken ? ' taken' : '') + '"><input type="radio" name="pl-tier" value="' + t[0] + '"' + (taken ? ' disabled' : '') + (on ? ' checked' : '') + '>' +
+            '<span class="pf-tc-h"><i aria-hidden="true"></i>' + t[1] + '</span><small>' + (taken ? 'Has a product: ' + esc(taken.name) : 'Open') + '</small></label>';
+        }).join('');
+      };
+      var item0 = isNew ? pickItem : a.item;
+      var sec = function(n, title, body){ return '<section class="pf-sec"><h3 class="pf-h"><span>' + n + '</span>' + title + '</h3>' + body + '</section>'; };
+      var d = C.dialog(isNew ? 'Add a product' : 'Edit product',
+        '<form class="ax-scroll pl-form pf" id="pl-form" novalidate>' +
+          '<div class="pf-pre" aria-hidden="true"><span class="pf-pre-k">Preview</span><div class="pf-card"><span class="pf-ph" id="pf-ph"></span><div class="pf-ct"><span class="pf-tl" id="pf-tier"></span><b id="pf-name"></b><span class="pf-for" id="pf-for"></span><span class="pf-pr" id="pf-pr"></span></div></div></div>' +
+          sec(1, 'Where it goes', isNew ?
+            '<div class="field"><label for="pl-item">Item</label><span class="c-select pf-wide"><select id="pl-item">' + withGap.map(function(it){ return '<option' + (it.item === pickItem ? ' selected' : '') + '>' + esc(it.item) + '</option>'; }).join('') + '</select></span><span class="help">Only items with an open package are listed.</span></div>' +
+            '<div class="field" id="pl-tf"><span class="flabel">Package</span><div class="pf-tcs" id="pl-trs">' + tierCards(pickItem) + '</div><span class="err" id="pl-terr"></span><span class="help">One product per item per package.</span></div>'
+            : '<dl class="pf-facts"><div><dt>Item</dt><dd>' + esc(a.item) + '</dd></div><div><dt>Package</dt><dd><span class="pf-tier t-' + a.tier + '"><i></i>' + TN[a.tier] + '</span></dd></div><div><dt>Code</dt><dd><code>' + a.id + '</code> · v' + (a.v || 1) + '</dd></div></dl>') +
+          sec(2, 'The product',
+            '<div class="field"><span class="flabel">Photo</span><label class="pf-drop' + (img ? ' has' : '') + '" id="pf-drop" for="pl-file"><span class="pf-dv" id="pl-upv">' + photo({img:img}) + '</span><span class="pf-dt"><b id="pf-dtt">' + (img ? 'Replace the photo' : 'Drop a photo here, or choose a file') + '</b><small>A square photo of the real product, as the presentation shows it. Up to 1.5 MB.</small></span></label><input type="file" id="pl-file" accept="image/*" class="sr">' +
+              '<button type="button" class="linkbtn small pf-rm" id="pf-rm"' + (img ? '' : ' hidden') + '>Remove the photo</button></div>' +
+            '<div class="field"><label for="pl-n">Product name</label><input class="input" id="pl-n" value="' + esc(a.name) + '" placeholder="For example: Painted shaker, soft close" autocomplete="off"><span class="err"></span></div>') +
+          sec(3, 'Price',
+            '<div class="pl-2"><div class="field"><label for="pl-pr">Price</label><div class="pf-money"><span aria-hidden="true">$</span><input class="input" id="pl-pr" inputmode="decimal" value="' + (a.price === '' ? '' : a.price) + '" placeholder="0.00" autocomplete="off"></div><span class="err"></span></div>' +
+              '<div class="field"><label for="pl-per">Per</label><span class="c-select"><select id="pl-per">' + PER.map(function(u){ return '<option value="' + u + '"' + (u === (a.per || 'each') ? ' selected' : '') + '>' + (u === 'each' ? 'Each' : u) + '</option>'; }).join('') + '</select></span></div></div>' +
+            '<p class="pl-help">One price for the product. A line\'s Low and High comes from this price and the rates together.</p>' +
+            '<div class="field"><label for="pl-src">Source</label><input class="input" id="pl-src" list="pf-srcs" value="' + esc(a.src || '') + '" autocomplete="off"><datalist id="pf-srcs">' + SOURCES.map(function(x){ return '<option value="' + esc(x) + '">'; }).join('') + '</datalist></div>' +
+            '<div class="field"><label for="pl-ln">Supplier page <span class="opt">(optional)</span></label><input class="input" id="pl-ln" type="url" value="' + esc(a.link || '') + '" placeholder="https://" autocomplete="off"></div>') +
+        '</form><div class="ax-foot pf-foot"><p class="pf-fn">' + I('info') + '<span>Saves a draft. Only Sam publishes; old runs keep their version.</span></p><div class="ax-btns"><button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="submit" form="pl-form" class="btn btn-primary">' + (isNew ? 'Save the draft' : 'Save changes as draft') + '</button></div></div>');
       d.classList.add('dlg-drawer'); RI.fillIcons(d);
-      d.addEventListener('change', function(e){ if(e.target.name === 'pl-tier'){ var tf = d.querySelector('#pl-tf'); if(tf) tf.classList.remove('invalid'); } });
-      var sel = d.querySelector('#pl-item'); if(sel) sel.addEventListener('change', function(){ d.querySelector('#pl-trs').innerHTML = tierOpts(this.value); d.querySelector('#pl-tf').classList.remove('invalid'); });
-      d.querySelector('#pl-file').addEventListener('change', function(){
-        var f = this.files && this.files[0]; if(!f) return;
+      var sel = d.querySelector('#pl-item');
+      /* The preview follows the form */
+      function preview(){
+        var it = isNew ? (sel ? sel.value : '') : a.item, t = isNew ? ((d.querySelector('input[name="pl-tier"]:checked') || {}).value || '') : a.tier;
+        var nm = d.querySelector('#pl-n').value.trim(), pr = +d.querySelector('#pl-pr').value, per = d.querySelector('#pl-per').value;
+        d.querySelector('#pf-ph').innerHTML = photo({img:img});
+        d.querySelector('#pf-tier').innerHTML = t ? '<span class="pf-tier t-' + t + '"><i></i>' + TN[t] + '</span>' : '<span class="pf-tier"><i></i>Choose a package</span>';
+        d.querySelector('#pf-name').textContent = nm || 'Product name';
+        d.querySelector('#pf-name').classList.toggle('pf-none', !nm);
+        d.querySelector('#pf-for').textContent = it ? 'For ' + it : '';
+        d.querySelector('#pf-pr').innerHTML = pr > 0 ? '<b>' + priceOf({price:pr, per:per}).replace(/ (each|per .*)$/, '') + '</b> ' + (per === 'each' ? 'each' : 'per ' + per) : '<span class="muted">No price yet</span>';
+      }
+      d.addEventListener('input', preview);
+      d.addEventListener('change', function(e){ if(e.target.name === 'pl-tier'){ var tf = d.querySelector('#pl-tf'); if(tf) tf.classList.remove('invalid'); } preview(); });
+      if(sel) sel.addEventListener('change', function(){ d.querySelector('#pl-trs').innerHTML = tierCards(this.value); d.querySelector('#pl-tf').classList.remove('invalid'); preview(); });
+      /* Photo: choose or drop a file; replace or remove */
+      function setImg(v){ img = v; d.querySelector('#pl-upv').innerHTML = photo({img:img}); d.querySelector('#pf-drop').classList.toggle('has', !!img); d.querySelector('#pf-dtt').textContent = img ? 'Replace the photo' : 'Drop a photo here, or choose a file'; d.querySelector('#pf-rm').hidden = !img; preview(); }
+      function readFile(f){
+        if(!f) return; if(!/^image\//.test(f.type)){ RI.toast('Choose an image file, such as a JPG or PNG.', 'warn'); return; }
         if(f.size > 1.5 * 1024 * 1024){ RI.toast('That photo is over 1.5 MB. Choose a smaller one.', 'warn'); return; }
-        var rd = new FileReader(); rd.onload = function(){ img = rd.result; d.querySelector('#pl-upv').innerHTML = photo({img:img}); }; rd.readAsDataURL(f);
-      });
+        var rd = new FileReader(); rd.onload = function(){ setImg(rd.result); }; rd.readAsDataURL(f);
+      }
+      d.querySelector('#pl-file').addEventListener('change', function(){ readFile(this.files && this.files[0]); });
+      var drop = d.querySelector('#pf-drop');
+      ['dragenter', 'dragover'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add('over'); }); });
+      ['dragleave', 'drop'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('over'); if(ev === 'drop') readFile(e.dataTransfer.files && e.dataTransfer.files[0]); }); });
+      d.querySelector('#pf-rm').addEventListener('click', function(){ setImg(''); });
+      preview();
       d.querySelector('#pl-form').addEventListener('submit', function(ev){
         ev.preventDefault();
         var name = d.querySelector('#pl-n'), prEl = d.querySelector('#pl-pr'), price = Math.round(+prEl.value * 100) / 100, per = d.querySelector('#pl-per').value;
+        if(isNew){ var tier0 = (d.querySelector('input[name="pl-tier"]:checked') || {}).value; if(!tier0){ var tf0 = d.querySelector('#pl-tf'); tf0.classList.add('invalid'); d.querySelector('#pl-terr').textContent = 'Choose a package.'; tf0.scrollIntoView({block:'center'}); return; } }
         if(!name.value.trim()){ RI.form.setInvalid(name, 'Give the product a name.'); name.focus(); return; }
         if(!(price > 0)){ RI.form.setInvalid(prEl, 'Enter the product\'s price, for example 9 or 68.50.'); prEl.focus(); return; }
         var after = {name:name.value.trim(), price:price, per:per, src:d.querySelector('#pl-src').value.trim(), link:d.querySelector('#pl-ln').value.trim(), img:img};
         if(isNew){
-          var tier = (d.querySelector('input[name="pl-tier"]:checked') || {}).value, item = sel.value, it = itemOf(item);
-          if(!tier){ var tf = d.querySelector('#pl-tf'); tf.classList.add('invalid'); d.querySelector('#pl-terr').textContent = 'Choose a package.'; tf.scrollIntoView({block:'center'}); return; }
+          var tier = d.querySelector('input[name="pl-tier"]:checked').value, item = sel.value, it = itemOf(item);
           after._new = true; after.item = item; after.tier = tier; after.fam = it.fam;
           d.close();
           C.askWhy('New product: ' + after.name, item + ' · ' + TN[tier] + ' · ' + priceOf(after), function(why){ C.addDraft({area:'products', ref:'new-' + item + '-' + tier, title:'New product: ' + after.name, summary:item + ', ' + TN[tier] + ': ' + priceOf(after), after:after, why:why}); RI.toast('Saved as a draft. It waits in the publish queue.', 'check'); draw(); });
