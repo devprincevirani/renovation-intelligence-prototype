@@ -2203,3 +2203,18 @@ dialog.rlb-sheet::backdrop{background:rgba(24,38,36,.45)}
   .rlb-regsel{flex:none;margin-left:auto}
   .rlb-regsel select{min-width:210px}
 }
+/* Rates (v97): unit and region locked, Add a rate */
+.rlb-facts dd.rlb-lockd{display:flex;align-items:center;gap:6px}
+.rlb-facts dd.rlb-lockd .i{flex:none;color:var(--muted)}
+.rlb-locked{margin-top:14px}
+.rlb-lockf{display:grid;gap:6px;min-width:0}
+.rlb-lockf>span:first-child{font-size:.78rem;font-weight:600;color:var(--muted)}
+.rlb-lockv{display:flex;align-items:center;gap:8px;min-height:48px;padding:0 12px;border:1px dashed var(--border-strong);border-radius:4px;background:var(--sunken);color:var(--text);font-size:1rem;cursor:not-allowed}
+.rlb-lockv .i{flex:none;color:var(--muted)}
+.rlb-fields .c-select select{width:100%;min-height:48px}
+.rlb-fields .err{font-size:.78rem;font-weight:500;color:var(--bad)}
+.rlb-fields .err:empty{display:none}
+.rlb-name .lb-sample{margin-left:6px;vertical-align:2px}
+#rlb-addf.rlb-sh-b{margin:0}
+.rlb-dv{display:inline-grid;color:var(--warn);font-weight:600}
+.rlb-dv small{font-size:.7rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase}

@@ -14,7 +14,7 @@
     C.set('rates', RI.RATES.map(function(r, i){ return {name:r[0], desc:r[1], unit:r[2], lo:r[3], hi:r[4], region:'Sample region', src:i % 2 ? 'Sam\'s price book' : 'Supplier list, Nov 2026', v:i === 0 ? 7 : 2 + i % 4, at:now - (4 + i * 2) * DAY}; }));
   });
   C.APPLY.products = function(d){ var l = C.get('products', []); l.forEach(function(p){ if(p.id === d.ref){ Object.assign(p, d.after); p.v++; p.at = Date.now(); } }); C.set('products', l); };
-  C.APPLY.rates = function(d){ var l = C.get('rates', []), r = l[+d.ref]; if(r){ r.lo = d.after.lo; r.hi = d.after.hi; if(d.after.src) r.src = d.after.src; r.v = (r.v || 0) + 1; r.at = d.after.eff || Date.now(); C.set('rates', l); } };
+  C.APPLY.rates = function(d){ var l = C.get('rates', []), r = l[+d.ref]; if(r){ r.lo = d.after.lo; r.hi = d.after.hi; if(d.after.src) r.src = d.after.src; r.v = (r.v || 0) + 1; r.at = d.after.eff || Date.now(); r.added = false; C.set('rates', l); } };
 
   /* A small range line: the bar from Low to High on a shared scale, as on the user's screens */
   function rline(lo, hi, max){ return '<span class="pr-rl" aria-hidden="true"><i style="left:' + (lo / max * 100).toFixed(1) + '%;width:' + Math.max(1.5, (hi - lo) / max * 100).toFixed(1) + '%"></i></span>'; }
@@ -130,9 +130,10 @@
     var list = rtList(), canEdit = C.can('pricing.edit'), st = {q:'', trade:'all', s:'all', page:0, per:10, region:RT_REGIONS[0][0], unit:'all'}, open = null;
     var units = list.map(function(r){ return r.unit; }).filter(function(u, k, a){ return a.indexOf(u) === k; });
     var inView = function(r){ return r.region === st.region && (st.unit === 'all' || r.unit === st.unit); };
-    var stateOf = function(r, i){ return r.lo == null ? 'none' : C.draftFor('rates', String(i)) ? 'queued' : 'pub'; };
+    var stateOf = function(r, i){ return C.draftFor('rates', String(i)) ? 'queued' : r.lo == null ? 'none' : 'pub'; };
     var count = function(s){ return list.filter(function(r, i){ return inView(r) && (s === 'all' || stateOf(r, i) === s); }).length; };
     view.innerHTML = C.page({kicker:'Pricing', title:'Rates', sub:'The rate library: a Low and a High installed rate per activity and unit, with the region, effective date and source. Check 4 prices a line only from a published rate.',
+      actions:canEdit ? '<button type="button" class="btn btn-primary" id="rlb-add">' + RI.icon('plus', 'i-sm') + 'Add a rate</button>' : '',
       body:'<div class="rlb-tools">' + C.search('rlb-q', 'Search by activity or code', '') +
         '<label class="c-select rlb-sel"><span class="sr">Trade</span><select id="rlb-trade"><option value="all">All trades</option>' + RT_TRADES.map(function(t){ return '<option>' + t + '</option>'; }).join('') + '</select></label>' +
         '<label class="c-select rlb-sel"><span class="sr">Unit</span><select id="rlb-unit"><option value="all">All units</option>' + units.map(function(u){ return '<option value="' + RI.esc(u) + '">' + RI.esc(u === 'each' ? 'Each' : 'Per ' + u) + '</option>'; }).join('') + '</select></label>' +
@@ -165,11 +166,11 @@
         html += '<li class="rlb-grp"><span>' + t + '</span><small>' + g.length + (g.length === 1 ? ' rate' : ' rates') + '</small></li>';
         g.forEach(function(x){ var r = x.r, i = x.i, d = C.draftFor('rates', String(i));
           html += '<li class="rlb-row' + (r.lo == null ? ' is-none' : '') + (open === i ? ' is-open' : '') + '"><button type="button" class="rlb-hit" data-i="' + i + '" aria-label="Open ' + RI.esc(r.name) + '">' +
-            '<span class="rlb-name"><b>' + RI.esc(r.name) + '</b><small><code>' + r.code + '</code> &middot; ' + RI.esc(r.desc) + '</small></span>' +
+            '<span class="rlb-name"><b>' + RI.esc(r.name) + (r.added ? ' <span class="lb lb-sample">New</span>' : '') + '</b><small><code>' + r.code + '</code> &middot; ' + RI.esc(r.desc) + '</small></span>' +
             '<span class="rlb-unit">' + RI.esc(r.unit) + '</span>' +
-            '<span class="rlb-lo num">' + (r.lo == null ? '<span class="muted">&ndash;</span>' : rtMoney(r.lo)) + '</span><span class="rlb-hi num">' + (r.hi == null ? '<span class="muted">&ndash;</span>' : rtMoney(r.hi)) + '</span>' +
+            '<span class="rlb-lo num">' + (r.lo == null ? (d ? '<span class="rlb-dv">' + rtMoney(d.after.lo) + '</span>' : '<span class="muted">&ndash;</span>') : rtMoney(r.lo)) + '</span><span class="rlb-hi num">' + (r.hi == null ? (d ? '<span class="rlb-dv">' + rtMoney(d.after.hi) + '</span>' : '<span class="muted">&ndash;</span>') : rtMoney(r.hi)) + '</span>' +
             '<span class="rlb-val">' + rtRange(r.lo, r.hi, r.unit) + '</span>' +
-            '<span class="rlb-eff">' + (r.lo == null ? '<span class="muted">&ndash;</span>' : C.date(r.at)) + '</span><span class="rlb-src">' + (r.src ? RI.esc(r.src) : '<span class="muted">&ndash;</span>') + '</span>' +
+            '<span class="rlb-eff">' + (r.lo == null ? (d && d.after.eff ? '<span class="rlb-dv">' + C.date(d.after.eff) + '<small>Draft</small></span>' : '<span class="muted">&ndash;</span>') : C.date(r.at)) + '</span><span class="rlb-src">' + (r.src ? RI.esc(r.src) : '<span class="muted">&ndash;</span>') + '</span>' +
             '<span class="rlb-meta">' + (r.lo == null ? 'Waiting for Sam\'s Low and High' : 'Effective ' + rtShort(r.at) + ' &middot; ' + RI.esc(r.src)) + (d ? ' &middot; <b class="rlb-q">Draft: ' + rtMoney(d.after.lo) + ' to ' + rtMoney(d.after.hi) + '</b>' : '') + '</span>' +
             '<span class="rlb-st">' + statusLbl(r, i) + '</span><span class="rlb-go">' + RI.icon('chev', 'i-sm') + '</span></button></li>';
         });
@@ -195,7 +196,7 @@
         '<div class="rlb-sh-b">' +
           '<section class="rlb-now"><div class="rlb-big">' + rtRange(r.lo, r.hi, r.unit) + '</div>' + (r.lo == null ? '<p class="rlb-why">Lines that use this activity show &ldquo;Not priced yet&rdquo; (check 4) until Sam publishes a Low and a High. Nothing is shown as zero.</p>' : '') +
             '<div id="rlb-bars">' + bars(r, ed.lo, ed.hi) + '</div>' +
-            '<dl class="rlb-facts"><div><dt>Effective</dt><dd>' + (r.lo == null ? '&ndash;' : C.date(r.at)) + '</dd></div><div><dt>Source</dt><dd>' + (r.src ? RI.esc(r.src) : '&ndash;') + '</dd></div><div><dt>Region</dt><dd>' + RI.esc(r.region) + '</dd></div><div><dt>Unit</dt><dd>' + RI.esc(r.unit === 'each' ? 'Each' : 'Per ' + r.unit) + '</dd></div><div><dt>Version</dt><dd>' + (r.v ? 'v' + r.v : 'None yet') + '</dd></div></dl></section>' +
+            '<dl class="rlb-facts"><div><dt>Effective</dt><dd>' + (r.lo == null ? '&ndash;' : C.date(r.at)) + '</dd></div><div><dt>Source</dt><dd>' + (r.src ? RI.esc(r.src) : '&ndash;') + '</dd></div><div><dt>Region</dt><dd class="rlb-lockd">' + RI.icon('lock', 'i-sm') + RI.esc(r.region) + '</dd></div><div><dt>Unit</dt><dd class="rlb-lockd">' + RI.icon('lock', 'i-sm') + RI.esc(r.unit === 'each' ? 'Each' : 'Per ' + r.unit) + '</dd></div><div><dt>Version</dt><dd>' + (r.v ? 'v' + r.v : 'None yet') + '</dd></div></dl></section>' +
           (d ? '<section class="rlb-queue">' + RI.icon('clock', 'i-sm') + '<div><b>In the publish queue: ' + rtMoney(d.after.lo) + ' to ' + rtMoney(d.after.hi) + '</b><span>Saved by ' + RI.esc(d.by) + ' ' + C.ago(d.at) + (d.why ? ': &ldquo;' + RI.esc(d.why) + '&rdquo;' : '') + '</span>' +
             '<span class="rlb-bt ' + (!d.bt ? 'todo' : d.bt.clean ? 'ok' : 'bad') + '">' + RI.icon(!d.bt ? 'clock' : d.bt.clean ? 'check' : 'warn', 'i-sm') + (!d.bt ? 'Not back-tested yet. Sam runs one before he publishes.' : d.bt.clean ? 'Back-test clean' : 'The back-test found problems') + '</span>' +
             '<span class="rlb-qa">' + (d.bt ? '<a href="#/backtests/' + d.bt.id + '">Read the back-test</a>' : '') + '<a href="#/publish">Open the publish queue</a></span></div></section>' : '') +
@@ -204,7 +205,9 @@
             '<label><span>High</span><span class="rlb-in"><i>$</i><input class="input" type="number" inputmode="decimal" step="0.05" min="0" id="rlb-hi" value="' + (ed.hi == null ? '' : ed.hi) + '"></span></label>' +
             '<label class="rlb-wide"><span>Effective date</span><input class="input" type="date" id="rlb-eff" value="' + ed.eff + '"><small class="rlb-hint">The date this Low and High applies from. Sam confirms it when he publishes.</small></label>' +
             '<label class="rlb-wide"><span>Source</span><input class="input" type="text" id="rlb-src" value="' + RI.esc(ed.src) + '" placeholder="For example: Supplier list, Dec 2026"></label></div>' +
-            '<p class="rlb-fixed">' + RI.icon('lock', 'i-sm') + '<span><b>' + RI.esc(r.unit === 'each' ? 'Each' : 'Per ' + r.unit) + '</b> and <b>' + RI.esc(r.region) + '</b> are fixed for this rate. Another unit or region is its own rate line.</span></p>' +
+            '<div class="rlb-fields rlb-locked"><div class="rlb-lockf"><span>Unit</span><span class="rlb-lockv" aria-readonly="true">' + RI.icon('lock', 'i-sm') + RI.esc(r.unit === 'each' ? 'Each' : 'Per ' + r.unit) + '</span></div>' +
+            '<div class="rlb-lockf"><span>Region</span><span class="rlb-lockv" aria-readonly="true">' + RI.icon('lock', 'i-sm') + RI.esc(r.region) + '</span></div></div>' +
+            '<p class="rlb-fixed">Unit and region are fixed for a rate. Another unit or region is its own rate line: use Add a rate.</p>' +
             '<p class="rlb-delta" id="rlb-delta" aria-live="polite"></p></section>' : '<p class="rlb-ro">' + RI.icon('lock', 'i-sm') + 'You can read rates. Changing one needs the pricing.edit permission.</p>') +
           (hist.length ? '<section class="rlb-hist"><h3>Versions</h3><ol>' + hist.map(function(h){
             return '<li' + (h.cur ? ' class="cur"' : '') + '><span class="rlb-dot" aria-hidden="true"></span><div class="rlb-hv"><div class="rlb-hv-t"><b>v' + h.v + '</b>' + (h.cur ? '<span class="lb lb-pub">Live</span>' : '<span class="lb lb-off">Retired</span>') + '<span class="rlb-hv-r">' + rtMoney(h.lo) + ' to ' + rtMoney(h.hi) + '</span></div>' +
@@ -255,6 +258,74 @@
     view.querySelector('#rlb-unit').addEventListener('change', function(){ st.unit = this.value; st.page = 0; draw(); });
     view.querySelector('#rlb-region').addEventListener('change', function(){ st.region = this.value; st.page = 0; draw(); });
     view.addEventListener('change', function(e){ var p = e.target.closest('#rlb-body [data-per]'); if(p){ st.per = +p.value; st.page = 0; draw(); } });
+    /* ---------- Add a rate: a new line (activity, unit, region) with its first Low and High, saved as a draft ---------- */
+    var RT_UNITS = ['sq ft', 'linear ft', 'each', 'sq yd'];
+    var RT_AB = {Flooring:'FL', Painting:'PT', Carpentry:'CP', Cabinets:'CB', Plumbing:'PL', Electrical:'EL', Drywall:'DW'};
+    var RT_UB = {'sq ft':'SF', 'linear ft':'LF', each:'EA', 'sq yd':'SY'};
+    function addSheet(){
+      open = 'add';
+      var opt = function(list, cur, lab){ return list.map(function(v){ return '<option value="' + RI.esc(v) + '"' + (v === cur ? ' selected' : '') + '>' + RI.esc(lab ? lab(v) : v) + '</option>'; }).join(''); };
+      sheet.innerHTML = '<div class="rlb-sh">' +
+        '<header class="rlb-sh-h"><button type="button" class="rlb-x" data-close aria-label="Close">' + RI.icon('x') + '</button><div><p class="rlb-code">Rate library &middot; New line</p><h2 id="rlb-h">Add a rate</h2><p class="muted">A new activity, unit and region with its first Low and High.</p></div></header>' +
+        '<form class="rlb-sh-b" id="rlb-addf" novalidate>' +
+          '<section class="rlb-edit"><h3>What it is</h3><div class="rlb-fields">' +
+            '<label class="rlb-wide"><span>Activity</span><input class="input" type="text" id="ra-name" placeholder="For example: Vinyl tile floor" autocomplete="off"><small class="err" id="ra-name-e"></small></label>' +
+            '<label class="rlb-wide"><span>What it includes</span><input class="input" type="text" id="ra-desc" placeholder="For example: Glue down, with underlayment"></label>' +
+            '<label><span>Trade</span><span class="c-select"><select id="ra-trade">' + opt(RT_TRADES, st.trade === 'all' ? 'Flooring' : st.trade) + '</select></span></label>' +
+            '<label><span>Code</span><input class="input" type="text" id="ra-code" autocomplete="off" spellcheck="false"><small class="err" id="ra-code-e"></small></label>' +
+            '<label><span>Unit</span><span class="c-select"><select id="ra-unit">' + opt(RT_UNITS, st.unit === 'all' ? 'sq ft' : st.unit, function(u){ return u === 'each' ? 'Each' : 'Per ' + u; }) + '</select></span></label>' +
+            '<label><span>Region</span><span class="c-select"><select id="ra-region">' + opt(RT_REGIONS.map(function(g){ return g[0]; }), st.region) + '</select></span></label>' +
+          '</div><p class="rlb-fixed">' + RI.icon('lock', 'i-sm') + '<span>Unit and region cannot change once the rate is saved.</span></p></section>' +
+          '<section class="rlb-edit"><h3>First Low and High</h3><div class="rlb-fields">' +
+            '<label><span>Low</span><span class="rlb-in"><i>$</i><input class="input" type="number" inputmode="decimal" step="0.05" min="0" id="ra-lo"></span></label>' +
+            '<label><span>High</span><span class="rlb-in"><i>$</i><input class="input" type="number" inputmode="decimal" step="0.05" min="0" id="ra-hi"></span></label>' +
+            '<label class="rlb-wide"><span>Effective date</span><input class="input" type="date" id="ra-eff" value="' + rtISO(Date.now()) + '"></label>' +
+            '<label class="rlb-wide"><span>Source</span><input class="input" type="text" id="ra-src" placeholder="For example: Supplier list, Dec 2026"></label>' +
+          '</div><p class="rlb-delta" id="ra-delta" aria-live="polite"></p></section>' +
+          '<p class="rlb-replace">' + RI.icon('info', 'i-sm') + '<span>The new rate is saved as a draft and waits in the publish queue. Lines can use it once Sam publishes it.</span></p>' +
+        '</form>' +
+        '<footer class="rlb-sh-f"><button type="button" class="btn btn-secondary" data-close>Cancel</button><button type="button" class="btn btn-primary" id="ra-save">' + RI.icon('check', 'i-sm') + 'Save as draft</button></footer></div>';
+      RI.fillIcons(sheet);
+      if(!sheet.open) sheet.showModal();
+      var $ = function(id){ return sheet.querySelector('#' + id); }, codeTouched = false;
+      function suggest(){ if(codeTouched) return; var w = $('ra-name').value.trim().toUpperCase().replace(/[^A-Z0-9 ]/g, '').split(/\s+/).filter(Boolean);
+        $('ra-code').value = w.length ? 'R-' + RT_AB[$('ra-trade').value] + '-' + (w.length > 1 ? w.slice(0, 2).map(function(x){ return x.slice(0, 3); }).join('') : w[0].slice(0, 5)) + '-' + RT_UB[$('ra-unit').value] : ''; }
+      function dupe(){ var c = $('ra-code').value.trim().toUpperCase(), g = $('ra-region').value;
+        return list.some(function(r){ return r.region === g && (r.code === c || (r.name.toLowerCase() === $('ra-name').value.trim().toLowerCase() && r.unit === $('ra-unit').value)); }); }
+      function check(show){
+        var name = $('ra-name').value.trim(), code = $('ra-code').value.trim(), a = $('ra-lo').value === '' ? null : +$('ra-lo').value, b = $('ra-hi').value === '' ? null : +$('ra-hi').value, msg = '', bad = false;
+        $('ra-name-e').textContent = show && !name ? 'Name the activity.' : '';
+        $('ra-code-e').textContent = show && !code ? 'Give it a code.' : dupe() ? 'This activity and unit already have a rate in ' + $('ra-region').value + '.' : '';
+        if(!name || !code || dupe()) bad = true;
+        if(a == null || b == null) msg = 'Enter both a Low and a High.', bad = true;
+        else if(a <= 0) msg = 'Low must be more than zero.', bad = true;
+        else if(b < a) msg = 'High must be at least Low.', bad = true;
+        else if(!$('ra-eff').value) msg = 'Choose the effective date.', bad = true;
+        else msg = 'New rate: ' + rtMoney(a) + ' to ' + rtMoney(b) + ' ' + rtPer($('ra-unit').value) + ' in ' + $('ra-region').value + ', effective ' + C.date(rtParse($('ra-eff').value)) + '.';
+        $('ra-delta').textContent = msg; $('ra-delta').classList.toggle('bad', bad && a != null && b != null);
+        return !bad;
+      }
+      $('ra-code').addEventListener('input', function(){ codeTouched = true; check(false); });
+      ['ra-name', 'ra-trade', 'ra-unit'].forEach(function(id){ $(id).addEventListener('input', function(){ suggest(); check(false); }); $(id).addEventListener('change', function(){ suggest(); check(false); }); });
+      ['ra-lo', 'ra-hi', 'ra-eff', 'ra-region', 'ra-src'].forEach(function(id){ $(id).addEventListener('input', function(){ check(false); }); $(id).addEventListener('change', function(){ check(false); }); });
+      sheet.querySelectorAll('[data-close]').forEach(function(b){ b.addEventListener('click', function(){ sheet.close(); }); });
+      setTimeout(function(){ $('ra-name').focus(); }, 30);
+      $('ra-save').addEventListener('click', function(){
+        if(!check(true)){ var f = sheet.querySelector('.err:not(:empty)'); (f ? f.previousElementSibling : $('ra-lo')).focus(); return; }
+        var r = {name:$('ra-name').value.trim(), desc:$('ra-desc').value.trim() || 'New activity', unit:$('ra-unit').value, code:$('ra-code').value.trim().toUpperCase(), trade:$('ra-trade').value,
+          region:$('ra-region').value, lo:null, hi:null, src:'', v:0, at:Date.now(), added:true};
+        var a = +$('ra-lo').value, b = +$('ra-hi').value, e = rtParse($('ra-eff').value), s = $('ra-src').value.trim() || 'Not given';
+        var sum = 'New rate ' + rtPer(r.unit) + ' in ' + r.region + ': ' + rtMoney(a) + ' to ' + rtMoney(b) + ', effective ' + C.date(e);
+        sheet.close();
+        C.askWhy('New rate: ' + r.name, sum, function(why){
+          var all = C.get('rates', []); all.push(r); C.set('rates', all); list = all;
+          C.addDraft({area:'rates', ref:String(all.length - 1), title:'New rate: ' + r.name + ', ' + r.region, summary:sum, after:{lo:a, hi:b, src:s, eff:e}, why:why});
+          RI.toast('New rate saved as a draft. It waits in the publish queue.', 'check'); C.render();
+        });
+      });
+    }
+    var addBtn = view.querySelector('#rlb-add'); if(addBtn) addBtn.addEventListener('click', addSheet);
+
     view.addEventListener('click', function(e){
       var s = e.target.closest('[data-s]'); if(s && view.contains(s) && !sheet.contains(s)){ st.s = s.getAttribute('data-s'); st.page = 0; draw(); return; }
       var pg = e.target.closest('#rlb-body [data-pg]'); if(pg && !pg.disabled){ st.page = +pg.getAttribute('data-pg'); draw(); doc.getElementById('rlb-s').scrollIntoView({block:'nearest'}); return; }
