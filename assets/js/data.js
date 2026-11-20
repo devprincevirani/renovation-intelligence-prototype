@@ -4,6 +4,21 @@
 (function(){
   var RI = window.RI = window.RI || {};
 
+  /* Offers and limits (19 Nov brief, change 4 section 11, and change 8): every one is a setting, in this one place.
+     Sam decides the numbers and the dates. Nothing goes live as an offer until he says so. No countdowns, ever. */
+  RI.OFFERS = {
+    price:49, priceIsSample:true,                         /* one payment per house, used on every button */
+    founding:{on:false, price:29, ends:'2027-04-30'},     /* waitlist members; the end date is shown as a date */
+    secondHouse:{on:false, price:35},                     /* the second and later houses on one account */
+    inviteCredits:3,                                      /* full presentations free for invited contacts, no clock */
+    freeRuns:5, runsPerPayment:2,                         /* free price views per account, more after each payment */
+    priceReadyEmail:true,
+    reminderEmail:{on:true, days:3},                      /* one reminder if the presentation is still locked, then silence */
+    sample:true                                           /* the public sample presentation */
+  };
+  /* Team switches for the two offers (Team panel, ?team=1). Kept in this browser only. */
+  try { var ov = JSON.parse(localStorage.getItem('ri-offers') || 'null'); if(ov){ RI.OFFERS.founding.on = !!ov.founding; RI.OFFERS.secondHouse.on = !!ov.second; } } catch(e){}
+
   RI.PACKAGES = [
     {key:'E', name:'Essential', goal:'Fix what must be fixed'},
     {key:'S', name:'Standard',  goal:'Modernize, keep what is sound'},
@@ -120,9 +135,9 @@
       ]}
     ],
     mechanicals:[
-      {name:'Roof', src:'Reported in the listing: replaced 2009', ev:'reported', life:'20 to 25 years for asphalt shingles', range:[9000,16000], text:'Look for curled or missing shingles and stains on the ceiling below. Asphalt roofs in Michigan often last 20 to 25 years. Have a roofer look before you buy.'},
-      {name:'Heating and cooling', src:'Reported in the listing: furnace 2004', ev:'reported', life:'15 to 20 years for a gas furnace', range:[4500,9500], text:'A furnace of this age is worth a service visit. Ask for the last service record and check the filter and the flue.'},
-      {name:'Water heater', src:'Not in the photos or the listing', ev:'unknown', life:'8 to 12 years for a tank', range:[1300,2800], text:'Check the label on the tank for the year. Look for rust at the base and around the fittings.'},
+      {name:'Roof', src:'From the listing: replaced 2009', ev:'reported', life:'20 to 25 years for asphalt shingles', range:[9000,16000], text:'Look for curled or missing shingles and stains on the ceiling below. Asphalt roofs in Michigan often last 20 to 25 years. Have a roofer look before you buy.'},
+      {name:'Heating and cooling', src:'From the listing: furnace 2004', ev:'reported', life:'15 to 20 years for a gas furnace', range:[4500,9500], text:'A furnace of this age is worth a service visit. Ask for the last service record and look at the filter and the flue.'},
+      {name:'Water heater', src:'Not in the photos or the listing', ev:'unknown', life:'8 to 12 years for a tank', range:[1300,2800], text:'Read the label on the tank for the year. Look for rust at the base and around the fittings.'},
       {name:'Electrical panel', src:'Seen in one photo', ev:'observed', life:'Varies; only an electrician can judge it', range:[1800,4200], text:'We do not judge panels. An electrician can confirm its capacity and condition, especially before adding lighting or appliances.'}
     ]
   };
@@ -140,7 +155,22 @@
   /* Work this estimate does not include, stated plainly */
   RI.NOT_INCLUDED = ['Replacing the roof, furnace, air conditioning, water heater or electrical panel (guidance only)','Appliances, furniture and window coverings','Permits, inspections and city fees','Structural, foundation and drainage work','Testing or removal of hazardous materials','Landscaping, driveways and outdoor structures','Items you turned off'];
   /* Photos for product cards, by sample item and package (finish photos from Wikimedia, see credits) */
-  RI.PRODUCT_IMG = {k1:{S:'finishes/cab-painted.jpg', P:'finishes/cab-shaker.jpg'}, k2:{S:'finishes/ct-stonelook.jpg', P:'finishes/ct-quartz.jpg'}, k4:{S:'finishes/bs-white.jpg', P:'finishes/bs-glazed.jpg'}, k3:{E:'finishes/fx-single.jpg', S:'finishes/fx-pulldown.jpg', P:'finishes/fx-black.jpg'}, k6:{S:'finishes/lt-flush.jpg', P:'finishes/lt-recessed.jpg'}, w3:{S:'finishes/lt-flush.jpg', P:'finishes/lt-recessed.jpg'}, l1:{S:'wood-floor.jpg', P:'wood-floor.jpg'}, b1:{S:'wood-floor.jpg', P:'wood-floor.jpg'}, s1:{S:'wood-floor.jpg', P:'wood-floor.jpg'}, k5:{S:'wood-floor.jpg'}, h2:{S:'finishes/fx-black.jpg', P:'finishes/fx-black.jpg'}, f1:{E:'finishes/fx-single.jpg', S:'finishes/fx-black.jpg', P:'finishes/fx-black.jpg'}};
+  RI.PRODUCT_IMG = {
+    k1:{S:'finishes/cab-painted.jpg', P:'finishes/cab-shaker.jpg'},
+    k2:{S:'finishes/ct-stonelook.jpg', P:'finishes/ct-quartz.jpg'},
+    k3:{E:'finishes/fx-single-new.jpg', S:'finishes/fx-pulldown.jpg', P:'finishes/fx-black.jpg'},
+    k4:{S:'finishes/bs-white.jpg', P:'finishes/bs-glazed.jpg'},
+    k5:{S:'finishes/pr-lvp.jpg', P:'finishes/pr-porcelain.jpg'},
+    k6:{S:'finishes/lt-flush.jpg', P:'finishes/lt-recessed.jpg'},
+    l1:{S:'finishes/pr-lvp.jpg', P:'wood-floor.jpg'},
+    l2:{S:'finishes/pr-base-std.jpg', P:'finishes/pr-base-tall.jpg'},
+    b1:{S:'finishes/pr-lvp.jpg', P:'wood-floor.jpg'},
+    h2:{S:'finishes/pr-vanity.jpg', P:'finishes/pr-vanity-double.jpg'},
+    f1:{E:'finishes/fx-single-new.jpg', S:'finishes/pr-vanity.jpg', P:'finishes/fx-black.jpg'},
+    s1:{S:'finishes/pr-lvp-2.jpg', P:'finishes/pr-lvp.jpg'},
+    w3:{S:'finishes/lt-flush.jpg', P:'finishes/lt-recessed.jpg'},
+    x1:{S:'finishes/pr-door-steel.jpg', P:'finishes/pr-door-glass.jpg'}
+  };
   /* Room types to offer at intake (Sam's Volume 2, guide p24) */
   RI.ROOM_TYPES = {
     inside:[['kitchen','Kitchen'],['primary-bath','Primary bathroom'],['secondary-bath','Secondary bathroom'],['half-bath','Half bathroom'],['living','Living room'],['family','Family room'],['dining','Dining room'],['bedroom','Bedroom'],['office','Office'],['hallway','Hallway'],['laundry','Laundry'],['mudroom','Mudroom'],['basement','Basement'],['attic','Attic'],['mechanical','Mechanical room'],['entry','Entry'],['sunroom','Sunroom or bonus room'],['other','Other']],
@@ -229,6 +259,30 @@
       types:['brick-ranch','bungalow','colonial']}
   };
 
+  /* What each house type usually gets: real product photos, what each one is, and which goals include it.
+     Sample products; in the product they come from the product library. No prices: those are for one house. */
+  RI.PRODUCTS = {
+    'cab-painted':{name:'Cabinets refinished', img:'finishes/cab-painted.jpg', what:'The same cabinet boxes, sanded and painted, with new pulls.', goals:['S']},
+    'cab-shaker':{name:'White shaker cabinets', img:'finishes/cab-shaker.jpg', what:'New cabinet boxes and shaker doors in place of the old oak.', goals:['P']},
+    'quartz':{name:'Quartz countertop', img:'finishes/ct-quartz.jpg', what:'A stone-look top that does not stain or need sealing.', goals:['P']},
+    'pulldown':{name:'Pull-down faucet', img:'finishes/fx-pulldown.jpg', what:'A stainless faucet with a spray head that pulls down.', goals:['S','P']},
+    'lvp':{name:'Oak-look LVP flooring', img:'finishes/pr-lvp.jpg', what:'Waterproof vinyl plank in place of worn carpet.', goals:['S','P']},
+    'carpet':{name:'New carpet', img:'finishes/pr-carpet.jpg', what:'Fresh carpet on the stairs and in the bedrooms.', goals:['E','S']},
+    'hardwood':{name:'Hardwood refinished', img:'wood-floor.jpg', what:'The original boards sanded and sealed, not replaced.', goals:['S','P']},
+    'paint':{name:'Walls repaired and painted', img:'finishes/pr-paint.jpg', what:'Cracks and old finishes repaired, then two coats of paint.', goals:['E','S','P']},
+    'vanity':{name:'New bathroom vanity', img:'finishes/pr-vanity.jpg', what:'A vanity cabinet with a stone top and a new faucet.', goals:['S','P']},
+    'vanity2':{name:'Bathrooms refreshed', img:'finishes/pr-vanity-double.jpg', what:'New vanities, mirrors and lights in each bathroom.', goals:['S','P']},
+    'stairs':{name:'New stair treads', img:'finishes/pr-stairs.jpg', what:'Oak treads with painted risers on each short stair run.', goals:['S','P']},
+    'flush':{name:'LED ceiling lights', img:'finishes/lt-flush.jpg', what:'Slim LED fixtures in place of dated ones.', goals:['S','P']},
+    'recessed':{name:'Recessed lights', img:'finishes/lt-recessed.jpg', what:'Flush LED downlights on a dimmer.', goals:['P']}
+  };
+  RI.TYPE_PRODUCTS = {
+    'brick-ranch':['cab-painted','lvp','quartz','pulldown'],
+    'bungalow':['hardwood','paint','vanity','flush'],
+    'colonial':['carpet','cab-shaker','vanity2','recessed'],
+    'tri-level':['stairs','paint','lvp','flush']
+  };
+
   RI.TYPES = {
     'brick-ranch': {name:'Brick ranch', zones:[['Kitchen cabinets','list',120,92,40,16],['Carpet to LVP','sliders',22,112,150,8],['Doors and trim','house',96,96,12,24],['Old basement finish','ruler',22,120,150,14]], img:'brick-ranch.jpg', alt:'Single-story brick ranch house with an attached garage',
       short:'One story, usually on a full basement. Built from the 1950s to the 1990s.',
@@ -244,7 +298,7 @@
       short:'One and a half stories, with smaller upstairs rooms under a sloped roof. Mostly 1920s to 1950s.',
       needs:'Hardwood refinished, plaster walls repaired before paint, an older bathroom updated.',
       era:'1920s to 1950s', stories:'One and a half', basement:'Usually full, unfinished', size:'900 to 1,500 sq ft',
-      intro:['Bungalows fill the older neighborhoods of Detroit, Dearborn, Ferndale and Royal Oak. The main floor holds the living rooms and often one bedroom; the upstairs rooms sit under the slope of the roof.',
+      intro:['Bungalows fill the older neighborhoods of many cities. The main floor holds the living rooms and often one bedroom; the upstairs rooms sit under the slope of the roof.',
              'They often have original hardwood, plaster walls and trim worth keeping. The work tends to be refinishing and repair rather than replacing, which suits the Essential and Standard goals.'],
       work:[2,1,3,5,6,7],
       faq:[['Can plaster walls just be painted?','Usually after repair. Cracks and loose areas are patched first. When a photo shows damage we cannot size, the line shows unverified instead of guessing.'],
