@@ -1803,3 +1803,9 @@ dialog.dlg.dlg-drawer[open]{display:flex;animation:ax-in var(--slow) var(--ease-
   .c-tbl.us-cards tr.us-picked{background:#F7F3EC;border-color:var(--deep-forest)}
 }
 
+/* v74: Disable and Enable as real buttons with icons; Disable carries the danger colour because it is destructive */
+.us-act.us-act-danger{color:var(--bad);border-color:rgba(157,54,41,.45)}
+.us-act.us-act-danger:hover{background:rgba(157,54,41,.06);border-color:var(--bad)}
+.us-act.us-act-danger:focus-visible{outline-color:var(--bad)}
+.c-tbl.us-users td:last-child{text-align:right;white-space:nowrap}
+@media (min-width:900px){.c-tbl.us-users td:last-child{padding-block:6px;line-height:0}.c-tbl.us-users td:last-child .us-act{vertical-align:middle;line-height:1.2}}

@@ -145,7 +145,7 @@
         '<div class="c-mt">' + C.table({cls:'us-cards us-users', empty:'No account matches. Try another name, or show all.', cols:[{label:'Person'},{label:'Account type'},{label:'State'},{label:'Houses', num:true},{label:'Updates'},{label:'Joined', num:true},{label:''}],
           rows:rows.map(function(u){
             var act = '';
-            if(sam && !u.demo) act = u.disabled ? '<button type="button" class="linkbtn small" data-en="' + RI.esc(u.email) + '">Enable</button>' : '<button type="button" class="linkbtn small danger" data-dis="' + RI.esc(u.email) + '">Disable</button>';
+            if(sam && !u.demo) act = u.disabled ? '<button type="button" class="us-act" data-en="' + RI.esc(u.email) + '" aria-label="Enable ' + RI.esc(u.email) + '">' + RI.icon('key','i-sm') + 'Enable</button>' : '<button type="button" class="us-act us-act-danger" data-dis="' + RI.esc(u.email) + '" aria-label="Disable ' + RI.esc(u.email) + '">' + RI.icon('lock','i-sm') + 'Disable</button>';
             return {attr:u.disabled ? 'class="us-off"' : '', cells:['<span class="c-person">' + C.av(u.name) + '<span><span class="us-name"><b>' + RI.esc(u.name) + '</b>' + (u.demo ? DEMO_TAG : '') + '</span><small>' + RI.esc(u.email) + '</small><span class="us-pst">' + stateLbl(u) + '</span>' + meta([RI.esc(u.type), u.houses + (u.houses === 1 ? ' house' : ' houses'), 'Joined ' + C.date(u.at)]) + '</span></span>',
               C.chip(RI.esc(u.type)), stateLbl(u), String(u.houses), u.news ? 'Yes' : '<span class="muted">No</span>', C.date(u.at), act]};
           })}) + '</div>' +
