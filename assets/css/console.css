@@ -232,19 +232,6 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:.78rem}
 @media (min-width:700px){ .perm-list{grid-template-columns:repeat(2,minmax(0,1fr))} }
 
 /* Audit log: a day-by-day timeline */
-.au-list{list-style:none;margin:0;padding:0;border:1px solid var(--border);border-radius:8px;background:var(--raised);overflow:hidden}
-.au-day{padding:8px 16px;background:#FBF9F5;border-bottom:1px solid var(--border-soft);font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.au-e{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:12px;align-items:start;padding:12px 16px;border-bottom:1px solid var(--border-soft)}
-.au-e:last-child{border-bottom:0}
-.au-t{font-size:.76rem;color:var(--muted);font-variant-numeric:tabular-nums;min-width:58px;padding-top:8px}
-.au-b p{margin:0;font-size:.9rem;line-height:1.45}
-.au-why{color:var(--muted);font-size:.84rem!important;margin-top:2px!important}
-.au-a{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 7px;border-radius:2px;background:var(--sunken);margin:0 2px}
-.au-published{background:var(--ok-bg);color:var(--ok)}
-.au-draft{background:rgba(161,125,88,.14);color:#815E3A}
-.au-discarded,.au-account,.au-staff{background:#F6E3DE;color:#9A3B26}
-.au-graded,.au-back-test{background:#E7F2FA;color:#33607E}
-@media (max-width:520px){ .au-e{grid-template-columns:auto minmax(0,1fr)} .au-t{grid-column:2;padding:0;order:2} }
 
 /* Publish queue cards */
 .pq{display:grid;gap:12px}
@@ -1331,3 +1318,63 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:.78rem}
 @media (pointer:coarse){ .o3-seg button,.d3-l a{min-height:44px} }
 @media (prefers-reduced-motion:reduce){ .g3-b span,.g3-b i,.k3,.d3-l a{transition:none} }
 @media (min-width:1080px) and (max-width:1279px){ .c3-dark{flex-direction:column;align-items:flex-start;gap:18px} }
+
+/* ---------- Audit log, version 2 (SECURITY 15, BACKLOG M1-36, M4-28) ----------
+   Desktop: a real table, one column per question (when, who, action, what, why), rows grouped by day.
+   Tablet: four columns, the reason sits under the change. Phone: one card per change. */
+.au-sum{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin:0 0 10px;font-size:.84rem;color:var(--muted)}
+.au-sum b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.au-tag{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:2px;font-size:.74rem;font-weight:600;line-height:1.35;white-space:nowrap;background:var(--sunken);color:var(--text)}
+.au-tag::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:currentColor}
+.au-pub{background:var(--ok-bg);color:var(--ok)}
+.au-draft{background:#F3EBE1;color:#815E3A}
+.au-off{background:var(--sunken);color:var(--muted)}
+.au-chk{background:var(--info-bg);color:var(--info)}
+.au-acc{background:var(--warn-bg);color:var(--warn)}
+.au-bad{background:var(--bad-bg);color:var(--bad)}
+.au-c-who .c-person small{font-size:.74rem;color:var(--muted)}
+.au-sys{background:var(--raised);color:var(--muted)}
+.au-sys .i{width:14px;height:14px}
+.au-what{display:block;font-weight:600;color:var(--text);text-decoration:none;line-height:1.4;overflow-wrap:anywhere}
+a.au-what:hover{text-decoration:underline;text-decoration-color:var(--border-strong);text-underline-offset:3px}
+a.au-what:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+.au-area{display:block;margin-top:2px;font-size:.74rem;color:var(--muted)}
+.au-why-in{margin:6px 0 0;font-size:.84rem;line-height:1.45;color:var(--muted)}
+.au-c-why{line-height:1.5}
+.au-none{color:var(--muted);font-style:italic}
+.au-c-when time{font-variant-numeric:tabular-nums;white-space:nowrap}
+.au-tbl .au-day th{position:static;display:block;padding:8px 14px;background:#FBF9F5;border-bottom:1px solid var(--border-soft);font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left}
+
+/* Phone: a card per change. Who and when on top, then the action, the change and its reason */
+@media (max-width:759px){
+  .au-tbl tbody{display:block}
+  .au-tbl tbody+tbody .au-day th{border-top:1px solid var(--border-soft)}
+  .au-tbl tr.au-day{display:block;padding:0}
+  .au-tbl tr.au-r{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"who when" "act act" "what what";gap:8px 12px;padding:14px}
+  .au-tbl td::before{display:none}
+  .au-tbl td.au-c-when{grid-area:when;grid-column:auto;display:block;margin:0;padding-top:6px;font-size:.78rem;color:var(--muted)}
+  .au-tbl td.au-c-who{grid-area:who}
+  .au-tbl td.au-c-act{grid-area:act;display:block;padding-left:38px}
+  .au-tbl td.au-c-what{grid-area:what;display:block;padding-left:38px}
+  .au-tbl td.au-c-why{display:none}
+}
+/* Tablet and up: a real table */
+@media (min-width:760px){
+  .au-tbl thead th{background:var(--sunken)}
+  .au-tbl .au-day th{display:table-cell;padding:7px 16px}
+  .au-tbl th.au-c-when{width:92px}
+  .au-tbl th.au-c-who{width:180px}
+  .au-tbl th.au-c-act{width:164px}
+  .au-tbl tr.au-r td{vertical-align:top;padding-top:12px;padding-bottom:12px}
+  .au-tbl tr.au-r td:first-child{padding-left:16px}
+  .au-tbl tr.au-r td.au-c-when,.au-tbl tr.au-r td.au-c-act{padding-top:17px}
+  .au-tbl tr.au-r td.au-c-what,.au-tbl tr.au-r td.au-c-why{padding-top:15px}
+  .au-tbl tr.au-r:hover td{background:#FCFAF6}
+}
+@media (min-width:760px) and (max-width:1279px){
+  .au-tbl .au-c-why{display:none}
+}
+@media (min-width:1280px){
+  .au-why-in{display:none}
+  .au-tbl th.au-c-what{width:31%}
+}

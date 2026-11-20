@@ -5,18 +5,41 @@
   var DAY = 86400000, now = Date.now();
 
   C.SEEDS.push(function(){
-    /* One staff invite: the sample invite page (/invite/?t=demo-staff) accepts it */
-    C.set('staff', [{email:'staff@demo.ri', name:'', status:'invited', perms:C.SAMPLE_STAFF.slice(), invitedAt:now - 2 * DAY, token:'demo-staff'}]);
-    C.set('audit', [
-      {at:now - 26 * 60000, by:'Sam', role:'Super admin', action:'Published', what:'Rate library: LVP flooring, sample region', why:'New supplier price list for November', area:'rates'},
-      {at:now - 3 * 3600000, by:'Sam', role:'Super admin', action:'Back-test run', what:'12 houses replayed after the cabinet refinish change', why:'Before publishing CB-RULE-015 v3', area:'backtests'},
-      {at:now - 5 * 3600000, by:'Sam', role:'Super admin', action:'Graded', what:'Kitchen cabinets on 18450 Maple Ridge Dr: correct', why:'Refinish is right for sound oak boxes', area:'tree'},
-      {at:now - DAY - 2 * 3600000, by:'Sam', role:'Super admin', action:'Draft saved', what:'Condition sheet: cabinets, threshold 70 to 75', why:'Too many dark photos passed', area:'sheets'},
-      {at:now - 2 * DAY, by:'Sam', role:'Super admin', action:'Staff invited', what:'staff@demo.ri, with 5 permissions', why:'', area:'users'},
-      {at:now - 3 * DAY, by:'Sam', role:'Super admin', action:'Published', what:'Room template: Kitchen v2', why:'The starting count for a small kitchen in the guide', area:'templates'},
-      {at:now - 6 * DAY, by:'Sam', role:'Super admin', action:'Discarded', what:'Guidance: water heater text', why:'Wording not final', area:'guidance'},
-      {at:now - 9 * DAY, by:'System', role:'', action:'Super admin created', what:'admin@demo.ri', why:'One-time command on the server', area:'users'}
-    ].map(function(e){ e.id = C.uid('a'); return e; }));
+    /* Two active staff and one open invite: the sample invite page (/invite/?t=demo-staff) accepts it */
+    var M = 60000, H = 3600000;
+    var STAFF = [
+      {email:'dana@demo.ri', name:'Dana Reyes', status:'active', perms:['houses.view', 'houses.grade', 'rulebook.view', 'rulebook.edit', 'contacts.export', 'audit.view'], invitedAt:now - 41 * DAY, joinedAt:now - 40 * DAY},
+      {email:'marcus@demo.ri', name:'Marcus Hill', status:'active', perms:['houses.view', 'rulebook.view', 'rulebook.edit', 'pricing.edit', 'backtests.run', 'audit.view'], invitedAt:now - 33 * DAY, joinedAt:now - 32 * DAY},
+      {email:'staff@demo.ri', name:'', status:'invited', perms:C.SAMPLE_STAFF.slice(), invitedAt:now - 2 * DAY - 2 * H, token:'demo-staff'}
+    ];
+    var SAM = ['Sam', 'Super admin'], DANA = ['Dana Reyes', 'Staff'], MARC = ['Marcus Hill', 'Staff'], SYS = ['System', ''];
+    var SAMPLE = [
+      [26 * M, SAM, 'Published', 'Rate library: LVP flooring, sample region', 'New supplier price list for November. Back-test BT-119 passed', 'rates'],
+      [55 * M, MARC, 'Back-test run', 'BT-119: 12 houses replayed with one draft', 'Before publishing the LVP flooring rates', 'backtests'],
+      [100 * M, DANA, 'Draft saved', 'Rule CB-RULE-015 v4', 'Worn cabinets with sound boxes can be refinished in Standard too', 'rules'],
+      [3 * H, SAM, 'Graded', 'Kitchen cabinets on 18450 Maple Ridge Dr: correct', 'Refinish is right for sound oak boxes', 'tree'],
+      [4 * H, MARC, 'Draft saved', 'Rate R-FL-LVP-SF: LVP flooring per sq ft', 'Two installers raised their prices in October', 'rates'],
+      [DAY + H, DANA, 'Graded', '2140 Ashcroft Dr: 14 decisions reviewed', 'Weekly review', 'tree'],
+      [DAY + 3 * H, SAM, 'Draft saved', 'Condition sheet: cabinets, threshold 70 to 75', 'Too many dark photos passed', 'sheets'],
+      [DAY + 5 * H, MARC, 'Draft saved', 'Room template: Kitchen v3', 'Measured kitchens run larger than the starting count', 'templates'],
+      [2 * DAY + 40 * M, SAM, 'Permissions changed', 'marcus@demo.ri: 6 permissions', 'Runs back-tests from now on', 'users'],
+      [2 * DAY + 2 * H, SAM, 'Staff invited', 'staff@demo.ri, with 5 permissions', '', 'users'],
+      [3 * DAY - 2 * H, SAM, 'Published', 'Room template: Kitchen v2', 'The starting count for a small kitchen in the guide', 'templates'],
+      [3 * DAY + 4 * H, DANA, 'Contacts exported', '38 contacts with consent', 'Monthly update email', 'feedback'],
+      [5 * DAY + 3 * H + 10 * M, SAM, 'Account disabled', 'test.user@demo.ri', 'The owner asked for the account to be closed', 'users'],
+      [6 * DAY + 5 * H, SAM, 'Discarded', 'Guidance: water heater text', 'Wording not final', 'guidance'],
+      [7 * DAY + H + 25 * M, SAM, 'Accuracy run', '1,240 labelled photos, 91.4% agree', 'Before the model update', 'accuracy'],
+      [9 * DAY + 2 * H + 50 * M, SYS, 'Super admin created', 'admin@demo.ri', 'One-time command on the server', 'users']
+    ].map(function(e){ return {id:C.uid('a'), at:now - e[0], by:e[1][0], role:e[1][1], action:e[2], what:e[3], why:e[4], area:e[5]}; });
+    /* Seeds normally only fill what is missing. The audit sample changed (three people, sixteen changes), so it is merged
+       in: the old sample rows go, anything done in this browser stays. Staff missing from the list are added. */
+    var raw = function(k, v){ RI.store.set('con.' + k, v); };
+    var OLD = ['Rate library: LVP flooring, sample region', '12 houses replayed after the cabinet refinish change', 'Kitchen cabinets on 18450 Maple Ridge Dr: correct', 'Condition sheet: cabinets, threshold 70 to 75', 'staff@demo.ri, with 5 permissions', 'Room template: Kitchen v2', 'Guidance: water heater text', 'admin@demo.ri'];
+    var mine = (C.get('audit') || []).filter(function(e){ return OLD.indexOf(e.what) < 0 && !SAMPLE.some(function(x){ return x.what === e.what && x.action === e.action; }); });
+    raw('audit', mine.concat(SAMPLE).sort(function(a, b){ return b.at - a.at; }).slice(0, 400));
+    var have = C.get('staff');
+    if(!have) raw('staff', STAFF);
+    else { STAFF.forEach(function(x){ if(!have.some(function(h){ return h.email === x.email; })) have.unshift(x); }); raw('staff', have); }
   });
 
   /* Has the sample invite been accepted on the invite page? */
@@ -113,31 +136,78 @@
     var en = d.querySelector('#pd-en'); if(en) en.addEventListener('click', function(){ x.status = 'active'; C.set('staff', list); C.log('Staff enabled', x.email, ''); d.close(); after(); });
   }
 
-  /* ---------- Audit log ---------- */
+  /* ---------- Audit log ----------
+     Who, what, on what, when and why (SECURITY 15, BACKLOG M1-36), filtered by person, action and date (M4-28).
+     Desktop: a real table, one column per question, rows grouped by day. Tablet: the reason moves under the change.
+     Phone: each change is a card. Nothing here can be edited. */
+  /* Action tags by meaning: rulebook changes, checks, and people and access */
+  var AU_KIND = {'Published':'pub', 'Draft saved':'draft', 'Discarded':'off', 'Back-test run':'chk', 'Accuracy run':'chk', 'Graded':'chk',
+    'Staff invited':'acc', 'Permissions changed':'acc', 'Staff enabled':'acc', 'Contacts exported':'acc', 'Super admin created':'acc', 'Staff disabled':'bad', 'Account disabled':'bad'};
+  /* What each area is called, and where it opens */
+  var AU_AREA = {rates:['Rates', '#/rates'], rules:['Rules', '#/rules'], sheets:['Condition sheets', '#/condition-sheets'], templates:['Room templates', '#/room-templates'],
+    packages:['Packages', '#/packages'], products:['Products', '#/products'], guidance:['Guidance', '#/guidance'], resources:['Builder documents', '#/resources'],
+    backtests:['Back-tests', '#/backtests'], accuracy:['Photo accuracy', '#/accuracy'], users:['Users and staff', '#/users?tab=staff'], feedback:['Contacts and feedback', '#/feedback'], tree:['Decision tree', '']};
   C.route('/audit', function(view){
-    var all = C.get('audit', []), st = {who:'all', act:'all', when:'all', q:''};
+    var all = C.get('audit', []), st = {who:'all', act:'all', when:'all', q:'', page:0, per:C.get('au.per', 10)};
+    var PER = [10, 25, 50];
     var people = all.map(function(e){ return e.by; }).filter(function(v, i, a){ return a.indexOf(v) === i; });
     var acts = all.map(function(e){ return e.action; }).filter(function(v, i, a){ return a.indexOf(v) === i; }).sort();
     view.innerHTML = C.page({kicker:'Admin', title:'Audit log', sub:'Every change: who made it, when, and why. Nothing here can be edited or removed.',
-      body:'<div class="c-toolbar">' + C.seg('au-when', [['all','All time'],['1','Today'],['7','7 days'],['30','30 days']], 'all') +
-        '<div class="c-tools">' + C.search('au-q', 'Search what changed', '') +
+      body:'<div class="c-toolbar au-bar">' + C.seg('au-when', [['all','All time'],['1','Today'],['7','7 days'],['30','30 days']], 'all') +
+        '<div class="c-tools">' + C.search('au-q', 'Search changes', '') +
         '<label class="c-select"><span class="sr">Person</span><select id="au-who"><option value="all">Everyone</option>' + people.map(function(p){ return '<option>' + RI.esc(p) + '</option>'; }).join('') + '</select></label>' +
-        '<label class="c-select"><span class="sr">Action</span><select id="au-act"><option value="all">All actions</option>' + acts.map(function(a){ return '<option>' + RI.esc(a) + '</option>'; }).join('') + '</select></label></div></div><div id="au-list"></div>'});
+        '<label class="c-select"><span class="sr">Action</span><select id="au-act"><option value="all">All actions</option>' + acts.map(function(a){ return '<option>' + RI.esc(a) + '</option>'; }).join('') + '</select></label></div></div>' +
+        '<p class="au-sum" id="au-sum" aria-live="polite"></p><div id="au-list"></div>'});
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    function dayName(t){ var d = new Date(t); d.setHours(0, 0, 0, 0); var n = Math.round((today - d) / DAY); return n === 0 ? 'Today' : n === 1 ? 'Yesterday' : C.date(t); }
+    function clock(t){ return new Date(t).toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'}); }
+    function why(e){ return e.why ? RI.esc(e.why) : '<span class="au-none">No reason given</span>'; }
+    function row(e){
+      var area = AU_AREA[e.area], what = RI.esc(e.what), sys = e.by === 'System';
+      return '<tr class="au-r">' +
+        '<td class="au-c-when" data-label="When"><time datetime="' + new Date(e.at).toISOString() + '" title="' + C.date(e.at) + ', ' + clock(e.at) + '">' + clock(e.at) + '</time></td>' +
+        '<td class="au-c-who" data-label="Who"><span class="c-person">' + (sys ? '<span class="c-av sm au-sys" aria-hidden="true">' + RI.icon('console','i-sm') + '</span>' : C.av(e.by, 'sm' + (e.by === 'Sam' ? ' sam' : ''))) +
+          '<span><b>' + RI.esc(e.by) + '</b><small>' + (sys ? 'Server' : RI.esc(e.role || 'Staff')) + '</small></span></span></td>' +
+        '<td class="au-c-act" data-label="Action"><span class="au-tag au-' + (AU_KIND[e.action] || 'off') + '">' + RI.esc(e.action) + '</span></td>' +
+        '<td class="au-c-what" data-label="What">' + (area && area[1] ? '<a class="au-what" href="' + area[1] + '">' + what + '</a>' : '<b class="au-what">' + what + '</b>') +
+          (area ? '<small class="au-area">' + area[0] + '</small>' : '') + '<p class="au-why-in">' + (e.why ? '“' + RI.esc(e.why) + '”' : '<span class="au-none">No reason given</span>') + '</p></td>' +
+        '<td class="au-c-why" data-label="Why">' + why(e) + '</td></tr>';
+    }
     function draw(){
-      var v = st.q.toLowerCase(), cut = st.when === 'all' ? 0 : Date.now() - (+st.when) * DAY;
-      var rows = all.filter(function(e){ return (st.who === 'all' || e.by === st.who) && (st.act === 'all' || e.action === st.act) && e.at >= cut && (!v || (e.what + ' ' + e.why).toLowerCase().indexOf(v) > -1); });
-      var lastDay = '';
-      doc.getElementById('au-list').innerHTML = rows.length ? '<ol class="au-list">' + rows.map(function(e){
-        var day = C.date(e.at), head = day !== lastDay ? '<li class="au-day">' + (Date.now() - e.at < DAY && new Date(e.at).getDate() === new Date().getDate() ? 'Today' : day) + '</li>' : ''; lastDay = day;
-        return head + '<li class="au-e"><span class="au-t">' + new Date(e.at).toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'}) + '</span>' + C.av(e.by, e.by === 'Sam' ? 'sam' : '') +
-          '<div class="au-b"><p><b>' + RI.esc(e.by) + '</b> <span class="au-a au-' + e.action.split(' ')[0].toLowerCase() + '">' + RI.esc(e.action) + '</span> ' + RI.esc(e.what) + '</p>' + (e.why ? '<p class="au-why">“' + RI.esc(e.why) + '”</p>' : '') + '</div></li>';
-      }).join('') + '</ol>' : '<div class="c-empty">' + RI.icon('info') + '<p>No changes match these filters.</p></div>';
+      var v = st.q.toLowerCase().trim(), cut = st.when === 'all' ? 0 : st.when === '1' ? +today : Date.now() - (+st.when) * DAY;
+      var rows = all.filter(function(e){ return (st.who === 'all' || e.by === st.who) && (st.act === 'all' || e.action === st.act) && e.at >= cut && (!v || [e.by, e.action, e.what, e.why].join(' ').toLowerCase().indexOf(v) > -1); });
+      var pages = Math.max(1, Math.ceil(rows.length / st.per)); st.page = Math.min(st.page, pages - 1);
+      var shown = rows.slice(st.page * st.per, st.page * st.per + st.per), lastDay = '', body = '';
+      shown.forEach(function(e){
+        var d = dayName(e.at);
+        if(d !== lastDay){ if(body) body += '</tbody>'; body += '<tbody><tr class="au-day"><th colspan="5" scope="colgroup">' + d + '</th></tr>'; lastDay = d; }
+        body += row(e);
+      });
+      var filtered = st.who !== 'all' || st.act !== 'all' || st.when !== 'all' || v;
+      doc.getElementById('au-sum').innerHTML = '<span><b>' + rows.length + '</b> ' + (rows.length === 1 ? 'change' : 'changes') + (filtered ? ' match these filters' : ', newest first') + '</span>' +
+        (filtered ? '<button type="button" class="linkbtn small" id="au-clear">Clear filters</button>' : '');
+      doc.getElementById('au-list').innerHTML = rows.length ?
+        '<div class="c-tbl-wrap"><table class="c-tbl au-tbl"><caption class="sr">Audit log, ' + rows.length + ' changes</caption>' +
+          '<thead><tr><th scope="col" class="au-c-when">When</th><th scope="col" class="au-c-who">Who</th><th scope="col" class="au-c-act">Action</th><th scope="col" class="au-c-what">What</th><th scope="col" class="au-c-why">Why</th></tr></thead>' + body + '</tbody></table></div>' +
+          C.pager({page:st.page, per:st.per, total:rows.length, noun:rows.length === 1 ? 'change' : 'changes', perOpts:PER})
+        : '<div class="c-empty">' + RI.icon('info') + '<p>' + (v ? 'No change matches “' + RI.esc(st.q) + '”. Try a rule code, an address or a name.' : 'No changes match these filters.') + '</p></div>';
       RI.fillIcons(doc.getElementById('au-list'));
     }
-    view.querySelector('#au-when').addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if(!b) return; st.when = b.getAttribute('data-v'); view.querySelectorAll('#au-when [data-v]').forEach(function(x){ x.setAttribute('aria-selected', x === b); }); draw(); });
-    view.querySelector('#au-q').addEventListener('input', function(){ st.q = this.value; draw(); });
-    view.querySelector('#au-who').addEventListener('change', function(){ st.who = this.value; draw(); });
-    view.querySelector('#au-act').addEventListener('change', function(){ st.act = this.value; draw(); });
+    function reset(){ st.page = 0; draw(); }
+    function setWhen(val){ st.when = val; view.querySelectorAll('#au-when [data-v]').forEach(function(x){ x.setAttribute('aria-selected', x.getAttribute('data-v') === val); }); }
+    view.querySelector('#au-when').addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if(!b) return; setWhen(b.getAttribute('data-v')); reset(); });
+    view.querySelector('#au-q').addEventListener('input', function(){ st.q = this.value; reset(); });
+    view.querySelector('#au-who').addEventListener('change', function(){ st.who = this.value; reset(); });
+    view.querySelector('#au-act').addEventListener('change', function(){ st.act = this.value; reset(); });
+    view.addEventListener('change', function(e){ if(!e.target.matches('[data-per]')) return; st.per = C.set('au.per', +e.target.value); reset(); });
+    view.addEventListener('click', function(e){
+      if(e.target.closest('#au-clear')){ st.who = st.act = 'all'; st.q = ''; setWhen('all'); view.querySelector('#au-q').value = ''; view.querySelector('#au-who').value = 'all'; view.querySelector('#au-act').value = 'all'; reset(); view.querySelector('#au-q').focus(); return; }
+      var pg = e.target.closest('[data-pg]'); if(!pg || pg.disabled) return;
+      st.page = +pg.getAttribute('data-pg'); draw();
+      var list = doc.getElementById('au-list'), top = list.getBoundingClientRect().top;
+      if(top < 80) window.scrollTo({top:window.scrollY + top - 96, behavior:'smooth'});
+      var cur = list.querySelector('[aria-current="page"]'); if(!cur || !cur.offsetParent) cur = list.querySelector('.pg-' + (pg.classList.contains('pg-prev') ? 'prev' : 'next') + ':not(:disabled)'); if(cur) cur.focus({preventScroll:true});
+    });
     draw();
   }, {nav:'audit', perm:'audit.view'});
 })();

@@ -92,7 +92,7 @@
 
   /* ---------- Seeds: each module adds its own; they run once per browser ---------- */
   C.SEEDS = [];
-  C.SEED_VERSION = 6;
+  C.SEED_VERSION = 7;
   C.seed = function(){
     /* Every demo user's houses, so the console has the whole picture */
     var real = RI.session();
