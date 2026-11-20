@@ -126,7 +126,7 @@
 
     view.innerHTML = C.page({kicker:'Admin', title:'Users and staff', sub:'Users, account types, staff invites and permissions.',
       actions:sam ? '<button type="button" class="btn btn-primary" id="inv-new">' + RI.icon('mail','i-sm') + 'Invite staff</button>' : '',
-      body:C.seg('us-tab', [['users','Users',U.length],['staff','Staff',staff.length + 1],['waitlist','Waitlist and trial',W.length]], tab) + '<div id="us-body" class="c-mt"></div>'});
+      body:'<div class="us-top">' + C.seg('us-tab', [['users','Users',U.length],['staff','Staff',staff.length + 1],['waitlist','Waitlist and trial',W.length]], tab) + '<div id="us-tools" class="us-bar"></div></div><div id="us-body"></div>'});
 
     function count(list, fn, v){ return list.filter(function(x){ return fn(x) === v; }).length; }
     /* State filter as a dropdown beside the search: each option carries its count */
@@ -135,8 +135,10 @@
     }
     function bodyUsers(el){
       var rows = U.filter(function(u){ return (st.uf === 'all' || userState(u) === st.uf) && (!st.uq || (u.name + ' ' + u.email).toLowerCase().indexOf(st.uq) > -1); });
-      el.innerHTML = '<div class="us-bar">' + C.search('us-uq', 'Search by name or email', st.uq) +
-        pick('us-uf', 'State', [['all','All states',U.length],['active','Active',count(U, userState, 'active')],['trial','On trial',count(U, userState, 'trial')],['unverified','Not verified',count(U, userState, 'unverified')],['disabled','Disabled',count(U, userState, 'disabled')]], st.uf) + '</div>' +
+      var tools = doc.getElementById('us-tools');
+      tools.innerHTML = C.search('us-uq', 'Search name or email', st.uq) +
+        pick('us-uf', 'State', [['all','All states',U.length],['active','Active',count(U, userState, 'active')],['trial','On trial',count(U, userState, 'trial')],['unverified','Not verified',count(U, userState, 'unverified')],['disabled','Disabled',count(U, userState, 'disabled')]], st.uf);
+      el.innerHTML =
         '<div class="c-mt">' + C.table({empty:'No account matches. Try another name, or show all.', cols:[{label:'Person'},{label:'Account type'},{label:'State'},{label:'Houses', num:true},{label:'Updates'},{label:'Joined', num:true},{label:''}],
           rows:rows.map(function(u){
             var act = '';
@@ -146,8 +148,9 @@
           })}) + '</div>' +
         '<div class="c-mt">' + C.note('Account type changes what a person sees, never what they may do. Disabling an account ends its sessions at once; its houses stay.') + '</div>';
       RI.fillIcons(el);
-      var s = el.querySelector('#us-uq'); s.addEventListener('input', function(){ st.uq = this.value.trim().toLowerCase(); var p = this.selectionStart; bodyUsers(el); var n = el.querySelector('#us-uq'); n.focus(); n.setSelectionRange(p, p); });
-      el.querySelector('#us-uf').addEventListener('change', function(){ st.uf = this.value; bodyUsers(el); el.querySelector('#us-uf').focus(); });
+      RI.fillIcons(tools);
+      var s = tools.querySelector('#us-uq'); s.addEventListener('input', function(){ st.uq = this.value.trim().toLowerCase(); var p = this.selectionStart; bodyUsers(el); var n = doc.getElementById('us-uq'); n.focus(); n.setSelectionRange(p, p); });
+      tools.querySelector('#us-uf').addEventListener('change', function(){ st.uf = this.value; bodyUsers(el); doc.getElementById('us-uf').focus(); });
     }
 
     function wlStatus(w){
@@ -162,8 +165,10 @@
       var all = waiting.length && st.pick.length === waiting.length;
       var cols = (canInvite ? [{label:'<span class="sr">Select</span><input type="checkbox" class="us-ck" id="us-all" aria-label="Select every waiting contact"' + (all ? ' checked' : '') + (waiting.length ? '' : ' disabled') + '>', cls:'us-ckc'}] : [])
         .concat([{label:'Email'},{label:'Account type'},{label:'From'},{label:'Joined', num:true},{label:'Status'},{label:''}]);
-      el.innerHTML = '<div class="us-bar">' + C.search('us-wq', 'Search by email', st.wq) +
-        pick('us-wf', 'Status', [['all','All statuses',W.length],['waiting','Waiting',count(W, function(w){ return w.status; }, 'waiting')],['invited','Invited',count(W, function(w){ return w.status; }, 'invited')],['trial','On trial',count(W, function(w){ return w.status; }, 'trial')]], st.wf) + '</div>' +
+      var tools = doc.getElementById('us-tools');
+      tools.innerHTML = C.search('us-wq', 'Search by email', st.wq) +
+        pick('us-wf', 'Status', [['all','All statuses',W.length],['waiting','Waiting',count(W, function(w){ return w.status; }, 'waiting')],['invited','Invited',count(W, function(w){ return w.status; }, 'invited')],['trial','On trial',count(W, function(w){ return w.status; }, 'trial')]], st.wf);
+      el.innerHTML =
         (canInvite && st.pick.length ? '<div class="us-bulk c-mt" role="region" aria-label="Selected contacts"><span><b>' + st.pick.length + ' selected</b></span><button type="button" class="linkbtn small" id="us-clear">Clear</button><button type="button" class="btn btn-sm us-bulk-go" id="us-bulk">' + RI.icon('mail','i-sm') + 'Invite ' + st.pick.length + ' to the trial</button></div>' : '') +
         '<div class="c-mt">' + C.table({cls:'us-wl', empty:'Nobody matches. Try another email, or show all.', cols:cols,
           rows:rows.map(function(w){
@@ -173,8 +178,9 @@
           })}) + '</div>' +
         '<div class="c-mt">' + C.note(!pre ? 'Trial invites are for the contacts Sam invites before launch. Export the list from Contacts and feedback.' : sam ? 'A trial invite emails a link to sign up for a 15-day trial. Export the list from Contacts and feedback.' : 'Only Sam invites contacts to the trial. Export the list from Contacts and feedback.') + '</div>';
       RI.fillIcons(el);
-      el.querySelector('#us-wq').addEventListener('input', function(){ st.wq = this.value.trim().toLowerCase(); var p = this.selectionStart; bodyWaitlist(el); var n = el.querySelector('#us-wq'); n.focus(); n.setSelectionRange(p, p); });
-      el.querySelector('#us-wf').addEventListener('change', function(){ st.wf = this.value; bodyWaitlist(el); el.querySelector('#us-wf').focus(); });
+      RI.fillIcons(tools);
+      tools.querySelector('#us-wq').addEventListener('input', function(){ st.wq = this.value.trim().toLowerCase(); var p = this.selectionStart; bodyWaitlist(el); var n = doc.getElementById('us-wq'); n.focus(); n.setSelectionRange(p, p); });
+      tools.querySelector('#us-wf').addEventListener('change', function(){ st.wf = this.value; bodyWaitlist(el); doc.getElementById('us-wf').focus(); });
       el.addEventListener('change', function onCk(e){
         var t = e.target; if(!t.classList.contains('us-ck')) return; el.removeEventListener('change', onCk);
         if(t.id === 'us-all') st.pick = t.checked ? waiting.map(function(w){ return w.email; }) : [];
@@ -240,6 +246,7 @@
 
     function body(){
       var el = doc.getElementById('us-body');
+      doc.getElementById('us-tools').innerHTML = '';
       if(tab === 'users') bodyUsers(el);
       if(tab === 'staff') bodyStaff(el);
       if(tab === 'waitlist') bodyWaitlist(el);
