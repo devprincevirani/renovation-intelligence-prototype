@@ -1564,16 +1564,6 @@ a.au-what:focus-visible{outline:2px solid var(--accent);outline-offset:2px;borde
 .us-name{display:flex;align-items:center;gap:8px;min-width:0}
 .us-name b{min-width:0}
 /* Users and staff tabs: underline tabs on a hairline, so page tabs never look like the filters beside them */
-.us-top{align-items:flex-end;border-bottom:1px solid var(--border)}
-.us-top .us-bar{margin-bottom:8px}
-#us-tab.c-seg{gap:24px;padding:0;border-radius:0;background:none;overflow-x:auto}
-#us-tab.c-seg button{min-height:44px;margin-bottom:-1px;padding:0 2px;border-radius:0;border-bottom:2px solid transparent;background:none;box-shadow:none;color:var(--muted);font-size:.9rem}
-#us-tab.c-seg button:hover{color:var(--text)}
-#us-tab.c-seg button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--bronze);box-shadow:none}
-#us-tab.c-seg button .n{background:var(--sunken);color:var(--muted)}
-#us-tab.c-seg button[aria-selected="true"] .n{background:var(--deep-forest);color:#fff}
-#us-tab.c-seg button:focus-visible{outline-offset:-2px}
-@media (max-width:1179px){.us-top{border-bottom:0}#us-tab.c-seg{flex:1 1 100%;border-bottom:1px solid var(--border)}.us-top .us-bar{margin-bottom:0}}
 /* Waitlist rows: one small outlined action, a quiet Resend, the invite date on the status line */
 .c-tbl td.us-actc{text-align:right;white-space:nowrap}
 .us-act{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 12px;border:1px solid var(--border-strong);border-radius:4px;background:var(--raised);color:var(--text);font:600 .82rem var(--body);cursor:pointer;transition:background var(--fast)}
@@ -1591,11 +1581,6 @@ a.au-what:focus-visible{outline:2px solid var(--accent);outline-offset:2px;borde
 .us-sel b{font-weight:600}
 .us-sel .us-sel-go{margin-left:auto;min-height:32px;padding:0 14px;font-size:.84rem}
 /* v66: stronger tabs, quiet counts, Deep Forest underline */
-#us-tab.c-seg{gap:28px}
-#us-tab.c-seg button{min-height:48px;gap:8px;font-size:.95rem;font-weight:500;color:#655F58}
-#us-tab.c-seg button[aria-selected="true"]{font-weight:600;color:var(--text);border-bottom-color:var(--deep-forest)}
-#us-tab.c-seg button .n,#us-tab.c-seg button[aria-selected="true"] .n{background:var(--sunken);color:var(--muted);font-weight:600}
-#us-tab.c-seg button[aria-selected="true"] .n{background:rgba(32,59,56,.1);color:var(--text)}
 /* Row actions: one button style, one width, centred on the row */
 .us-wl td{vertical-align:middle}
 .us-act{min-width:100px;justify-content:center}
@@ -1735,3 +1720,30 @@ dialog.dlg.dlg-drawer[open]{display:flex;animation:ax-in var(--slow) var(--ease-
   .us-head:has(#us-bulk) .us-sg-go{margin-left:auto}
   .us-head:has(#us-bulk) .us-h-div{display:none}
 }
+
+/* ---------- Users and staff: section cards ----------
+   Three sections that hold different things, so each is a card: icon, name, what is inside, and the count.
+   The chosen one is white with a Deep Forest edge and icon. Search and filters sit on their own row below.
+   Phone: three equal compact cards, name and count only. */
+.us-top{display:grid;gap:14px;align-items:stretch}
+.us-top .us-bar{margin:0;justify-content:flex-start}
+.us-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.us-tabs button{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;min-height:68px;padding:12px 16px;border:1px solid var(--border);border-radius:8px;background:transparent;font:inherit;color:var(--text);text-align:left;cursor:pointer;transition:background var(--fast),border-color var(--fast)}
+.us-tabs button:hover{background:var(--raised);border-color:var(--border-strong)}
+.us-tabs button[aria-selected="true"]{background:var(--raised);border-color:var(--deep-forest);box-shadow:inset 0 0 0 1px var(--deep-forest);cursor:default}
+.us-tabs button:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2px}
+.ut-ic{width:36px;height:36px;border-radius:4px;display:grid;place-items:center;background:var(--sunken);color:var(--hl-text);transition:background var(--fast),color var(--fast)}
+.us-tabs button[aria-selected="true"] .ut-ic{background:var(--deep-forest);color:var(--on-accent)}
+.ut-t{display:grid;gap:2px;min-width:0;line-height:1.3}
+.ut-t b{font-size:.95rem;font-weight:600}
+.ut-t small{font-size:.78rem;line-height:1.35;color:var(--muted)}
+.ut-n{font-family:var(--display);font-weight:500;font-size:1.5rem;line-height:1;color:var(--muted);font-variant-numeric:tabular-nums}
+.us-tabs button[aria-selected="true"] .ut-n{color:var(--deep-forest)}
+@media (max-width:719px){
+  .us-tabs{gap:8px}
+  .us-tabs button{grid-template-columns:minmax(0,1fr) auto;gap:6px;min-height:56px;padding:10px 12px}
+  .ut-ic,.ut-t small{display:none}
+  .ut-t b{font-size:.86rem;line-height:1.2}
+  .ut-n{font-size:1.15rem}
+}
+
