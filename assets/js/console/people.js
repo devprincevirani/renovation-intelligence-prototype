@@ -157,7 +157,7 @@
 
     function wlStatus(w){
       if(w.status === 'trial'){ var d = daysLeft(w.user); return d > 0 ? '<span class="lb ' + (d <= 3 ? 'lb-queued' : 'lb-pub') + '">On trial, ' + d + (d === 1 ? ' day' : ' days') + ' left</span>' : '<span class="lb lb-off">Trial ended</span>'; }
-      if(w.status === 'invited') return '<span class="us-st"><span class="lb lb-info">Invited</span><span class="us-when">' + C.date(w.invitedAt) + '</span></span>';
+      if(w.status === 'invited') return '<span class="us-st"><span class="lb lb-info">Invited</span><span class="us-when">' + new Date(w.invitedAt).toLocaleDateString('en-US', {month:'short', day:'numeric'}) + '</span></span>';
       return '<span class="lb lb-off">Waiting</span>';
     }
     function bodyWaitlist(el){
@@ -173,18 +173,14 @@
       el.innerHTML =
         '<div class="c-mt">' + C.table({cls:'us-wl', empty:'Nobody matches. Try another email, or show all.', cols:cols,
           rows:rows.map(function(w){
-            var act = !canInvite ? '' : w.status === 'waiting' ? '<button type="button" class="us-act" data-trial="' + RI.esc(w.email) + '" aria-label="Invite ' + RI.esc(w.email) + ' to the trial">' + RI.icon('mail','i-sm') + 'Invite</button>' : w.status === 'invited' ? '<button type="button" class="us-ghost" data-trial="' + RI.esc(w.email) + '" data-again="1" title="Last sent ' + C.date(w.invitedAt) + '" aria-label="Resend the trial invite to ' + RI.esc(w.email) + '">Resend</button>' : '';
+            var act = !canInvite ? '' : w.status === 'waiting' ? '<button type="button" class="us-act" data-trial="' + RI.esc(w.email) + '" aria-label="Invite ' + RI.esc(w.email) + ' to the trial">' + RI.icon('mail','i-sm') + 'Invite</button>' : w.status === 'invited' ? '<button type="button" class="us-act" data-trial="' + RI.esc(w.email) + '" data-again="1" title="Last sent ' + C.date(w.invitedAt) + '" aria-label="Resend the trial invite to ' + RI.esc(w.email) + '">' + RI.icon('refresh','i-sm') + 'Resend</button>' : '';
             var ck = canInvite ? [w.status === 'waiting' ? '<input type="checkbox" class="us-ck" data-pick="' + RI.esc(w.email) + '" aria-label="Select ' + RI.esc(w.email) + '"' + (st.pick.indexOf(w.email) > -1 ? ' checked' : '') + '>' : ''] : [];
             return {attr:st.pick.indexOf(w.email) > -1 ? 'class="us-picked"' : '', cells:ck.concat(['<b>' + RI.esc(w.email) + '</b>', w.type ? C.chip(cap(w.type)) : '<span class="muted">Not given</span>', w.source === 'home' ? 'Home page' : 'Waitlist page', C.date(w.at), wlStatus(w), act])};
           })}) + '</div>' +
+        (canInvite && st.pick.length ? '<div class="us-float-wrap"><div class="us-float" role="region" aria-label="Selected contacts"><span class="us-f-n">' + st.pick.length + '</span><span>selected</span><button type="button" class="us-f-clear" id="us-clear">Clear</button><span class="us-f-sep" aria-hidden="true"></span>' +
+          '<button type="button" class="us-f-go" id="us-bulk">' + RI.icon('mail','i-sm') + 'Invite ' + st.pick.length + ' to the trial</button></div></div>' : '') +
         '<div class="c-mt">' + C.note(!pre ? 'Trial invites are for the contacts Sam invites before launch. Export the list from Contacts and feedback.' : sam ? 'A trial invite emails a link to sign up for a 15-day trial. Export the list from Contacts and feedback.' : 'Only Sam invites contacts to the trial. Export the list from Contacts and feedback.') + '</div>';
-      var hr = el.querySelector('.us-wl thead tr');
-      if(hr && canInvite && st.pick.length){
-        hr.classList.add('us-selrow');
-        hr.innerHTML = '<th scope="col" class="us-ckc">' + hr.firstElementChild.innerHTML + '</th><th scope="col" colspan="' + (cols.length - 1) + '"><div class="us-sel" role="region" aria-label="Selected contacts"><b>' + st.pick.length + ' selected</b><button type="button" class="us-ghost" id="us-clear">Clear</button>' +
-          '<button type="button" class="btn btn-primary us-sel-go" id="us-bulk">' + RI.icon('mail','i-sm') + 'Invite ' + st.pick.length + ' to the trial</button></div></th>';
-        var ah = hr.querySelector('#us-all'); if(ah) ah.indeterminate = !all;
-      }
+      var ah = el.querySelector('#us-all'); if(ah) ah.indeterminate = st.pick.length > 0 && !all;
       RI.fillIcons(el);
       RI.fillIcons(tools);
       tools.querySelector('#us-wq').addEventListener('input', function(){ st.wq = this.value.trim().toLowerCase(); var p = this.selectionStart; bodyWaitlist(el); var n = doc.getElementById('us-wq'); n.focus(); n.setSelectionRange(p, p); });

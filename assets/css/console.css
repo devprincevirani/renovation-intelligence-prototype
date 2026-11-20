@@ -1614,3 +1614,25 @@ a.au-what:focus-visible{outline:2px solid var(--accent);outline-offset:2px;borde
 .us-sel{display:flex;align-items:center;gap:12px}
 .us-sel b{font-weight:600}
 .us-sel .us-sel-go{margin-left:auto;min-height:32px;padding:0 14px;font-size:.84rem}
+/* v66: stronger tabs, quiet counts, Deep Forest underline */
+#us-tab.c-seg{gap:28px}
+#us-tab.c-seg button{min-height:48px;gap:8px;font-size:.95rem;font-weight:500;color:#655F58}
+#us-tab.c-seg button[aria-selected="true"]{font-weight:600;color:var(--text);border-bottom-color:var(--deep-forest)}
+#us-tab.c-seg button .n,#us-tab.c-seg button[aria-selected="true"] .n{background:var(--sunken);color:var(--muted);font-weight:600}
+#us-tab.c-seg button[aria-selected="true"] .n{background:rgba(32,59,56,.1);color:var(--text)}
+/* Row actions: one button style, one width, centred on the row */
+.us-wl td{vertical-align:middle}
+.us-act{min-width:100px;justify-content:center}
+/* Selection: a small floating bar under the table; column titles stay */
+.us-float-wrap{position:sticky;bottom:16px;z-index:20;display:flex;justify-content:center;margin-top:12px;pointer-events:none}
+.us-float{pointer-events:auto;display:flex;align-items:center;gap:12px;padding:8px 8px 8px 12px;border-radius:8px;background:var(--deep-forest);color:#fff;font-size:.88rem;box-shadow:0 8px 24px rgba(32,59,56,.24);animation:us-up .2s var(--ease-out) both}
+@keyframes us-up{from{opacity:0;transform:translateY(8px)}}
+.us-f-n{display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 6px;border-radius:4px;background:rgba(255,255,255,.16);font-weight:700}
+.us-f-clear{min-height:32px;padding:0 4px;border:0;background:none;color:#D8C9B5;font:600 .86rem var(--body);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.us-f-clear:hover{color:#fff}
+.us-f-sep{width:1px;height:24px;background:rgba(255,255,255,.2)}
+.us-f-go{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border:0;border-radius:4px;background:#fff;color:var(--deep-forest);font:600 .86rem var(--body);cursor:pointer}
+.us-f-go:hover{background:#F5F2EC}
+.us-float :focus-visible{outline:2px solid #fff;outline-offset:2px}
+@media (max-width:899px){.us-float-wrap{display:none}}
+@media (min-width:900px){.c-tbl.us-wl td.us-actc{padding-block:6px;line-height:0}.c-tbl.us-wl td.us-actc .us-act{vertical-align:middle;line-height:1.2}}
