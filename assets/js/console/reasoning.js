@@ -396,27 +396,23 @@
       var on = box.querySelector('.on'); if(on && box.scrollWidth > box.clientWidth) box.scrollLeft = on.offsetLeft - 8;
     }
 
-    /* Histogram: one column per 5 points of confidence (90 to 95 is the last), each split into the lines that are
-       clear to price, the lines this edit would change, and the lines that are unverified */
-    var BINS = [40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90];
-    var binOf = function(c){ return Math.min(10, Math.max(0, Math.floor((c - CD_LO) / 5))); };
-    function yScale(fl){ var n = BINS.map(function(){ return 0; }); fl.forEach(function(l){ n[binOf(l.conf)]++; });
-      var mx = Math.max.apply(null, n.concat([1])), st = mx <= 4 ? 1 : mx <= 8 ? 2 : mx <= 20 ? 5 : 10; return {max:Math.ceil(mx / st) * st, step:st}; }
-    function grid(y){ var h = '<i class="cd-gl" style="bottom:0"><span>0</span></i>'; for(var v = y.step; v <= y.max; v += y.step) h += '<i class="cd-gl" style="bottom:' + (v / y.max * 100).toFixed(2) + '%"><span>' + v + '</span></i>'; return h; }
-    function cols(fl, t, live, y){
-      return BINS.map(function(b, i){
-        var inb = fl.filter(function(l){ return binOf(l.conf) === i; }); if(!inb.length) return '';
-        var ok = 0, un = 0, ch = 0; inb.forEach(function(l){ var u = l.conf < t; if(u !== (l.conf < live)) ch++; else if(u) un++; else ok++; });
-        var seg = function(n, c){ return n ? '<i class="' + c + '" style="flex-grow:' + n + '"></i>' : ''; };
-        var tip = 'Confidence ' + (i === 10 ? '90 and up' : b + ' to ' + (b + 4)) + ': ' + plural(inb.length, 'line') + '. ' + [ok ? ok + ' clear' : '', ch ? ch + ' would change' : '', un ? un + ' unverified' : ''].filter(Boolean).join(', ');
-        return '<div class="cd-col" style="left:' + cdPos(b + 2.5) + ';height:' + (inb.length / y.max * 100).toFixed(2) + '%" data-tip="' + RI.esc(tip) + '" role="img" aria-label="' + RI.esc(tip) + '"><b>' + inb.length + '</b>' + seg(un, 'u') + seg(ch, 'c') + seg(ok, 'o') + '</div>';
-      }).join('');
+    /* What-if curve: for every threshold from 40 to 95, how many lines would be unverified (a reading below it).
+       The x axis is the handle's axis, so the marker rides the curve as the handle moves. */
+    var cdU = function(fl, t){ return fl.filter(function(l){ return l.conf < t; }).length; };
+    var cdY = function(u, n){ return 10 + (1 - u / Math.max(1, n)) * 90; };
+    function curve(fl){
+      var n = fl.length, d = 'M0 ' + cdY(cdU(fl, CD_LO), n).toFixed(2);
+      for(var t = CD_LO + 1; t <= CD_HI; t++) d += 'H' + ((t - CD_LO) * 10) + 'V' + cdY(cdU(fl, t), n).toFixed(2);
+      d += 'H550';
+      return '<svg class="cd-svg" viewBox="0 0 550 100" preserveAspectRatio="none" aria-hidden="true"><path class="a" d="' + d + 'V100H0Z"/><path class="l" d="' + d + '" vector-effect="non-scaling-stroke"/></svg>';
     }
-
-    function mark(cls, v, label){ return '<div class="' + cls + (v > 80 ? ' r' : '') + (v < 52 ? ' l' : '') + '" style="left:' + cdPos(v) + '"><span>' + label + '</span></div>'; }
+    function yGrid(n){ return (n > 1 ? [0, Math.round(n / 2), n] : [0, 1]).map(function(v){ return '<i class="cd-gl" style="top:' + cdY(v, n).toFixed(2) + '%"><span>' + v + '</span></i>'; }).join(''); }
+    /* Live and queued: a dot on the curve, a dashed guide up to a label along the top of the chart */
+    function pin(cls, fl, v, label){ var y = cdY(cdU(fl, v), fl.length).toFixed(2);
+      return '<span class="cd-guide ' + cls + (v > 80 ? ' r' : '') + '" style="left:' + cdPos(v) + ';height:' + y + '%"><em>' + label + '</em></span><span class="cd-pin ' + cls + '" style="left:' + cdPos(v) + ';top:' + y + '%"></span>'; }
 
     function detail(){
-      var s = sheets[cur], dr = C.draftFor('sheets', cur), fl = of(cur), y = yScale(fl), el = doc.getElementById('cd-detail');
+      var s = sheets[cur], dr = C.draftFor('sheets', cur), fl = of(cur), el = doc.getElementById('cd-detail');
       el.innerHTML =
         '<header class="cd-head"><div><p class="c-kicker"><code>' + cur + '</code> · Condition sheet</p><h2>' + name(cur) + '</h2></div><span id="cd-state"></span></header>' +
         '<div class="cd-vers">' +
@@ -426,20 +422,20 @@
             : '<p class="cd-vnone">Nothing waiting. A change you save becomes a draft for Sam to publish.</p>') +
         '</div>' +
         '<section class="cd-card" aria-labelledby="cd-thr-h">' +
-          '<div class="cd-thr-top"><div><h3 class="cd-h" id="cd-thr-h">Confidence threshold</h3><p class="cd-p">' + (fl.length ? 'Each column counts the ' + name(cur).toLowerCase() + ' lines in the current runs by how sure the photo reading is. ' : '') + (canEdit ? 'Drag the handle or use the buttons to see what a change would do.' : 'You can read this sheet but not change it.') + '</p></div>' +
+          '<div class="cd-thr-top"><div><h3 class="cd-h" id="cd-thr-h">Confidence threshold</h3><p class="cd-p">' + 'A photo reading below this number shows as unverified instead of being priced. ' + (canEdit ? 'Drag the handle, use the buttons or click the chart to try a value.' : 'You can read this sheet but not change it.') + '</p></div>' +
             '<div class="cd-step">' + (canEdit ? '<button type="button" class="cd-sb" data-step="-1" aria-label="Lower the threshold by one">' + RI.icon('minus') + '</button>' : '') + '<output id="cd-num" for="cd-r">' + s.threshold + '</output>' + (canEdit ? '<button type="button" class="cd-sb" data-step="1" aria-label="Raise the threshold by one">' + RI.icon('plus') + '</button>' : '') + '</div></div>' +
-          '<ul class="cd-legend"><li><i class="cd-sw o"></i>Clear to price</li><li><i class="cd-sw u"></i>Unverified</li><li id="cd-lg-c" hidden><i class="cd-sw c"></i>Changes with this edit</li><li class="cd-lg-z"><i class="cd-sw z"></i>Below the threshold</li></ul>' +
+          '<div class="cd-meter" id="cd-meter"></div>' +
+          '<div class="cd-what"><div class="cd-what-h"><b>Unverified lines at each threshold</b><span>' + (canEdit ? 'Hover to read a value, click to set it' : 'Hover to read a value') + '</span></div>' +
           '<div class="cd-chart">' +
-            '<div class="cd-plot">' +
-              '<div class="cd-zone" id="cd-zone"></div>' +
-              (dr ? mark('cd-ghost', dr.after.threshold, 'Queued ' + dr.after.threshold) : '') + mark('cd-pub', s.threshold, 'Live ' + s.threshold) +
-              '<div class="cd-bars">' + grid(y) + '<div id="cd-cols"></div><div class="cd-tip" id="cd-tip" hidden></div></div>' +
-              '<div class="cd-line" id="cd-line"></div>' +
+            '<div class="cd-plot' + (canEdit ? ' edit' : '') + '" id="cd-plot">' + yGrid(fl.length) + curve(fl) +
+              '<div class="cd-hair" id="cd-hair" hidden><span></span></div><div class="cd-line" id="cd-line"></div>' +
+              (dr ? pin('q', fl, dr.after.threshold, 'Queued ' + dr.after.threshold) : '') + pin('p', fl, s.threshold, 'Live ' + s.threshold) +
+              '<span class="cd-pin now" id="cd-now"><em id="cd-now-t"></em></span>' +
             '</div>' +
             '<input type="range" id="cd-r" class="cd-range" min="' + CD_LO + '" max="' + CD_HI + '" step="1" value="' + s.threshold + '"' + (canEdit ? '' : ' disabled') + ' aria-label="Confidence threshold" aria-describedby="cd-sum">' +
-            '<div class="cd-axis" aria-hidden="true">' + [40, 50, 60, 70, 80, 90].map(function(v){ return '<span style="left:' + cdPos(v) + '">' + v + '</span>'; }).join('') + '</div><p class="cd-xt">Photo reading confidence</p>' +
-          '</div>' +
-          '<dl class="cd-stats" id="cd-stats"></dl><p class="cd-sum" id="cd-sum" aria-live="polite"></p>' +
+            '<div class="cd-axis" aria-hidden="true">' + [40, 50, 60, 70, 80, 90].map(function(v){ return '<span style="left:' + cdPos(v) + '">' + v + '</span>'; }).join('') + '</div><p class="cd-xt">Threshold</p>' +
+          '</div></div>' +
+          '<p class="cd-sum" id="cd-sum" aria-live="polite"></p>' +
         '</section>' +
         '<section class="cd-card" aria-labelledby="cd-ln-h"><div class="cd-card-h"><div><h3 class="cd-h" id="cd-ln-h">Lines in the current runs</h3><p class="cd-p">Lowest confidence first. These are the lines a higher threshold turns unverified. Open one to see its photos.</p></div></div><div id="cd-lines"></div></section>' +
         '<section class="cd-card" aria-labelledby="cd-lv-h"><div class="cd-card-h"><div><h3 class="cd-h" id="cd-lv-h">Condition levels</h3><p class="cd-p">What a photo reading is matched to, and what the engine does at each level.</p></div><span class="cd-colh">In current runs</span></div>' +
@@ -470,11 +466,12 @@
       var un = fl.filter(function(l){ return l.conf < t; }).length, was = fl.filter(function(l){ return l.conf < s.threshold; }).length, delta = un - was;
       doc.getElementById('cd-num').textContent = t;
       var r = doc.getElementById('cd-r'); if(+r.value !== t) r.value = t;
-      doc.getElementById('cd-zone').style.width = cdPos(t); doc.getElementById('cd-line').style.left = cdPos(t);
-      view.querySelector('.cd-pub').classList.toggle('on', dirty);
-      doc.getElementById('cd-cols').innerHTML = cols(fl, t, s.threshold, yScale(fl)); doc.getElementById('cd-lg-c').hidden = !(dirty && delta);
-      doc.getElementById('cd-stats').innerHTML = '<div><dt>Lines in current runs</dt><dd>' + fl.length + '</dd></div><div><dt>Clear to price</dt><dd>' + (fl.length - un) + '</dd></div>' +
-        '<div class="u"><dt>Unverified</dt><dd>' + un + (dirty && delta ? '<small>' + (delta > 0 ? '+' : '') + delta + ' vs live</small>' : '') + '</dd></div>';
+      doc.getElementById('cd-line').style.left = cdPos(t); view.querySelectorAll('.cd-pin.p,.cd-guide.p').forEach(function(x){ x.classList.toggle('on', dirty); });
+      var nw = doc.getElementById('cd-now'), yy = cdY(un, fl.length); nw.style.left = cdPos(t); nw.style.top = yy.toFixed(2) + '%'; nw.className = 'cd-pin now' + (t > 74 ? ' r' : '') + (yy < 34 ? ' dn' : '');
+      doc.getElementById('cd-now-t').innerHTML = '<b>' + un + '</b> unverified at ' + t;
+      var ok = fl.length - un;
+      doc.getElementById('cd-meter').innerHTML = !fl.length ? '' : '<div class="cd-mbar" aria-hidden="true">' + (ok ? '<i class="o" style="flex-grow:' + ok + '"></i>' : '') + (un ? '<i class="u" style="flex-grow:' + un + '"></i>' : '') + '</div>' +
+        '<div class="cd-mleg"><span><i class="cd-sw o"></i><b>' + ok + '</b> clear to price</span><span><i class="cd-sw u"></i><b>' + un + '</b> unverified' + (dirty && delta ? ' <small>' + (delta > 0 ? '+' : '') + delta + ' vs live</small>' : '') + '</span><span class="cd-mtot">' + plural(fl.length, 'line') + ' in the current runs</span></div>';
       doc.getElementById('cd-sum').innerHTML = !fl.length ? 'No line of this type in the current runs, so a change here shows no effect yet.'
         : dirty ? (delta ? '<b>' + plural(Math.abs(delta), 'line') + '</b> would turn ' + (delta > 0 ? 'unverified' : 'clear') + ' at ' + t + ', against the live threshold of ' + s.threshold + '.' : 'No line changes between ' + s.threshold + ' and ' + t + '.')
         : '<b>' + un + ' of ' + fl.length + '</b> lines show as unverified at the live threshold.';
@@ -484,15 +481,16 @@
       if(dirty && canEdit && !has) sv.innerHTML = C.saveBar('cd'); else if(!dirty && has) sv.innerHTML = '';
     }
 
-    view.addEventListener('mouseover', function(e){ var c = e.target.closest && e.target.closest('.cd-col'), tip = doc.getElementById('cd-tip'); if(!tip) return;
-      if(!c){ tip.hidden = true; return; } var x = parseFloat(c.style.left);
-      tip.textContent = c.getAttribute('data-tip'); tip.style.left = c.style.left; tip.style.bottom = 'calc(' + c.style.height + ' + 24px)';
-      tip.style.transform = x > 75 ? 'translateX(calc(-100% + 14px))' : x < 25 ? 'translateX(-14px)' : 'translateX(-50%)'; tip.hidden = false; });
-    view.addEventListener('mouseleave', function(){ var tip = doc.getElementById('cd-tip'); if(tip) tip.hidden = true; });
+    var atX = function(e){ var p = doc.getElementById('cd-plot'), r = p.getBoundingClientRect(); return Math.max(CD_LO, Math.min(CD_HI, Math.round(CD_LO + (e.clientX - r.left) / r.width * (CD_HI - CD_LO)))); };
+    view.addEventListener('mousemove', function(e){ var p = e.target.closest && e.target.closest('#cd-plot'), h = doc.getElementById('cd-hair'); if(!h) return;
+      if(!p){ h.hidden = true; return; } var v = atX(e), fl = of(cur);
+      h.style.left = cdPos(v); h.firstChild.textContent = 'At ' + v + ': ' + cdU(fl, v) + ' of ' + fl.length + ' unverified'; h.className = 'cd-hair' + (v > 80 ? ' r' : v < 50 ? ' l' : ''); h.hidden = false; });
+    view.addEventListener('mouseleave', function(){ var h = doc.getElementById('cd-hair'); if(h) h.hidden = true; });
     view.addEventListener('input', function(e){ if(e.target.id !== 'cd-r') return; val = +e.target.value; update(); });
     view.addEventListener('click', function(e){
       var li = e.target.closest('[data-f]'); if(li){ if(val != null && val !== sheets[cur].threshold){ RI.toast('Save or undo your change first.', 'warn'); return; } cur = li.getAttribute('data-f'); val = null; more = false; history.replaceState(null, '', '#/condition-sheets?fam=' + cur); list(); detail(); return; }
       var st = e.target.closest('[data-step]'); if(st){ val = Math.max(CD_LO, Math.min(CD_HI, (val == null ? sheets[cur].threshold : val) + +st.getAttribute('data-step'))); update(); return; }
+      if(canEdit && e.target.closest('#cd-plot')){ val = atX(e); update(); return; }
       if(e.target.closest('#cd-more')){ more = !more; update(); return; }
       if(e.target.closest('#cd-undo')){ val = null; update(); return; }
       if(e.target.closest('#cd-save')){ var s = sheets[cur], sum = 'Confidence threshold ' + s.threshold + ' to ' + val;
