@@ -1443,7 +1443,6 @@ a.au-what:focus-visible{outline:2px solid var(--accent);outline-offset:2px;borde
 /* ---------- Funnel, version 2 (APP_FLOW 3, BACKLOG M4-19) ----------
    Four headline numbers, the path from sign up to paid with the loss at each step, where people leave,
    before sign up and after paying. Phone: numbers two by two, one bar per step. */
-.c-head .c-sub .lb{margin-right:6px;vertical-align:1px}
 .fn-card{margin-bottom:20px}
 .fn-head{display:grid;justify-items:end;line-height:1.1}
 .fn-head b{font-family:var(--display);font-weight:500;font-size:2rem;color:var(--deep-forest);font-variant-numeric:tabular-nums}

@@ -98,7 +98,7 @@
 })();
 
 /* ---------- Funnel (APP_FLOW 3, BACKLOG M4-19, SEO_CONVERSION 9) ----------
-   Shows the sample month, labelled as sample. Four headline numbers (intakes, free views, paid presentations, shares),
+   Shows the sample month. Four headline numbers (intakes, free views, paid presentations, shares),
    the nine steps from visit to share, where people leave and what each screen does about it, then before sign up
    and after paying. */
 (function(){
@@ -142,8 +142,8 @@
     var from = new Date(+today - 29 * DAY), md = function(d){ return d.toLocaleDateString('en-US', {month:'short', day:'numeric'}); };
     var range = md(from) + ' to ' + md(today) + ', ' + today.getFullYear();
 
-    /* Always the sample month, labelled as sample. Real counts come from the funnel events on the server (M4-19) */
-    view.innerHTML = C.page({kicker:'Customers', title:'Funnel', sub:C.lbl('sample') + ' <span>Last 30 days, ' + range + '. Invented numbers.</span>', body:'<div id="fu-body"></div>'});
+    /* Always the sample month. Real counts come from the funnel events on the server (M4-19) */
+    view.innerHTML = C.page({kicker:'Customers', title:'Funnel', sub:'Last 30 days, ' + range + '. Invented numbers.', body:'<div id="fu-body"></div>'});
 
     function card(o){ return '<section class="c3' + (o.cls ? ' ' + o.cls : '') + '" aria-labelledby="fn-' + o.id + '"><header class="c3-h"><div><h2 id="fn-' + o.id + '">' + o.title + '</h2>' + (o.sub ? '<p>' + o.sub + '</p>' : '') + '</div>' + (o.aside || '') + '</header>' + o.body + (o.foot ? '<footer class="c3-f sp">' + o.foot + '</footer>' : '') + '</section>'; }
 
