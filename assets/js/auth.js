@@ -17,7 +17,7 @@
   }
   function meter(input, m){ input.addEventListener('input', function(){ m.setAttribute('data-s', F.strength(input.value)); if(input.value.length >= 8) F.setInvalid(input, null); }); }
   function mailSim(subject, bodyHtml){
-    return '<div class="mail-sim" aria-label="Demo inbox"><div class="mh">' + RI.icon('mail','i-sm') + '<span><b>Demo inbox</b> &middot; ' + RI.esc(subject) + '</span></div><div class="mb">' + bodyHtml + '</div></div>';
+    return '<div class="mail-sim" aria-label="Email preview"><div class="mh">' + RI.icon('mail','i-sm') + '<span><b>Email preview</b> &middot; ' + RI.esc(subject) + '</span></div><div class="mb">' + bodyHtml + '</div></div>';
   }
   F.pwToggle(); RI.fillArt();
   /* "Send it again" waits 30 seconds between sends, and says so */
@@ -69,7 +69,7 @@
         $('wl-form').hidden = true; var d = $('wl-done'); d.hidden = false;
         $('wl-done-t').textContent = found ? 'You were already on the list' : 'You are on the list';
         $('wl-done-b').innerHTML = 'We will write to <b>' + RI.esc(v) + '</b> once, when we open on April 1, 2027.' + (found ? ' We updated your details.' : '') +
-          mailSim('You are on the waitlist', '<p>Thanks for joining. We will write once, when Renovation Intelligence opens on April 1, 2027.</p><p class="xsmall muted">Demo only. In the product this arrives as a real email.</p>');
+          mailSim('You are on the waitlist', '<p>Thanks for joining. We will write once, when Renovation Intelligence opens on April 1, 2027.</p><p class="xsmall muted">Preview only. In the product this arrives as a real email.</p>');
         if(!found) RI.track('waitlist_joined', {source:'waitlist'});
         d.focus();
       });
@@ -126,7 +126,7 @@
     function sent(){
       render(RI.fxTop('Create your account', '2 of 3', 'mail'),
         '<div class="fx-head"><h1>Check your email</h1><p class="muted">We sent a confirmation link to</p>' + who + '<p class="muted">Open it to confirm your address. It works for 24 hours.</p></div>' +
-        '<div class="fx-inbox">' + mailSim('Confirm your email', '<p>Confirm your email to finish creating your Renovation Intelligence account.</p><div><button type="button" class="btn btn-primary btn-sm" id="ve-confirm">Confirm my email</button></div><p class="xsmall muted">Demo only. In the product this arrives as a real email.</p>') + '</div>' +
+        '<div class="fx-inbox">' + mailSim('Confirm your email', '<p>Confirm your email to finish creating your Renovation Intelligence account.</p><div><button type="button" class="btn btn-primary btn-sm" id="ve-confirm">Confirm my email</button></div><p class="xsmall muted">Preview only. In the product this arrives as a real email.</p>') + '</div>' +
         '<div class="fx-row"><p class="fx-note">' + RI.icon('info','i-sm') + 'Nothing there? Check spam and promotions.</p><button type="button" class="btn btn-secondary btn-sm" id="ve-resend">Send it again</button></div>' +
         '<a class="fx-demo" href="?email=' + encodeURIComponent(email) + '&state=expired">Demo: see the expired link screen</a>', 1);
       $('ve-confirm').addEventListener('click', function(){
@@ -137,7 +137,7 @@
     }
     function verified(){
       render(RI.fxTop('Create your account', '3 of 3', 'check'),
-        '<div class="fx-head"><h1>Your email is confirmed</h1><p class="muted">Your account is ready.' + (u && u.trial ? ' Your 15-day trial starts when you enter your first house.' : '') + '</p></div>' +
+        '<div class="fx-head"><h1>Your email is confirmed</h1><p class="muted">Your account is ready.' + (u && u.trial ? ' You have 3 invite credits: three full presentations, free, with no expiry.' : '') + '</p></div>' +
         '<ul class="fx-next"><li><b>About 10 minutes</b><span>to enter your first house</span></li><li><b>Photos first</b><span>room by room</span></li><li><b>Sizes optional</b><span>skip any you do not know</span></li></ul>' +
         '<button type="button" class="btn btn-primary btn-block btn-lg" id="ve-go">Enter my first house ' + RI.icon('arrow','i-sm i-arrow') + '</button><p class="fx-alt"><a href="../login/">Log in later</a></p>', 2);
       $('ve-go').addEventListener('click', function(){
@@ -209,8 +209,8 @@
         var v = fe.value.trim().toLowerCase(), u = RI.users.get(v);
         $('fp-step1').hidden = true; var s2 = $('fp-step2'); s2.hidden = false;
         s2.innerHTML = RI.fxTop('Password reset', '2 of 3', 'mail') + '<div class="fx-body"><div class="fx-head"><h1>Check your email</h1><p class="muted">If an account uses</p><span class="fx-email">' + RI.icon('mail','i-sm') + RI.esc(v) + '</span><p class="muted">a link to set a new password is on its way. It works for one hour.</p></div>' +
-          (u ? '<div class="fx-inbox">' + mailSim('Set a new password', '<p>Someone asked to reset the password for this account. If it was you, set a new one.</p><div><a class="btn btn-primary btn-sm" href="../reset-password/?email=' + encodeURIComponent(v) + '">Set a new password</a></div><p class="xsmall muted">Demo only.</p>') + '</div>'
-             : '<div class="notice notice-quiet"><i data-i="info"></i><span>Demo note: no account with this email exists in this browser, so no email would be sent. The screen looks the same either way, so nobody can test which emails have accounts.</span></div>') +
+          (u ? '<div class="fx-inbox">' + mailSim('Set a new password', '<p>Someone asked to reset the password for this account. If it was you, set a new one.</p><div><a class="btn btn-primary btn-sm" href="../reset-password/?email=' + encodeURIComponent(v) + '">Set a new password</a></div><p class="xsmall muted">Preview only.</p>') + '</div>'
+             : '<div class="notice notice-quiet"><i data-i="info"></i><span>Note: no account with this email exists in this browser, so no email would be sent. The screen looks the same either way, so nobody can test which emails have accounts.</span></div>') +
           '<div class="fx-row"><p class="fx-note">' + RI.icon('info','i-sm') + 'Nothing there? Check spam.</p><button type="button" class="btn btn-secondary btn-sm" id="fp-resend">Send it again</button></div><p class="fx-alt"><a href="../login/">Back to log in</a></p></div>';
         RI.fillIcons(s2);
         RI.fillArt(s2); cooldown($('fp-resend'), 'Send it again', function(){ RI.toast('If an account uses ' + v + ', a new link is on its way.', 'mail'); });

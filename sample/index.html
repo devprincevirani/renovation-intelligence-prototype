@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Sample renovation estimate for a 1986 brick ranch | Renovation Intelligence</title>
-<meta name="description" content="Open a full sample presentation: room by room, trade by trade, with a Low and a High under Essential, Standard and Premium, the unverified items and guidance on the house's systems.">
+<meta name="description" content="Open a full sample presentation: each room with its photo, the products it gets and a Low and a High under Essential, Standard and Premium.">
 <meta name="theme-color" content="#203B38">
 <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,6 +14,7 @@
 <script defer src="../assets/js/data.js"></script>
 <script defer src="../assets/js/site.js"></script>
 <script defer src="../assets/js/plan.js"></script>
+<script defer src="../assets/js/roomcard.js"></script>
 <script defer src="../assets/js/sample.js"></script>
 </head>
 <body>
@@ -26,7 +27,7 @@
         <nav class="crumbs" aria-label="Breadcrumb"><a href="../">Home</a><span aria-hidden="true">/</span><span>Sample estimate</span></nav>
         <div class="cta-row" style="gap:8px"><span class="state state-sample">Sample house</span><span class="state state-partial">Partial</span></div>
         <h1 style="font-size:clamp(2rem,1.5rem + 2vw,3rem)">Brick ranch, built 1986</h1>
-        <p class="lede">Clinton Township, MI. This is what the full presentation holds. Switch the goal and turn items on and off: the totals update at once.</p>
+        <p class="lede">This is what the full presentation holds. Switch the goal and the products change with it.</p>
         <dl class="house-facts" id="facts"></dl>
       </div>
     </div>
@@ -57,17 +58,17 @@
         <div class="explorer-plan card" id="plan" style="border-radius:var(--r-lg)"></div>
       </section>
 
-      <section style="padding:0" aria-labelledby="h-compare">
-        <div class="stack" style="gap:6px;margin-bottom:16px"><h2 id="h-compare" style="font-size:1.6rem">The three goals side by side</h2><p class="small muted">Every room, one shared scale. Items you turned off are left out.</p></div>
-        <div class="scroll-x"><table class="rates" id="compare" style="min-width:640px"></table></div>
+      <section style="padding:0" aria-labelledby="h-rooms">
+        <div class="stack" style="gap:6px;margin-bottom:16px"><h2 id="h-rooms" style="font-size:1.6rem">Room by room</h2><p class="small muted">Pick a room to see what the money gets. Select a product to find it on the photo.</p></div>
+        <div id="rooms"></div>
+        <div class="cta-row" style="margin-top:12px"><button type="button" class="btn btn-secondary btn-sm" id="reset">Turn all items on</button></div>
       </section>
 
-      <section style="padding:0" aria-labelledby="h-rooms">
+      <section style="padding:0" aria-labelledby="h-compare">
         <div class="cta-row" style="justify-content:space-between;margin-bottom:16px">
-          <div class="stack" style="gap:6px"><h2 id="h-rooms" style="font-size:1.6rem">Room by room</h2><p class="small muted">Open a room to see each item, its action, product and range.</p></div>
-          <div class="cta-row" style="gap:8px"><button type="button" class="btn btn-secondary btn-sm" id="expand">Open all rooms</button><button type="button" class="btn btn-secondary btn-sm" id="reset">Turn all items on</button></div>
+          <div class="stack" style="gap:6px"><h2 id="h-compare" style="font-size:1.6rem">The three goals side by side</h2><p class="small muted">Read across each row to see what every goal does with that part. Tap a goal to use it.</p></div>
         </div>
-        <div id="rooms"></div>
+        <div class="g3-wrap" id="three"></div>
       </section>
 
       <section style="padding:0" aria-labelledby="h-unk">
