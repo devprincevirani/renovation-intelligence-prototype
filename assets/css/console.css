@@ -2926,3 +2926,16 @@ button.bim-c:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2
 .iv-miss{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
 .iv-miss li{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border:1px solid var(--border);border-radius:8px;background:var(--raised);font-size:.88rem}
 @media (min-width:900px){ .iv-tbl.iv-qty td.num{white-space:nowrap} }
+
+/* ---------- Product cards, flat grid (no family headings) ----------
+   Four to a row on a desktop, sorted by family and item so related products sit together.
+   No photo yet: a light diagonal hatch, like a drawing, drawn with an SVG pattern (no gradients).
+   A draft shows a Draft badge on the photo, and a changed price shows with the published one under it. */
+@media (min-width:600px){ .pc-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px} }
+.pc-noph{background:#F1EAE0 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14'%3E%3Cpath d='M-1 15L15 -1M-4 4L4 -4M10 18L18 10' stroke='%23E4D8C8' stroke-width='1.4'/%3E%3C/svg%3E")}
+.pc-noph .i{width:26px;height:26px;opacity:.75}
+.pc-noph b{font-size:.84rem;color:var(--text);font-weight:600}
+.pc-drb{position:absolute;top:8px;right:8px;padding:3px 8px;border:1px solid var(--border-strong);border-radius:2px;background:var(--raised);font-size:.72rem;font-weight:600;color:var(--text)}
+.pc-was{margin:2px 0 0;font-size:.76rem;color:var(--muted)}
+.pc.drafted{border-color:var(--border)}
+@media (max-width:519px){ .pc-noph b{display:block;margin-top:18px} .pc-noph .i{display:none} .pc-drb{font-size:.66rem;padding:2px 6px} }

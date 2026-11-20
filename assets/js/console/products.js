@@ -143,12 +143,13 @@
       A.all().forEach(function(h){ if(A.status(h) === 'draft') return; var seen = {}; A.estimate(h).rooms.forEach(function(r){ r.items.forEach(function(it){ ['E', 'S', 'P'].forEach(function(t){ var a = it.pk && it.pk[t]; if(a && a[3]){ var k = t + '|' + a[3]; if(!seen[k]){ seen[k] = 1; USE[k] = (USE[k] || 0) + 1; } } }); }); }); });
     }
     function card(p){
-      var dr = C.draftFor('products', p.id), n = +p.price, num = '$' + (n < 100 && n % 1 ? n.toFixed(2) : Math.round(n).toLocaleString('en-US')), per = (p.per || 'each') === 'each' ? 'each' : 'per ' + p.per, used = USE[p.tier + '|' + p.name] || 0;
+      var dr = C.draftFor('products', p.id), used = USE[p.tier + '|' + p.name] || 0;
+      var nd = dr && dr.after && dr.after.price != null && (dr.after.price !== p.price || (dr.after.per || p.per) !== p.per) ? dr.after : null, shown = nd ? {price:nd.price, per:nd.per || p.per} : p;
+      var n = +shown.price, num = '$' + (n < 100 && n % 1 ? n.toFixed(2) : Math.round(n).toLocaleString('en-US')), per = (shown.per || 'each') === 'each' ? 'each' : 'per ' + shown.per;
       return '<article class="pc' + (dr ? ' drafted' : '') + '">' +
-        '<div class="pc-ph">' + (p.img ? photo(p) : '<span class="pc-noph">' + I('image') + '<b>No photo yet</b></span>') + '<span class="pc-tier t-' + p.tier + '"><i aria-hidden="true"></i>' + TN[p.tier] + '</span>' +
-          (!p.img && canEdit ? '<button type="button" class="pc-addph" data-photo="' + p.id + '">' + I('plus') + 'Add photo</button>' : '') + '</div>' +
+        '<div class="pc-ph">' + (p.img ? photo(p) : '<span class="pc-noph">' + I('image') + '<b>No photo yet</b></span>') + '<span class="pc-tier t-' + p.tier + '"><i aria-hidden="true"></i>' + TN[p.tier] + '</span>' + (dr ? '<span class="pc-drb">Draft</span>' : '') + '</div>' +
         '<div class="pc-b"><p class="pc-fam">' + esc(p.item) + '</p><h3 class="pc-name"><button type="button" class="pc-open" data-prod="' + p.id + '">' + esc(p.name) + '</button></h3>' +
-          '<p class="pc-price"><b>' + num + '</b><span>' + per + '</span></p>' +
+          '<p class="pc-price"><b>' + num + '</b><span>' + per + '</span></p>' + (nd ? '<p class="pc-was">Published: ' + priceOf(p) + '</p>' : '') +
           '<div class="pc-f"><div class="pc-s">' + (dr ? '<span class="pc-st dr"><i aria-hidden="true"></i>Draft waiting</span><small class="pc-note">Not live until Sam publishes</small>'
             : '<span class="pc-st ok"><i aria-hidden="true"></i>Live · v' + (p.v || 1) + '</span><small class="pc-note">' + (used ? 'Prices ' + used + (used === 1 ? ' house' : ' houses') : 'Not used by a priced house yet') + '</small>') + '</div>' +
           (canEdit ? '<button type="button" class="pc-edit" data-edit="' + p.id + '" aria-label="Edit ' + esc(p.name) + '" title="Edit">' + I('pencil') + '</button>' : '') + '</div></div></article>';
@@ -168,11 +169,7 @@
           return true;
         }).sort(function(a, b){ return (C.FAMILY[a.fam] || a.fam).localeCompare(C.FAMILY[b.fam] || b.fam) || a.item.localeCompare(b.item) || 'ESP'.indexOf(a.tier) - 'ESP'.indexOf(b.tier); });
         if(st.show === 'gap'){ st.view = 'items'; return draw(); }
-        var groups = []; ps.forEach(function(p){ var g = groups[groups.length - 1]; if(!g || g.fam !== p.fam) groups.push(g = {fam:p.fam, ps:[]}); g.ps.push(p); });
-        el.innerHTML = ps.length ? '<p class="pl-count" aria-live="polite"><b>' + ps.length + '</b> ' + (ps.length === 1 ? 'product' : 'products') + (filtered ? ' match' : '') + '</p><div class="pl-groups">' + groups.map(function(g){
-          var its = g.ps.map(function(p){ return p.item; }).filter(function(x, i, a){ return a.indexOf(x) === i; }).length;
-          return '<section class="pc-grp"><h2 class="pc-gh">' + (C.FAMILY[g.fam] || g.fam) + '<span>' + g.ps.length + (g.ps.length === 1 ? ' product' : ' products') + ' · ' + its + (its === 1 ? ' item' : ' items') + '</span></h2><div class="pc-grid" style="--n:' + Math.min(g.ps.length, 4) + '">' + g.ps.map(card).join('') + '</div></section>';
-        }).join('') + '</div>'
+        el.innerHTML = ps.length ? '<p class="pl-count" aria-live="polite"><b>' + ps.length + '</b> ' + (ps.length === 1 ? 'product' : 'products') + (filtered ? ' match' : '') + '</p><div class="pc-grid">' + ps.map(card).join('') + '</div>'
           : '<div class="c-empty">' + I('info') + '<p>' + (v ? 'No product or item matches “' + esc(st.q) + '”.' : 'No product matches these filters.') + '</p></div>';
       } else {
         var rows = items(list).filter(function(it){
