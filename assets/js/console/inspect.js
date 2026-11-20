@@ -10,61 +10,255 @@
     return '<span class="cf' + (ok ? '' : ' low') + '" title="Confidence ' + l.conf + ', threshold ' + l.thr + '"><span class="cf-t"><i style="width:' + l.conf + '%"></i><b style="left:' + l.thr + '%"></b></span><em>' + l.conf + '</em></span>';
   }
   function code(l){ return '<span class="c-cmp"><code>' + l.code + '</code><span><b>' + RI.esc(l.item.name) + '</b><small>' + RI.esc(l.room) + '</small></span></span>'; }
-  function head(h, active, model){
-    var st = C.houseState(h), o = C.owner(h.owner), cov = A.cover(h);
+  /* ---------- Shared by the inspector and the decision tree ---------- */
+  var TRACK = [['draft','Draft'],['queued','In line'],['reading','Reading photos'],['planning','Working out the plan'],['ready','Price ready']];
+  var BSMT = {finished:'Finished', partly:'Partly finished', unfinished:'Unfinished', none:'None'};
+  var STEP_NAMES = {house:['1','The house'], photos:['2','Photos'], measurements:['3','Room sizes'], review:['4','Review']};
+  var WORDING = 'Draft 1, November 2026';
+  /* Dates as DESIGN 9 writes them: "Nov 16, 2026", with the time where it matters */
+  function when(t){ return new Date(t).toLocaleString('en-US', {month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit'}); }
+  /* Product states are honest answers, not errors: a dashed neutral label (DESIGN 3) */
+  function stateLbl(t){ return '<span class="iv-state">' + t + '</span>'; }
+  function isReady(st){ return st === 'ready' || st === 'open'; }
+  function heldLines(m){ return m ? m.lines.filter(function(l){ return l.pass < 7; }) : []; }
+
+  /* Sample data repair. A house is submitted only with the estimate disclaimer ticked (intake Review step), and photos
+     only with the photo rights tick. The first demo houses were seeded without those records, so they are filled
+     from dates the house already holds, with the wording version the intake uses (SECURITY 6.3). */
+  function repairConsents(){
+    var list = A.all(), changed = false;
+    list.forEach(function(h){
+      var c = h.consents || {}, start = h.run && h.run.start;
+      if(!c.rights && h.rights){ c.rights = {at:start ? Math.min(h.created + 90000, start - 60000) : h.created + 90000, version:WORDING}; changed = true; }
+      if(!c.estimate && h.status !== 'draft' && start){ c.estimate = {at:start - 30000, version:WORDING}; changed = true; }
+      h.consents = c;
+    });
+    if(changed) A.saveAll(list);
+  }
+
+  /* Presentation access, in the words of APP_FLOW 9 */
+  function access(h, st){
+    if(h.paid) return 'Paid' + (h.paidAt ? ', ' + C.date(h.paidAt) : '');
+    if(h.trialOpen) return 'Trial';
+    return isReady(st) ? 'Price only' : 'No price yet';
+  }
+  /* The house statuses of APP_FLOW 9, in order. "Taking longer" replaces the working step it belongs to */
+  function track(h){
+    var st = A.status(h), rs = A.runState(h), keys = TRACK.map(function(t){ return t[0]; });
+    var cur = st === 'open' ? 4 : Math.max(0, keys.indexOf(st));
+    return '<ol class="iv-track" aria-label="House status">' + TRACK.map(function(t, i){
+      var now = i === cur, label = now && rs.slow ? 'Taking longer' : t[1];
+      return '<li class="' + (i < cur ? 'done' : now ? 'now' : '') + '"' + (now ? ' aria-current="step"' : '') + '><i aria-hidden="true"></i><span>' + label + '</span></li>';
+    }).join('') + '</ol>';
+  }
+  function head(h, active, m){
+    var st = A.status(h), o = C.owner(h.owner), cov = A.cover(h), ready = isReady(st), held = heldLines(m).length;
+    var rel = st === 'draft' ? '<span class="muted">Not run yet</span>' : !ready ? '<span class="muted">When the run finishes</span>' : held ? stateLbl('Partial planning estimate') : '<span class="rel rel-ok">Complete planning estimate</span>';
+    var act = active === 'tree' ? '<a class="btn btn-secondary" href="#/houses/' + h.id + '">' + RI.icon('list','i-sm') + 'Back to the inspector</a>'
+      : m && ready ? '<a class="btn btn-primary" href="#/houses/' + h.id + '/tree">' + RI.icon('sliders','i-sm') + 'Open the decision tree</a>' : '';
     return '<a class="c-back" href="#/houses">' + RI.icon('arrow','i-sm flip') + 'House list</a>' +
-      '<header class="ih">' + (cov ? '<img class="ih-img" src="' + cov + '" alt="">' : '<span class="ih-img ih-noimg">' + RI.icon('house') + '</span>') +
-      '<div class="ih-t"><p class="c-kicker">' + (active === 'tree' ? 'Decision tree' : 'House inspector') + '</p><h1>' + RI.esc(A.addr(h)) + '</h1><p class="c-sub">' + RI.esc(A.place(h)) + ' · ' + RI.esc(o.name) + ', ' + o.type + (h.client ? ' · client ' + RI.esc(h.client) : '') + '</p>' +
-        '<div class="ih-tags">' + A.pill(h) + (st.st !== 'draft' ? (st.held ? '<span class="rel rel-part">Partial planning estimate</span>' : '<span class="rel rel-ok">Complete planning estimate</span>') : '') + (model ? C.chip(model.run) : '') + C.chip('v' + (h.version || 1)) + '</div></div>' +
-      (model ? '<div class="ih-act">' + (active === 'tree' ? '<a class="btn btn-secondary" href="#/houses/' + h.id + '">' + RI.icon('list','i-sm') + 'Inspector</a>' : '<a class="btn btn-primary" href="#/houses/' + h.id + '/tree">' + RI.icon('sliders','i-sm') + 'Open the decision tree</a>') + '</div>' : '') + '</header>';
+      '<header class="iv-head">' + (cov ? '<img class="iv-cover" src="' + cov + '" alt="Front of ' + RI.esc(A.addr(h)) + '">' : '<span class="iv-cover iv-nocover">' + RI.icon('house') + '</span>') +
+        '<div class="iv-id"><p class="c-kicker">' + (active === 'tree' ? 'Decision tree' : 'House inspector') + '</p><h1>' + RI.esc(A.addr(h)) + '</h1>' +
+        '<p class="iv-sub"><span>' + RI.esc(A.place(h)) + '</span><span>' + RI.esc(o.name) + ', ' + RI.esc(o.type) + '</span>' + (h.client ? '<span>Client ' + RI.esc(h.client) + '</span>' : '') + '</p></div>' +
+        (act ? '<div class="iv-act">' + act + '</div>' : '') + '</header>' +
+      '<div class="iv-meta">' + track(h) +
+        '<dl class="iv-facts"><div><dt>Release</dt><dd>' + rel + '</dd></div><div><dt>Run</dt><dd>' + (m ? '<code>' + m.run + '</code>' : 'None yet') + '</dd></div><div><dt>Version</dt><dd>v' + (h.version || 1) + '</dd></div><div><dt>Presentation</dt><dd>' + access(h, st) + '</dd></div></dl></div>';
+  }
+
+  /* ---------- Overview cards ---------- */
+  function niceTop(v){ var p = Math.pow(10, Math.floor(Math.log10(Math.max(v, 1)))), s = [1, 2, 2.5, 5, 10]; for(var i = 0; i < s.length; i++) if(s[i] * p >= v) return s[i] * p; return 10 * p; }
+  function kmoney(v){ return v >= 1000 ? '$' + (v / 1000).toLocaleString('en-US', {maximumFractionDigits:1}) + 'k' : '$' + v; }
+  /* What would let a held line be priced (DESIGN 8.5: unknowns say what would verify them) */
+  function unlock(l){
+    var i = l.checks.indexOf(false);
+    if(i === 1) return 'Priced once the ' + RI.esc(l.room.toLowerCase()) + ' size is typed or measured';
+    if(i === 2) return 'Priced once a clear photo shows the ' + RI.esc(l.item.name.toLowerCase());
+    if(i === 3) return 'Priced once a rate or product is published for this region';
+    return 'Check ' + (i + 1) + ', ' + C.CHECKS[i][0].toLowerCase() + '. Staff see this line; users do not';
+  }
+  function priceCard(h, m){
+    var held = heldLines(m), off = h.off || {};
+    /* Only lines that passed all seven checks reach a total (PDF 57) */
+    var tot = PK.map(function(k){ var lo = 0, hi = 0; m.lines.forEach(function(l){ var a = l.item.pk[k[0]]; if(l.pass === 7 && !off[l.item.id] && a && a[1] != null){ lo += a[1]; hi += a[2]; } }); return {k:k, lo:lo, hi:hi}; });
+    var top = niceTop(Math.max.apply(null, tot.map(function(t){ return t.hi; })) * 1.04), goals = {};
+    (RI.PACKAGES || []).forEach(function(p){ goals[p.key] = p.goal; });
+    var rows = tot.map(function(t){
+      return '<div class="iv-pk"><div class="iv-pk-n"><b>' + t.k[1] + '</b><small>' + RI.esc(goals[t.k[0]] || '') + '</small></div>' +
+        '<div class="iv-pk-l"><span class="rl thick' + (held.length ? ' partial' : '') + '" data-low="' + t.lo + '" data-high="' + t.hi + '"></span></div>' +
+        '<div class="iv-pk-v">' + C.range(t.lo, t.hi) + (held.length ? '<small>Partial</small>' : '') + '</div></div>';
+    }).join('');
+    var axis = '<div class="iv-pk iv-axis" aria-hidden="true"><span></span><div class="iv-pk-l"><span>$0</span><span>' + kmoney(top / 2) + '</span><span>' + kmoney(top) + '</span></div><span></span></div>';
+    var out = held.length
+      ? '<div class="iv-out"><h3>Left out of these totals <span class="iv-n warn">' + held.length + '</span></h3><ul>' + held.map(function(l){
+          return '<li>' + code(l) + '<div class="iv-out-w">' + stateLbl(C.whyHeld(l)) + '<small>' + unlock(l) + '</small></div></li>'; }).join('') + '</ul>' +
+          '<button type="button" class="iv-link" data-tab="checks">See all seven checks for every line' + RI.icon('arrow','i-sm') + '</button></div>'
+      : '<p class="iv-allok">' + RI.icon('check','i-sm') + 'Every line passed all seven checks. Nothing is left out.</p>';
+    return '<section class="c-card iv-price iv-wide"><header><div><h2>Price by package</h2><p class="iv-hint">The three goals on one scale. Low and High only.</p></div>' + (held.length ? stateLbl('Partial') : '<span class="rel rel-ok">Complete</span>') + '</header>' +
+      '<div class="iv-pks" data-scale="0,' + top + '">' + rows + axis + '</div>' + out +
+      C.note('A line that is not priced is left out of the total and named here, never counted as zero.') + '</section>';
+  }
+  /* The run end to end: each stage of APP_FLOW 7's inspector, with its count, opens its tab */
+  function pathCard(h, m){
+    var rooms = A.roomsFor(h), withPh = rooms.filter(function(r){ return A.photoCount(h, r[0]); }).length, noPh = rooms.filter(function(r){ return r[0] !== 'other' && !A.photoCount(h, r[0]); }).length;
+    var low = m.lines.filter(function(l){ return l.conf < l.thr; }).length, measure = m.lines.filter(function(l){ return l.checks[1] === false; }).length;
+    var held = heldLines(m).length, n = m.lines.length;
+    var st = [
+      ['photos', 'Photos', A.photoCount(h), withPh + ' rooms' + (noPh ? ', ' + noPh + ' without' : '')],
+      ['obs', 'Observations', n + ' parts', low ? low + ' below threshold' : 'All above threshold'],
+      ['dec', 'Decisions', n + ' × 3', 'One per goal, ' + m.rulesV],
+      ['qty', 'Quantities', (n - measure) + ' of ' + n, measure ? measure + (measure === 1 ? ' needs' : ' need') + ' measurement' : 'All supported'],
+      ['checks', 'Checks', (n - held) + ' of ' + n, held ? held + ' held' : 'All passed'],
+      ['ledger', 'Ledger', n + ' entries', 'Pinned to ' + m.run]
+    ];
+    return '<section class="c-card iv-wide"><header><div><h2>From photo to price</h2><p class="iv-hint">This run, stage by stage. Open a stage to see every line.</p></div></header><ol class="iv-path">' + st.map(function(s, i){
+      return '<li><button type="button" data-tab="' + s[0] + '"><span class="iv-path-i">' + (i + 1) + '</span><span class="iv-path-t">' + s[1] + '</span><b class="num">' + s[2] + '</b><small' + (/held|need|below|without/.test(s[3]) ? ' class="warn"' : '') + '>' + s[3] + '</small></button></li>';
+    }).join('') + '</ol></section>';
+  }
+  function draftCard(h){
+    var s = STEP_NAMES[h.step] || STEP_NAMES.house, miss = A.roomsFor(h).filter(function(r){ return r[0] !== 'other' && !A.photoCount(h, r[0]); }).map(function(r){ return r[1]; });
+    return '<section class="c-card iv-wait iv-wide"><header><div><h2>No run yet</h2><p class="iv-hint">The owner has not submitted this house. The run starts when they do.</p></div>' + C.lbl('draft') + '</header>' +
+      '<dl class="iv-kv"><dt>Where they are</dt><dd>Step ' + s[0] + ' of 4, ' + s[1] + '</dd><dt>Photos so far</dt><dd>' + A.photoCount(h) + '</dd>' +
+      '<dt>Rooms without photos</dt><dd>' + (miss.length ? RI.esc(miss.join(', ')) : 'None') + '</dd></dl>' +
+      C.note('Rooms without photos will show as unverified once the house is run.') + '</section>';
+  }
+  /* While the run works: the named stages, not a lone spinner (DESIGN 8.4). Updated by the route's timer */
+  function progressCard(h){
+    var rs = A.runState(h), cur = rs.stage || 0;
+    return '<section class="c-card iv-wait iv-wide" id="iv-prog"><header><div><h2>Run in progress</h2><p class="iv-hint">Decisions, quantities and prices appear here when the run finishes. This page updates by itself.</p></div>' +
+      '<span class="lb lb-queued">' + (rs.slow ? 'Taking longer' : 'Working') + '</span></header><ol class="iv-stages">' + A.STAGES.map(function(s, i){
+        var now = i === cur, extra = now && s[0] === 'reading' ? rs.read + ' of ' + rs.photos + ' photos' : now ? Math.round((rs.stageProgress || 0) * 100) + '%' : i < cur ? 'Done' : '';
+        return '<li class="' + (i < cur ? 'done' : now ? 'now' : '') + '"><i aria-hidden="true">' + (i < cur ? RI.icon('check','i-sm') : '') + '</i><span><b>' + s[1] + '</b><small>' + s[2] + '</small></span><em class="num">' + extra + '</em></li>';
+      }).join('') + '</ol></section>';
+  }
+  function factsCard(h){
+    var f = h.facts || {}, names = {}, sizes = h.sizes || {};
+    A.roomsFor(h).forEach(function(r){ names[r[0]] = r[1]; });
+    var rows = [['Year built', f.year || 'Not given'], ['Above grade', f.sqft ? (+f.sqft).toLocaleString('en-US') + ' sq ft' : 'Not given'], ['Stories', f.stories || 'Not given'], ['Bedrooms', f.beds != null ? f.beds : 'Not given'], ['Full baths', f.baths || 'Not given'], ['Half baths', f.halfBaths || 0], ['Basement', BSMT[f.basement] || 'Not given'], ['Finished basement', f.basementSqft ? (+f.basementSqft).toLocaleString('en-US') + ' sq ft' : 'Not given']];
+    var sz = Object.keys(sizes).filter(function(k){ return sizes[k] && sizes[k].l && sizes[k].w; });
+    return '<section class="c-card"><header><h2>Facts as entered</h2><span class="iv-ev" title="Typed by the owner at intake"><i aria-hidden="true"></i>Reported</span></header>' +
+      '<dl class="iv-kv">' + rows.map(function(r){ return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join('') + '</dl>' +
+      '<h3 class="iv-h3">Room sizes <span class="muted">intake step 3, optional</span></h3>' +
+      (sz.length ? '<dl class="iv-kv">' + sz.map(function(k){ var s = sizes[k]; return '<dt>' + RI.esc(names[k] || k) + '</dt><dd>' + s.l + ' × ' + s.w + ' ft <small>' + Math.round(s.l * s.w) + ' sq ft</small></dd>'; }).join('') + '</dl>'
+        : '<p class="iv-none">None typed. Quantities come from the photos and the room templates.</p>') + '</section>';
+  }
+  function runCard(h, m, ready){
+    return '<section class="c-card"><header><h2>This run</h2>' + (ready ? '<span class="lb lb-pub">Delivered</span>' : '<span class="lb lb-queued">Working</span>') + '</header>' +
+      '<dl class="iv-kv"><dt>Run</dt><dd><code>' + m.run + '</code></dd><dt>Started</dt><dd>' + when(m.at) + '</dd><dt>Rules</dt><dd>' + m.rulesV + '</dd><dt>Rates</dt><dd>' + m.ratesV + '</dd><dt>Products</dt><dd>' + m.productsV + '</dd><dt>Fingerprint</dt><dd><code>' + m.fp + '</code></dd>' +
+      (ready ? '<dt>Lines</dt><dd>' + m.lines.length + ' <small>' + m.lines.filter(function(l){ return l.pass === 7; }).length + ' passed all seven checks</small></dd>' : '') + '</dl>' +
+      C.note('The run keeps the versions it was made with. A new version of a rule or rate only reaches new runs.') + '</section>';
+  }
+  function consent(c, notYet){ return c ? 'Ticked <small>' + when(c.at) + '<br>Wording: ' + RI.esc(c.version || WORDING) + '</small>' : '<span class="muted">' + notYet + '</span>'; }
+  function consentCard(h, st){
+    var c = h.consents || {}, sh = h.shares || [], act = sh.filter(function(s){ return s.active; }).length;
+    return '<section class="c-card"><header><h2>Consents and access</h2></header><dl class="iv-kv">' +
+      '<dt>Photo rights</dt><dd>' + consent(c.rights, 'Not yet') + '</dd>' +
+      '<dt>Estimate disclaimer</dt><dd>' + consent(c.estimate, st === 'draft' ? 'Not yet, asked at Review' : 'Not yet') + '</dd>' +
+      '<dt>Presentation</dt><dd>' + access(h, st) + '</dd>' +
+      '<dt>Share links</dt><dd>' + (sh.length ? act + ' active, ' + (sh.length - act) + ' expired' : 'None') + '</dd>' +
+      '<dt>Feedback</dt><dd>' + (h.feedback ? RI.esc(h.feedback.v) : '<span class="muted">None yet</span>') + '</dd></dl></section>';
+  }
+
+  /* ---------- Quantities (GLOSSARY: gross, net, demolition, order; users see net, the rest stays in the console) ---------- */
+  var WASTE = {FL:.1, TL:.12, TR:.1, CT:.08, EX:.1, RF:.1, BT:.1};
+  function parseQty(q){ var x = /([\d,]+(?:\.\d+)?)\s*(sq ft|linear ft|each|fixtures?|in|rooms?)/.exec(q || ''); return x ? {n:+x[1].replace(/,/g, ''), u:x[2].replace(/s$/, '')} : null; }
+  function fmtQ(n, u){ return '<span class="num">' + Math.round(n).toLocaleString('en-US') + '</span> <small>' + u + '</small>'; }
+  function quantities(l, pk){
+    var a = l.item.pk[pk], q = parseQty(l.item.qty);
+    if(!a || !a[0]) return {none:'Not in this goal'};
+    if(/^keep/i.test(a[0])) return {none:'Kept, no work'};
+    if(!q) return {unknown:true};
+    var r = C.rnd(l.id + ':q'), area = q.u === 'sq ft' || q.u === 'linear ft', replace = /replace|^new|install|remove|tear/i.test(a[0]);
+    var gross = area ? Math.round(q.n * (1.03 + r() * .09)) : q.n;
+    var demo = replace ? (area ? gross : q.n) : null;
+    var order = l.fam === 'PT' && area ? {n:Math.ceil(q.n * 2 / 350), u:'gal'} : {n:area ? Math.ceil(q.n * (1 + (WASTE[l.fam] || .05))) : q.n, u:q.u};
+    return {net:q, gross:gross, demo:demo, order:order};
   }
 
   /* ---------- House inspector ---------- */
   C.route('/houses/:id', function(view, p){
     var h = A.get ? A.all().filter(function(x){ return x.id === p.id; })[0] : null;
-    if(!h){ view.innerHTML = C.page({title:'That house is not here', back:['#/houses','House list']}); return; }
-    var m = C.model(h), tab = C.query().tab || 'overview', f = h.facts || {};
-    var tabs = m ? [['overview','Overview'],['photos','Photos',A.photoCount(h)],['obs','Observations',m.lines.length],['dec','Decisions'],['qty','Quantities and prices'],['checks','Checks',m.lines.filter(function(l){ return l.pass < 7; }).length],['ledger','Ledger']] : [['overview','Overview'],['photos','Photos',A.photoCount(h)]];
-    view.innerHTML = '<div class="c-page">' + head(h, 'inspector', m) + C.seg('in-tab', tabs, tab) + '<div id="in-body" class="c-mt"></div></div>';
+    if(!h){ view.innerHTML = C.page({title:'That house is not here', sub:'It may have been removed, or the link is wrong.', back:['#/houses','House list']}); return; }
+    repairConsents(); h = A.all().filter(function(x){ return x.id === p.id; })[0];
+    var st = A.status(h), ready = isReady(st), m = C.model(h), tab = C.query().tab || 'overview', qpk = h.pk || 'S';
+    var held = heldLines(m).length;
+    var tabs = [['overview','Overview'],['photos','Photos',A.photoCount(h)]];
+    if(m && ready) tabs = tabs.concat([['obs','Observations',m.lines.length],['dec','Decisions'],['qty','Quantities and prices'],['checks','Checks',held, held ? 'warn' : ''],['ledger','Ledger']]);
+    if(!tabs.some(function(t){ return t[0] === tab; })) tab = 'overview';
+    view.innerHTML = '<div class="c-page iv">' + head(h, 'inspector', m) +
+      '<div class="iv-tabs" role="tablist" aria-label="Inspector sections">' + tabs.map(function(t){ return '<button type="button" role="tab" id="ivt-' + t[0] + '" aria-controls="in-body" data-v="' + t[0] + '" aria-selected="' + (t[0] === tab) + '" tabindex="' + (t[0] === tab ? 0 : -1) + '">' + t[1] + (t[2] != null ? '<span class="iv-n' + (t[3] ? ' ' + t[3] : '') + '"' + (t[0] === 'checks' ? ' title="Lines held by a check"' : '') + '>' + t[2] + '</span>' : '') + '</button>'; }).join('') + '</div>' +
+      '<div id="in-body" class="iv-body" role="tabpanel" tabindex="-1"></div></div>';
     C.crumb(A.addr(h));
+    function sec(title, hint, inner, aside){ return '<section class="iv-sec"><header><div><h2>' + title + '</h2>' + (hint ? '<p class="iv-hint">' + hint + '</p>' : '') + '</div>' + (aside || '') + '</header>' + inner + '</section>'; }
     function body(){
       var el = doc.getElementById('in-body'), html = '';
+      el.setAttribute('aria-labelledby', 'ivt-' + tab);
       if(tab === 'overview'){
-        var tot = '';
-        if(m){ RI.CURRENT = m.est; tot = '<section class="c-card"><header><h2>Price by package</h2>' + (C.houseState(h).held ? '<span class="rel rel-part">Partial</span>' : '<span class="rel rel-ok">Complete</span>') + '</header><div class="in-pk">' + PK.map(function(k){ var t = RI.totals(k[0], h.off || {}); return '<div><span>' + k[1] + '</span>' + C.range(t.low, t.high) + '</div>'; }).join('') + '</div>' + C.note('Low and High only. Unconfirmed lines are left out and named, never zero.') + '</section>'; RI.CURRENT = null; }
-        var cons = h.consents || {};
-        html = '<div class="in-grid">' +
-          '<section class="c-card"><header><h2>Facts as entered</h2>' + C.chip('Reported') + '</header><dl class="c-kv">' + [['Year built', f.year || '?'], ['Above grade', f.sqft ? (+f.sqft).toLocaleString('en-US') + ' sq ft' : '?'], ['Stories', f.stories || '?'], ['Bedrooms', f.beds != null ? f.beds : '?'], ['Full baths', f.baths || '?'], ['Half baths', f.halfBaths || 0], ['Basement', f.basement || '?'], ['Basement, finished', f.basementSqft ? f.basementSqft + ' sq ft' : 'Not given']].map(function(r){ return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join('') + '</dl></section>' +
-          (m ? '<section class="c-card"><header><h2>This run</h2>' + C.lbl('published', '') .replace('Published', 'Delivered') + '</header><dl class="c-kv"><dt>Run</dt><dd><code>' + m.run + '</code></dd><dt>Started</dt><dd>' + C.time(m.at) + '</dd><dt>Rules</dt><dd>' + m.rulesV + '</dd><dt>Rates</dt><dd>' + m.ratesV + '</dd><dt>Products</dt><dd>' + m.productsV + '</dd><dt>Fingerprint</dt><dd><code>' + m.fp + '</code></dd><dt>Lines</dt><dd>' + m.lines.length + ', ' + m.lines.filter(function(l){ return l.pass === 7; }).length + ' passed all seven checks</dd></dl>' + C.note('The run keeps the versions it was made with. A new version of a rule or rate only reaches new runs.') + '</section>'
-             : '<section class="c-card"><header><h2>No run yet</h2>' + C.lbl('draft') + '</header><p class="small muted">This house is still a draft: the owner has not submitted it. The run starts when they do.</p></section>') +
-          tot +
-          '<section class="c-card"><header><h2>Consents and access</h2></header><dl class="c-kv"><dt>Photo rights</dt><dd>' + (cons.rights ? 'Ticked ' + C.date(cons.rights.at) : (h.rights ? 'Ticked' : 'Not yet')) + '</dd><dt>Estimate only</dt><dd>' + (cons.estimate ? 'Ticked ' + C.date(cons.estimate.at) : 'Not yet') + '</dd><dt>Presentation</dt><dd>' + (h.paid ? 'Paid' : h.trialOpen ? 'Trial' : 'Not paid') + '</dd><dt>Share links</dt><dd>' + ((h.shares || []).filter(function(s){ return s.active; }).length) + ' active</dd><dt>Feedback</dt><dd>' + (h.feedback ? RI.esc(h.feedback.v) : 'None') + '</dd></dl></section></div>';
+        var main = ready ? priceCard(h, m) + pathCard(h, m) : st === 'draft' ? draftCard(h) : progressCard(h);
+        html = '<div class="iv-ov' + (m ? '' : ' no-run') + '">' + main + factsCard(h) + (m ? runCard(h, m, ready) : '') + consentCard(h, st) + '</div>';
       }
       if(tab === 'photos'){
-        var rooms = A.roomsFor(h);
+        var rooms = A.roomsFor(h), miss = rooms.filter(function(r){ return r[0] !== 'other' && !A.photoCount(h, r[0]); });
         html = rooms.filter(function(r){ return A.photoCount(h, r[0]); }).map(function(r){ var ps = (h.photos[r[0]] || []).filter(function(x){ return x.state === 'done'; });
-          return '<section class="in-ph"><h2 class="c-h2">' + r[1] + ' <span class="muted">' + ps.length + '</span></h2><div class="in-ph-g">' + ps.map(function(x){ return '<figure><img src="' + x.src + '" alt="" loading="lazy">' + ((x.flags || []).length ? '<figcaption>' + x.flags.join(', ') + '</figcaption>' : '') + '</figure>'; }).join('') + '</div></section>';
-        }).join('') || '<div class="c-empty">' + RI.icon('camera') + '<p>No photos yet.</p></div>';
-        var miss = rooms.filter(function(r){ return r[0] !== 'other' && !A.photoCount(h, r[0]); }).map(function(r){ return r[1]; });
-        if(miss.length) html += C.note('No photos of ' + miss.join(', ') + '. Those rooms show as unverified.');
+          return '<section class="iv-room"><h2>' + r[1] + ' <span class="iv-n">' + ps.length + '</span></h2><div class="iv-ph">' + ps.map(function(x){ return '<figure><img src="' + x.src + '" alt="' + RI.esc(r[1]) + ' photo" loading="lazy">' + ((x.flags || []).length ? '<figcaption>' + RI.esc(x.flags.join(', ')) + '</figcaption>' : '') + '</figure>'; }).join('') + '</div></section>';
+        }).join('') || '<div class="c-empty">' + RI.icon('camera') + '<p>No photos yet. They appear here as the owner adds them.</p></div>';
+        if(miss.length) html += '<section class="iv-room"><h2>Rooms without photos <span class="iv-n warn">' + miss.length + '</span></h2><ul class="iv-miss">' + miss.map(function(r){ return '<li><span>' + r[1] + '</span>' + stateLbl('Unverified') + '</li>'; }).join('') + '</ul></section>';
       }
-      if(tab === 'obs') html = C.table({cols:[{label:'Component'},{label:'Evidence'},{label:'Condition'},{label:'Modernisation'},{label:'Character'},{label:'Function'},{label:'Severity'},{label:'Confidence'}],
-        rows:m.lines.map(function(l){ return {attr:'data-go="#/houses/' + h.id + '/tree?line=' + encodeURIComponent(l.id) + '" tabindex="0" role="link"', cells:[code(l), l.photos ? l.photos + ' photo' + (l.photos > 1 ? 's' : '') : '<span class="muted">No photo</span>', l.scales.condition, l.scales.modern, l.scales.character, l.scales.func, '<span class="sev sev-' + l.sev + '" title="' + SEV[l.sev] + '">' + l.sev + '</span>', confBar(l)]}; })}) + C.note('Four separate scales: a part can be in good condition and still look dated (PDF section 33). The tick on each bar is that component\'s threshold.');
-      if(tab === 'dec') html = C.table({cols:[{label:'Component'},{label:'Essential'},{label:'Standard'},{label:'Premium'},{label:'Rule'}],
-        rows:m.lines.map(function(l){ return {attr:'data-go="#/houses/' + h.id + '/tree?line=' + encodeURIComponent(l.id) + '" tabindex="0" role="link"', cells:[code(l)].concat(PK.map(function(k){ var a = l.item.pk[k[0]]; return a ? RI.esc(a[0]) : '<span class="muted">Not in this goal</span>'; })).concat(['<code>' + l.rule + '</code> v' + l.ruleV])}; })});
-      if(tab === 'qty') html = C.table({cols:[{label:'Component'},{label:'Quantity'},{label:'Source'},{label:'Preset'},{label:'Standard', num:true},{label:'Product'}],
-        rows:m.lines.map(function(l){ var a = l.item.pk.S || [], held = C.whyHeld(l); return {cells:[code(l), RI.esc(l.item.qty || ''), l.qsrc + (l.qconf ? ' <span class="muted">· ' + l.qconf + '</span>' : ''), '<code>' + l.preset + '</code>', held ? '<span class="rel rel-part">' + held + '</span>' : a[1] != null ? C.range(a[1], a[2]) : '<span class="muted">No cost</span>', a[3] ? RI.esc(a[3]) : '<span class="muted">None</span>']}; })}) + C.note('Net quantities only. Every quantity belongs to one component and one scope action (QT-RULE-048).');
-      if(tab === 'checks') html = C.table({cols:[{label:'Component'}].concat(C.CHECKS.map(function(c, i){ return {label:String(i + 1), num:true}; })).concat([{label:'Result'}]),
-        rows:m.lines.map(function(l){ return {cells:[code(l)].concat(l.checks.map(function(ok){ return ok ? '<span class="ck ok" aria-label="Passed">' + RI.icon('check','i-sm') + '</span>' : '<span class="ck no" aria-label="Failed">' + RI.icon('x','i-sm') + '</span>'; })).concat([l.pass === 7 ? '<span class="rel rel-ok">Priced</span>' : '<span class="rel rel-part">' + C.whyHeld(l) + '</span>'])}; })}) +
-        '<ol class="ck-key">' + C.CHECKS.map(function(c){ return '<li><b>' + c[0] + '</b> ' + c[1] + '</li>'; }).join('') + '</ol>';
-      if(tab === 'ledger') html = '<section class="c-card"><header><h2>Verification ledger</h2>' + C.chip(m.run) + '</header>' + C.table({cols:[{label:'Component'},{label:'Evidence used'},{label:'Measurement source'},{label:'Rule'},{label:'Rate and product'},{label:'Checks', num:true}],
-        rows:m.lines.map(function(l){ return {cells:[code(l), l.photos ? 'photo_' + (20 + l.code.length + l.photos) + (l.photos > 1 ? ' and ' + (l.photos - 1) + ' more' : '') + ', intake field' : 'Intake field', l.qsrc + (l.qconf ? ', confidence ' + l.qconf : ''), l.rule + ' v' + l.ruleV, m.ratesV + ', ' + m.productsV, l.pass + ' of 7']}; })}) + C.note('Computed ' + C.time(m.at) + ', run ' + m.run + '. The partial or complete label is computed from the checks, never chosen by a screen.') + '</section>';
-      el.innerHTML = html; RI.fillIcons(el);
+      if(tab === 'obs') html = sec('Observations', 'What the photos show for each part, on four separate scales: a part can be sound and still look dated (PDF section 33). Open a line to follow it in the decision tree.',
+        C.table({cls:'iv-tbl', cols:[{label:'Component'},{label:'Evidence'},{label:'Condition'},{label:'Modernisation'},{label:'Character'},{label:'Function'},{label:'Severity'},{label:'Confidence'}],
+          rows:m.lines.map(function(l){ return {attr:'data-go="#/houses/' + h.id + '/tree?line=' + encodeURIComponent(l.id) + '" tabindex="0" role="link"', cells:[code(l), l.photos ? l.photos + ' photo' + (l.photos > 1 ? 's' : '') : '<span class="muted">No photo</span>', l.scales.condition === 'Unknown' ? stateLbl('Unknown') : l.scales.condition, l.scales.modern, l.scales.character, l.scales.func, '<span class="sev sev-' + l.sev + '" title="' + SEV[l.sev] + '">' + l.sev + '</span>', confBar(l)]}; })}) +
+        C.note('The tick on each confidence bar is that part\'s threshold. Below it, the line is unverified.'));
+      if(tab === 'dec') html = sec('Decisions', 'One action per part under each goal, made before any pricing and from the same evidence.',
+        C.table({cls:'iv-tbl', cols:[{label:'Component'},{label:'Essential'},{label:'Standard'},{label:'Premium'},{label:'Rule'}],
+          rows:m.lines.map(function(l){ return {attr:'data-go="#/houses/' + h.id + '/tree?line=' + encodeURIComponent(l.id) + '" tabindex="0" role="link"', cells:[code(l)].concat(PK.map(function(k){ var a = l.item.pk[k[0]]; return a && a[0] ? (/^keep/i.test(a[0]) ? '<span class="muted">' + RI.esc(a[0]) + '</span>' : RI.esc(a[0])) : '<span class="muted">Not in this goal</span>'; })).concat(['<code>' + l.rule + '</code> <small class="muted">v' + l.ruleV + '</small>'])}; })}));
+      if(tab === 'qty'){
+        var pkName = PK.filter(function(k){ return k[0] === qpk; })[0][1];
+        html = sec('Quantities and prices', 'Net is what the user sees. Gross, demolition and order stay in the console. An unknown quantity is left empty, never zero.', '<div class="iv-qtool">' + C.seg('iv-qpk', PK, qpk) + '</div>' +
+          C.table({cls:'iv-tbl iv-qty', cols:[{label:'Component'},{label:'Work under ' + pkName},{label:'Net', num:true},{label:'Gross', num:true},{label:'Demolition', num:true},{label:'Order', num:true},{label:'Low and High', num:true}],
+            rows:m.lines.map(function(l){ var q = quantities(l, qpk), a = l.item.pk[qpk] || [], why = C.whyHeld(l), price;
+              if(why) price = stateLbl(why); else if(a[1] != null) price = C.range(a[1], a[2]); else price = '<span class="muted">No cost</span>';
+              var work = a[0] ? RI.esc(a[0]) + (a[3] ? '<small class="iv-prod">' + RI.esc(a[3]) + '</small>' : '') : '<span class="muted">Not in this goal</span>';
+              var e = '<span class="muted">None</span>';
+              var cells = q.none ? ['<span class="muted">' + q.none + '</span>', '', '', ''] : q.unknown ? [stateLbl('Needs measurement'), '<span class="muted">Not known</span>', '<span class="muted">Not known</span>', '<span class="muted">Not known</span>']
+                : [fmtQ(q.net.n, q.net.u) + '<small class="iv-src">' + RI.esc(l.qsrc) + (l.qconf && l.qsrc !== 'Not known' ? ', confidence ' + l.qconf : '') + '</small>', fmtQ(q.gross, q.net.u), q.demo != null ? fmtQ(q.demo, q.net.u) : e, fmtQ(q.order.n, q.order.u)];
+              return {cells:[code(l), work].concat(cells).concat([price])}; })}) +
+          C.note('Every quantity belongs to one component and one scope action (QT-RULE-048). Order adds waste for the trade; paint is ordered in gallons for two coats. Sample values.'));
+      }
+      if(tab === 'checks'){
+        var fails = C.CHECKS.map(function(c, i){ return m.lines.filter(function(l){ return !l.checks[i]; }).length; });
+        html = sec('Checks', 'No line shows a price until it passes all seven. A failed check never becomes a number, and one held line never blocks the house.',
+          '<ol class="iv-cks">' + C.CHECKS.map(function(c, i){ return '<li class="' + (fails[i] ? 'has' : '') + '"><span class="iv-ck-i">' + (i + 1) + '</span><span><b>' + c[0] + '</b><small>' + c[1] + '</small></span><em>' + (fails[i] ? fails[i] + ' held' : 'All pass') + '</em></li>'; }).join('') + '</ol>' +
+          C.table({cls:'iv-tbl iv-ckt', cols:[{label:'Component'}].concat(C.CHECKS.map(function(c, i){ return {label:String(i + 1), num:true}; })).concat([{label:'Result'}]),
+            rows:m.lines.map(function(l){ return {cells:[code(l)].concat(l.checks.map(function(ok){ return ok ? '<span class="ck ok" aria-label="Passed">' + RI.icon('check','i-sm') + '</span>' : '<span class="ck no" aria-label="Held">' + RI.icon('x','i-sm') + '</span>'; })).concat([l.pass === 7 ? '<span class="rel rel-ok">Priced</span>' : stateLbl(C.whyHeld(l))])}; })}));
+      }
+      if(tab === 'ledger') html = sec('Verification ledger', 'How each line was verified: evidence, measurement, rule, rate and product, checks.', C.table({cls:'iv-tbl', cols:[{label:'Component'},{label:'Evidence used'},{label:'Measurement source'},{label:'Rule'},{label:'Rate and product'},{label:'Checks', num:true}],
+        rows:m.lines.map(function(l){ return {cells:[code(l), l.photos ? 'photo_' + (20 + l.code.length + l.photos) + (l.photos > 1 ? ' and ' + (l.photos - 1) + ' more' : '') + ', intake field' : 'Intake field', l.qsrc + (l.qconf ? ', confidence ' + l.qconf : ''), l.rule + ' v' + l.ruleV, m.ratesV + ', ' + m.productsV, l.pass + ' of 7']}; })}) +
+        C.note('Computed ' + when(m.at) + ', run ' + m.run + '. The partial or complete label is computed from the checks, never chosen by a screen.'), C.chip(m.run));
+      el.innerHTML = html; RI.fillIcons(el); RI.initRanges(el);
+      el.querySelectorAll('.rl').forEach(function(r){ r.classList.add('drawn'); });
     }
-    view.querySelector('#in-tab').addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if(!b) return; tab = b.getAttribute('data-v'); view.querySelectorAll('#in-tab [data-v]').forEach(function(x){ x.setAttribute('aria-selected', x === b); }); history.replaceState(null, '', '#/houses/' + h.id + '?tab=' + tab); body(); });
-    view.addEventListener('click', function(e){ var r = e.target.closest('[data-go]'); if(r) C.go(r.getAttribute('data-go')); });
+    function show(t, focus){
+      tab = t;
+      view.querySelectorAll('.iv-tabs [data-v]').forEach(function(x){ var on = x.getAttribute('data-v') === t; x.setAttribute('aria-selected', on); x.tabIndex = on ? 0 : -1; if(on && focus) x.focus(); });
+      history.replaceState(null, '', '#/houses/' + h.id + '?tab=' + t); body();
+    }
+    var tl = view.querySelector('.iv-tabs');
+    tl.addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if(b) show(b.getAttribute('data-v')); });
+    tl.addEventListener('keydown', function(e){
+      var keys = tabs.map(function(t){ return t[0]; }), i = keys.indexOf(tab), n = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? keys.length - 1 : null;
+      if(n == null) return; e.preventDefault(); show(keys[(n + keys.length) % keys.length], true);
+    });
+    view.addEventListener('click', function(e){
+      var t = e.target.closest('[data-tab]'); if(t){ show(t.getAttribute('data-tab')); tl.scrollIntoView({block:'nearest'}); return; }
+      var s = e.target.closest('#iv-qpk [data-v]'); if(s){ qpk = s.getAttribute('data-v'); body(); return; }
+      var r = e.target.closest('[data-go]'); if(r) C.go(r.getAttribute('data-go'));
+    });
     view.addEventListener('keydown', function(e){ var r = e.target.closest('[data-go]'); if(r && e.key === 'Enter') C.go(r.getAttribute('data-go')); });
     body();
+    /* A working house updates by itself: the stage list moves, and the page redraws when the status changes */
+    if(st !== 'draft' && !ready) C.every(function(){
+      if(A.status(h) !== st){ C.render(); return; }
+      var pc = doc.getElementById('iv-prog'); if(pc){ var tmp = doc.createElement('div'); tmp.innerHTML = progressCard(h); pc.replaceWith(tmp.firstChild); RI.fillIcons(doc.getElementById('iv-prog')); }
+    }, 1000);
   }, {nav:'houses', perm:'houses.view'});
 
   /* ---------- Decision tree with grading ---------- */
