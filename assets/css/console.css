@@ -2188,3 +2188,18 @@ dialog.rlb-sheet::backdrop{background:rgba(24,38,36,.45)}
 #rlb-body .c-pager{margin-top:12px}
 #rlb-stl{grid-column:2;justify-self:start}
 .rlb-go .i{transform:rotate(-90deg)}
+/* Rates (v96): region and unit selections, the effective date in the draft, unit and region fixed per rate */
+.rlb-tools .rlb-sel{flex:1 1 calc(50% - 5px)}
+.rlb-regsel{display:flex;align-items:center;gap:8px;flex:1 1 100%;font-size:.86rem;font-weight:600}
+.rlb-regsel .c-select{flex:1}
+.rlb-regsel select{width:100%;min-height:44px;font-weight:600}
+.rlb-reg-n{margin:-6px 0 12px;font-size:.8rem;color:var(--muted)}
+.rlb-hint{font-size:.76rem;font-weight:400;color:var(--muted)}
+.rlb-fixed{display:flex;align-items:flex-start;gap:6px;margin:12px 0 0;font-size:.8rem;color:var(--muted)}
+.rlb-fixed .i{flex:none;margin-top:2px}
+.rlb-fixed b{font-weight:600;color:var(--text)}
+@media (min-width:720px){
+  .rlb-tools .rlb-sel{flex:none}
+  .rlb-regsel{flex:none;margin-left:auto}
+  .rlb-regsel select{min-width:210px}
+}
