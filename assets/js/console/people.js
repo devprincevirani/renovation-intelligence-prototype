@@ -48,7 +48,6 @@
     list.forEach(function(x){ if(x.token === 'demo-staff' && used && x.status === 'invited'){ x.status = 'active'; x.joinedAt = used; } });
     return list;
   }
-  function permChips(perms){ var n = C.migratePerms(perms).length; return '<span class="c-chip">' + n + ' of ' + C.PERMS.length + '</span>'; }
 
   /* ---------- Users and staff ----------
      Users: one State column (not verified, active, trial with days left, disabled) and Enable after Disable.
@@ -211,41 +210,35 @@
     function permGrid(){
       var people = staff.filter(function(x){ return x.status !== 'disabled'; });
       var head = '<tr><th scope="col" class="pg-perm">Permission</th><th scope="col" class="pg-who">' + C.av('Sam', 'sam') + '<span>Sam<small>Super admin</small></span></th>' +
-        people.map(function(x){ return '<th scope="col" class="pg-who">' + C.av(x.name || x.email) + '<span>' + RI.esc((x.name || x.email.split('@')[0]).split(' ')[0]) + '<small>' + (x.status === 'invited' ? 'Invited' : 'Staff') + '</small></span></th>'; }).join('') + '</tr>';
+        people.map(function(x){ return '<th scope="col" class="pg-who">' + C.av(x.name || x.email) + '<span>' + RI.esc((x.name || x.email.split('@')[0]).split(' ')[0]) + '<small>' + (x.status === 'invited' ? 'Invited' : 'Staff') + '</small></span>' + (sam ? '<button type="button" class="linkbtn small pg-man" data-staff="' + RI.esc(x.email) + '">Manage</button>' : '') + '</th>'; }).join('') + '</tr>';
       var yes = '<span class="pg-yes" title="Yes">' + RI.icon('check','i-sm') + '<span class="sr">Yes</span></span>';
       var rows = GROUPS.map(function(g){
         return '<tr class="pg-grp"><th scope="rowgroup" colspan="' + (people.length + 2) + '">' + g[0] + '</th></tr>' + g[1].map(function(code){
           return '<tr><th scope="row" class="pg-perm"><b>' + SHORT[code] + '</b><code>' + code + '</code></th><td>' + yes + '</td>' + people.map(function(x, i){
             var held = C.migratePerms(x.perms), has = held.indexOf(code) > -1;
             var by = Object.keys(C.IMPLIES).filter(function(k){ return held.indexOf(k) > -1 && C.IMPLIES[k].indexOf(code) > -1; })[0];
-            if(!sam) return '<td>' + (has || by ? yes : '<span class="pg-no" aria-label="No">–</span>') + '</td>';
-            if(by && !has) return '<td><label class="pg-ck" title="Included with ' + by + '"><input type="checkbox" checked disabled><span class="sr">' + SHORT[code] + ' for ' + RI.esc(x.email) + ', included with ' + by + '</span></label></td>';
-            return '<td><label class="pg-ck"><input type="checkbox" data-pp="' + code + '" data-pe="' + RI.esc(x.email) + '"' + (has ? ' checked' : '') + '><span class="sr">' + SHORT[code] + ' for ' + RI.esc(x.email) + '</span></label></td>';
+            if(has) return '<td>' + yes + '</td>';
+            if(by) return '<td><span class="pg-inc" title="Included with ' + SHORT[by] + '">' + RI.icon('check','i-sm') + '<span class="sr">Included with ' + SHORT[by] + '</span></span></td>';
+            return '<td><span class="pg-no" aria-label="No">–</span></td>';
           }).join('') + '</tr>';
         }).join('');
       }).join('') + '<tr class="pg-grp"><th scope="rowgroup" colspan="' + (people.length + 2) + '">Super admin only</th></tr>' + SAM_ONLY.map(function(t){
         return '<tr class="pg-sam"><th scope="row" class="pg-perm"><b>' + t + '</b></th><td>' + yes + '</td>' + people.map(function(){ return '<td><span class="pg-no" title="Only Sam">' + RI.icon('lock','i-sm') + '<span class="sr">Only Sam</span></span></td>'; }).join('') + '</tr>';
       }).join('');
-      return '<section class="c-card c-mt pg-card"><header><div><h2>Who can do what</h2><p class="small muted">' + (sam ? 'Tick a box to give a permission. It takes effect at once, and that person logs in again.' : 'Only Sam changes permissions.') + '</p></div></header>' +
+      return '<section class="c-card c-mt pg-card"><header><div><h2>Access overview</h2><p class="small muted">Who can do what, side by side. ' + (sam ? 'To change it, open Manage for that person.' : 'Only Sam changes permissions.') + '</p></div><div class="pg-key" aria-hidden="true"><span>' + RI.icon('check','i-sm') + 'Given</span><span class="inc">' + RI.icon('check','i-sm') + 'Included with an edit</span><span>' + RI.icon('lock','i-sm') + 'Only Sam</span></div></header>' +
         '<div class="pg-wrap"><table class="pg-tbl"><caption class="sr">Permissions for each staff member</caption><thead>' + head + '</thead><tbody>' + rows + '</tbody></table></div></section>';
     }
     function bodyStaff(el){
-      var rows = [{cells:['<span class="c-person">' + C.av('Sam', 'sam') + '<span><b>Sam</b><small>admin@demo.ri</small></span></span>', '<span class="c-chip sam">Super admin</span>', C.lbl('published').replace('Published', 'Active'), '<span class="c-chip">All</span>', '<span class="muted">Created on the server</span>', '']}];
+      var rows = [{cells:['<span class="c-person">' + C.av('Sam', 'sam') + '<span><b>Sam</b><small>admin@demo.ri</small></span></span>', '<span class="c-chip sam">Super admin</span>', C.lbl('published').replace('Published', 'Active'), '<span class="ax-areas"><span class="c-chip sam">Everything</span></span>', '<span class="muted">Created on the server</span>', '']}];
       staff.forEach(function(x){
         rows.push({attr:sam ? 'data-staff="' + RI.esc(x.email) + '" tabindex="0" role="button"' : '', cells:['<span class="c-person">' + C.av(x.name || x.email) + '<span><b>' + RI.esc(x.name || 'Not accepted yet') + '</b><small>' + RI.esc(x.email) + '</small></span></span>', '<span class="c-chip">Staff</span>',
-          x.status === 'invited' ? '<span class="lb lb-info">Invited</span>' : x.status === 'disabled' ? '<span class="lb lb-bad">Disabled</span>' : C.lbl('published').replace('Published', 'Active'),
-          permChips(x.perms), x.status === 'invited' ? 'Invited ' + C.ago(x.invitedAt) + ' · link works 7 days' : 'Joined ' + C.ago(x.joinedAt || x.invitedAt),
-          sam ? '<span class="linkbtn small">Manage</span>' : '']});
+          staffLbl(x),
+          areaChips(x.perms), x.status === 'invited' ? 'Invited ' + C.ago(x.invitedAt) + ' · link works 7 days' : 'Joined ' + C.ago(x.joinedAt || x.invitedAt),
+          sam ? '<span class="linkbtn small">Manage access</span>' : '']});
       });
-      el.innerHTML = C.table({cols:[{label:'Person'},{label:'Role'},{label:'State'},{label:'Permissions'},{label:'Since'},{label:''}], rows:rows}) + permGrid() +
+      el.innerHTML = C.table({cols:[{label:'Person'},{label:'Role'},{label:'State'},{label:'Can work in'},{label:'Since'},{label:''}], rows:rows}) + permGrid() +
         '<div class="c-mt">' + C.note('Staff edit drafts. Only Sam publishes, and only Sam manages staff. A new staff member starts with no permissions.') + '</div>';
       RI.fillIcons(el);
-      el.querySelectorAll('[data-pp]').forEach(function(b){ b.addEventListener('change', function(){
-        var code = this.getAttribute('data-pp'), em = this.getAttribute('data-pe'), list = staffList(), x = list.filter(function(s){ return s.email === em; })[0]; if(!x) return;
-        var held = C.migratePerms(x.perms); x.perms = this.checked ? held.concat(code) : held.filter(function(p){ return p !== code; });
-        C.set('staff', list); staff = list; C.log('Permissions changed', em + ': ' + (this.checked ? 'added ' : 'removed ') + code, '', 'users');
-        RI.toast((this.checked ? 'Given: ' : 'Taken away: ') + SHORT[code] + '.', 'check'); bodyStaff(el);
-      }); });
     }
 
     function body(){
@@ -271,40 +264,99 @@
     body();
   }, {nav:'users', perm:'users.view'});
 
-  /* Permission boxes, grouped as in the guide's table */
-  function permBoxes(sel){
-    return '<fieldset class="perm-list"><legend class="sr">Permissions</legend>' + C.PERMS.map(function(p){
-      return '<label class="perm"><input type="checkbox" value="' + p[0] + '"' + (sel.indexOf(p[0]) > -1 ? ' checked' : '') + '><span><b>' + p[1] + '</b><small><code>' + p[0] + '</code></small></span></label>';
-    }).join('') + '</fieldset><p class="small muted">Publishing, discarding and managing staff stay with the super admin. An edit permission includes reading the same area.</p>';
+  /* ---------- Staff access: one place to change it (SECURITY 3.2, 3.3; BACKLOG M1-34, M4-22) ----------
+     A side panel, opened from Manage access or Invite staff. Permissions are grouped by area; ticking an edit
+     permission ticks and locks the reading it includes. Nothing is saved until Save, the footer says exactly what
+     will change, and a saved change ends that person's sessions. Disabling the account sits apart and asks first. */
+  var AREAS = [
+    ['Houses', 'house', ['houses.view', 'houses.grade']],
+    ['Rulebook and pricing', 'list', ['rulebook.view', 'rulebook.edit', 'pricing.edit']],
+    ['Content', 'file', ['content.edit']],
+    ['Quality', 'shield', ['accuracy.manage', 'backtests.run']],
+    ['People and records', 'user', ['users.view', 'contacts.export', 'funnel.view', 'audit.view']]
+  ];
+  var DESC = {}; C.PERMS.forEach(function(p){ DESC[p[0]] = p[1]; });
+  /* What a set of ticks really allows: the ticks plus the reading each edit includes */
+  function full(sel){ var out = sel.slice(); sel.forEach(function(k){ (C.IMPLIES[k] || []).forEach(function(v){ if(out.indexOf(v) < 0) out.push(v); }); }); return out; }
+  function includedBy(sel, code){ return Object.keys(C.IMPLIES).filter(function(k){ return sel.indexOf(k) > -1 && C.IMPLIES[k].indexOf(code) > -1; })[0]; }
+  function staffLbl(x){ return x.status === 'invited' ? '<span class="lb lb-info">Invited</span>' : x.status === 'disabled' ? '<span class="lb lb-bad">Disabled</span>' : C.lbl('published').replace('Published', 'Active'); }
+  /* The areas someone can work in, for the staff table */
+  function areaChips(perms){
+    var held = full(C.migratePerms(perms)), on = AREAS.filter(function(a){ return a[2].some(function(c){ return held.indexOf(c) > -1; }); });
+    return on.length ? '<span class="ax-areas">' + on.map(function(a){ return '<span class="c-chip">' + a[0].split(' ')[0] + '</span>'; }).join('') + '</span><small class="ax-cnt">' + held.length + ' of ' + C.PERMS.length + '</small>' : '<span class="muted">No access yet</span>';
   }
-  function inviteDialog(){
-    var d = C.dialog('Invite a staff member', '<form class="form-grid" id="inv-f" novalidate><div class="field"><label for="inv-em">Email</label><input class="input" id="inv-em" type="email" placeholder="name@example.com" autocomplete="off"><span class="err"></span><span class="help">The invite link works once, for 7 days. The email is fixed by the invite.</span></div>' +
-      '<div class="field"><span class="flabel">What they can do</span>' + permBoxes([]) + '</div>' +
-      '<div class="cta-row" style="justify-content:flex-end"><button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="submit" class="btn btn-primary">Send the invite</button></div></form>', {wide:true});
-    d.querySelector('#inv-f').addEventListener('submit', function(e){
-      e.preventDefault(); var em = d.querySelector('#inv-em'), v = em.value.trim().toLowerCase();
-      if(!RI.form.emailOk(v)){ RI.form.setInvalid(em, 'Check the email address, for example name@example.com.'); em.focus(); return; }
-      if(staffList().some(function(x){ return x.email === v; })){ RI.form.setInvalid(em, 'This person already has a staff invite or account.'); em.focus(); return; }
-      var perms = [].slice.call(d.querySelectorAll('.perm input:checked')).map(function(i){ return i.value; });
-      var list = staffList(); list.push({email:v, name:'', status:'invited', perms:perms, invitedAt:Date.now(), token:C.uid('t')}); C.set('staff', list);
-      C.log('Staff invited', v + ', with ' + perms.length + ' permissions', '', 'users');
-      d.close();
-      var s = C.dialog('Invite sent', '<p>We emailed an invite to <b>' + RI.esc(v) + '</b>. It works once, for 7 days.</p><div class="mail-sim"><div class="mh">' + RI.icon('mail','i-sm') + '<span><b>Demo inbox</b> · You are invited to the console</span></div><div class="mb"><p>Sam invited you as staff. Set a password to accept.</p><a class="btn btn-primary btn-sm" href="' + RI.url('invite/?t=demo-staff') + '">Accept the invite</a><p class="xsmall muted">Demo only: this opens the sample invite page.</p></div></div>');
-      s.addEventListener('close', function(){ C.go('#/users?tab=staff'); });
+  function accessPanel(email, after){
+    var list = staffList(), x = email ? list.filter(function(s){ return s.email === email; })[0] : null, invite = !email;
+    if(email && !x) return;
+    var start = x ? full(C.migratePerms(x.perms)) : [], sel = start.slice();
+    var first = x ? (x.name ? x.name.split(' ')[0] : 'They') : '';
+    var head = x ? '<div class="ax-who">' + C.av(x.name || x.email) + '<span><b>' + RI.esc(x.name || 'Not accepted yet') + '</b><small>' + RI.esc(x.email) + '</small></span>' + staffLbl(x) + '</div>' :
+      '<div class="field"><label for="inv-em">Email</label><input class="input" id="inv-em" type="email" placeholder="name@example.com" autocomplete="off"><span class="err"></span><span class="help">The invite link works once, for 7 days. The email is fixed by the invite.</span></div>';
+    var groups = AREAS.map(function(a, gi){
+      return '<fieldset class="ax-g"><legend><span class="ax-gi">' + RI.icon(a[1], 'i-sm') + '</span><span class="ax-gt">' + a[0] + '</span><small class="ax-gn" data-gn="' + gi + '"></small></legend>' + a[2].map(function(code){
+        return '<label class="ax-r" data-code="' + code + '"><input type="checkbox" value="' + code + '"><span class="ax-t"><b>' + SHORT[code] + '</b>' + (DESC[code].toLowerCase() !== SHORT[code].toLowerCase() ? '<small>' + DESC[code] + '</small>' : '') + '<span class="ax-meta"><code>' + code + '</code><em class="ax-inc"></em></span></span></label>';
+      }).join('') + '</fieldset>';
+    }).join('');
+    var only = '<details class="ax-only"><summary>' + RI.icon('lock', 'i-sm') + 'Only Sam can do these</summary><ul>' + SAM_ONLY.map(function(t){ return '<li>' + t + '</li>'; }).join('') + '</ul></details>';
+    var danger = !x ? '' : x.status !== 'disabled' ?
+      '<section class="ax-danger"><div><b>Disable this staff account</b><small>They can no longer log in, and every session ends at once. Their grades and drafts stay.</small></div><button type="button" class="btn btn-secondary btn-sm ax-dis" id="ax-dis">Disable</button></section>' :
+      '<section class="ax-danger"><div><b>This account is disabled</b><small>Turn it back on to let them log in with the permissions above.</small></div><button type="button" class="btn btn-secondary btn-sm" id="ax-en">Turn back on</button></section>';
+    var d = C.dialog(invite ? 'Invite a staff member' : 'Manage access',
+      '<div class="ax-scroll">' + head + '<p class="ax-lead">' + (invite ? 'A new staff member starts with no permissions. Tick what they need.' : 'Tick what ' + RI.esc(first === 'They' ? 'this person' : first) + ' needs.') + ' An edit permission includes reading the same area.</p>' + groups + only + danger + '</div>' +
+      '<div class="ax-foot"><p class="ax-sum" id="ax-sum" aria-live="polite"></p><div class="ax-btns"><button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="button" class="btn btn-primary" id="ax-save">' + (invite ? 'Send the invite' : 'Save changes') + '</button></div></div>');
+    d.classList.add('dlg-drawer');
+    var names = function(codes){ return codes.map(function(c){ return SHORT[c]; }).join(', '); };
+    function diff(){ var now = full(sel); return {now:now, add:now.filter(function(c){ return start.indexOf(c) < 0; }), rem:start.filter(function(c){ return now.indexOf(c) < 0; })}; }
+    function sync(){
+      d.querySelectorAll('.ax-r').forEach(function(r){
+        var c = r.getAttribute('data-code'), inp = r.querySelector('input'), by = includedBy(sel, c);
+        inp.checked = sel.indexOf(c) > -1 || !!by; inp.disabled = !!by; r.classList.toggle('inc', !!by);
+        r.querySelector('.ax-inc').textContent = by ? 'Included with ' + SHORT[by] : '';
+      });
+      var f = diff();
+      AREAS.forEach(function(a, gi){ d.querySelector('[data-gn="' + gi + '"]').textContent = a[2].filter(function(c){ return f.now.indexOf(c) > -1; }).length + ' of ' + a[2].length; });
+      var sum = d.querySelector('#ax-sum'), save = d.querySelector('#ax-save');
+      if(invite){ sum.innerHTML = f.now.length ? '<b>' + f.now.length + ' of ' + C.PERMS.length + '</b> permissions' : 'No permissions yet. They can log in but see no screens.'; return; }
+      if(!f.add.length && !f.rem.length){ sum.innerHTML = '<span class="muted">No changes yet</span>'; save.disabled = true; return; }
+      save.disabled = false;
+      sum.innerHTML = (f.add.length ? '<span class="ax-add">Gives: ' + names(f.add) + '</span>' : '') + (f.rem.length ? '<span class="ax-rem">Takes away: ' + names(f.rem) + '</span>' : '') +
+        (x.status === 'active' ? '<span class="ax-warn">' + RI.icon('info', 'i-sm') + RI.esc(first) + ' is signed out of the console when you save.</span>' : '');
+      RI.fillIcons(sum);
+    }
+    d.addEventListener('change', function(e){
+      var inp = e.target.closest('.ax-r input'); if(!inp) return; var c = inp.value;
+      sel = inp.checked ? sel.concat(c) : sel.filter(function(v){ return v !== c; }); sync();
     });
-  }
-  function permsDialog(email, after){
-    var list = staffList(), x = list.filter(function(s){ return s.email === email; })[0]; if(!x) return;
-    var d = C.dialog('Permissions: ' + RI.esc(x.name || x.email), '<p class="small muted">Changes take effect at once and end the person\'s current sessions.</p>' + permBoxes(C.migratePerms(x.perms)) +
-      '<div class="cta-row" style="justify-content:space-between">' + (x.status !== 'disabled' ? '<button type="button" class="linkbtn danger" id="pd-dis">Disable this staff account</button>' : '<button type="button" class="linkbtn" id="pd-en">Turn the account back on</button>') +
-      '<span class="cta-row"><button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="button" class="btn btn-primary" id="pd-save">Save</button></span></div>', {wide:true});
-    d.querySelector('#pd-save').addEventListener('click', function(){
-      var perms = [].slice.call(d.querySelectorAll('.perm input:checked')).map(function(i){ return i.value; });
-      x.perms = perms; C.set('staff', list); C.log('Permissions changed', x.email + ': ' + perms.length + ' permissions', ''); RI.toast('Permissions saved.', 'check'); d.close(); after();
+    d.querySelector('#ax-save').addEventListener('click', function(){
+      var f = diff();
+      if(invite){
+        var em = d.querySelector('#inv-em'), v = em.value.trim().toLowerCase();
+        if(!RI.form.emailOk(v)){ RI.form.setInvalid(em, 'Check the email address, for example name@example.com.'); em.focus(); return; }
+        if(staffList().some(function(s){ return s.email === v; })){ RI.form.setInvalid(em, 'This person already has a staff invite or account.'); em.focus(); return; }
+        var l = staffList(); l.push({email:v, name:'', status:'invited', perms:f.now, invitedAt:Date.now(), token:C.uid('t')}); C.set('staff', l);
+        C.log('Staff invited', v + ', with ' + f.now.length + ' permissions', '', 'users');
+        d.close();
+        var s = C.dialog('Invite sent', '<p>We emailed an invite to <b>' + RI.esc(v) + '</b>. It works once, for 7 days.</p><div class="mail-sim"><div class="mh">' + RI.icon('mail','i-sm') + '<span><b>Demo inbox</b> · You are invited to the console</span></div><div class="mb"><p>Sam invited you as staff. Set a password to accept.</p><a class="btn btn-primary btn-sm" href="' + RI.url('invite/?t=demo-staff') + '">Accept the invite</a><p class="xsmall muted">Demo only: this opens the sample invite page.</p></div></div>');
+        s.addEventListener('close', function(){ if(after) after(); else C.go('#/users?tab=staff'); });
+        return;
+      }
+      x.perms = f.now; C.set('staff', list);
+      C.log('Permissions changed', x.email + ': ' + [f.add.length ? 'gave ' + f.add.join(', ') : '', f.rem.length ? 'took away ' + f.rem.join(', ') : ''].filter(Boolean).join('; '), '', 'users');
+      RI.toast('Access saved for ' + (x.name || x.email) + '.', 'check'); d.close(); if(after) after();
     });
-    var dis = d.querySelector('#pd-dis'); if(dis) dis.addEventListener('click', function(){ x.status = 'disabled'; C.set('staff', list); C.log('Staff disabled', x.email, ''); RI.toast('Staff account disabled.'); d.close(); after(); });
-    var en = d.querySelector('#pd-en'); if(en) en.addEventListener('click', function(){ x.status = 'active'; C.set('staff', list); C.log('Staff enabled', x.email, ''); d.close(); after(); });
+    var dis = d.querySelector('#ax-dis');
+    if(dis) dis.addEventListener('click', function(){
+      C.confirm('Disable ' + RI.esc(x.name || x.email) + '?', 'They can no longer log in, and every session ends at once. Their grades and drafts stay. You can turn the account back on later.', 'Disable account', function(){
+        x.status = 'disabled'; C.set('staff', list); C.log('Staff disabled', x.email, '', 'users'); RI.toast('Staff account disabled.'); d.close(); if(after) after();
+      }, true);
+    });
+    var en = d.querySelector('#ax-en');
+    if(en) en.addEventListener('click', function(){ x.status = 'active'; C.set('staff', list); C.log('Staff enabled', x.email, '', 'users'); RI.toast('Staff account turned back on.', 'check'); d.close(); if(after) after(); });
+    sync();
+    var focus = d.querySelector(invite ? '#inv-em' : '.ax-r input:not(:disabled)'); if(focus) setTimeout(function(){ focus.focus(); }, 30);
   }
+  function inviteDialog(after){ accessPanel(null, after); }
+  function permsDialog(email, after){ accessPanel(email, after); }
 
   /* ---------- Audit log ----------
      Who, what, on what, when and why (SECURITY 15, BACKLOG M1-36), filtered by person, action and date (M4-28).

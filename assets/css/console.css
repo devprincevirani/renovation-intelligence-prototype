@@ -1533,7 +1533,7 @@ a.au-what:focus-visible{outline:2px solid var(--accent);outline-offset:2px;borde
 .c-tbl tr.us-off td{color:var(--muted)}
 .c-tbl tr.us-off .c-av{opacity:.55}
 .c-tbl tr.us-picked td{background:#F7F3EC}
-.us-ck,.pg-ck input{width:18px;height:18px;margin:0;accent-color:var(--deep-forest);cursor:pointer}
+.us-ck{width:18px;height:18px;margin:0;accent-color:var(--deep-forest);cursor:pointer}
 .c-tbl .us-ckc{width:44px}
 .us-bulk{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:8px 8px 8px 16px;border-radius:8px;background:var(--deep-forest);color:#fff}
 .us-bulk .linkbtn{color:#fff;min-height:36px}
@@ -1555,13 +1555,11 @@ a.au-what:focus-visible{outline:2px solid var(--accent);outline-offset:2px;borde
 .pg-who{min-width:96px;font-weight:600}
 .pg-who{white-space:nowrap}
 .pg-who .c-av{width:28px;height:28px;font-size:.66rem;margin:0 auto 4px}
-.pg-who>span:last-child{display:grid;line-height:1.2}
+.pg-who>span:nth-child(2){display:grid;line-height:1.2}
 .pg-who small{font-size:.68rem;font-weight:500;color:var(--muted)}
 .pg-grp th{padding:7px 14px;background:var(--sunken);text-align:left;font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .pg-yes{display:inline-grid;place-items:center;color:var(--ok)}
 .pg-no{display:inline-grid;place-items:center;color:var(--muted);opacity:.7}
-.pg-ck{display:inline-grid;place-items:center;min-width:44px;min-height:36px;cursor:pointer}
-.pg-ck input:disabled{opacity:.45;cursor:not-allowed}
 .pg-sam .pg-perm b{font-weight:500}
 .c-tbl td .linkbtn.small{min-height:32px;vertical-align:middle}
 .c-tbl td{vertical-align:middle}
@@ -1636,3 +1634,77 @@ a.au-what:focus-visible{outline:2px solid var(--accent);outline-offset:2px;borde
 .us-float :focus-visible{outline:2px solid #fff;outline-offset:2px}
 @media (max-width:899px){.us-float-wrap{display:none}}
 @media (min-width:900px){.c-tbl.us-wl td.us-actc{padding-block:6px;line-height:0}.c-tbl.us-wl td.us-actc .us-act{vertical-align:middle;line-height:1.2}}
+
+/* ---------- Staff access: one editor in a side panel ----------
+   Grouped permissions, edit locks in the reading it includes, a footer that says what will change.
+   Desktop: a panel on the right, full height. Phone: the whole screen. The overview grid is read only. */
+dialog.dlg.dlg-drawer{margin:0 0 0 auto;width:min(600px,100vw);height:100dvh;max-height:100dvh;border-radius:0;display:flex;flex-direction:column}
+dialog.dlg.dlg-drawer[open]{display:flex;animation:ax-in var(--slow) var(--ease-out)}
+@keyframes ax-in{from{transform:translateX(24px);opacity:0}}
+@media (prefers-reduced-motion:reduce){ dialog.dlg.dlg-drawer[open]{animation:none} }
+.dlg-drawer .dlg-head{flex:none;padding:18px 24px 14px}
+.dlg-drawer .dlg-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:0;padding:0}
+.ax-scroll{flex:1;min-height:0;overflow:auto;display:grid;grid-auto-rows:max-content;align-content:start;gap:16px;padding:20px 24px 24px}
+.ax-who{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--border);border-radius:8px;background:var(--page)}
+.ax-who>span:nth-child(2){display:grid;flex:1;min-width:0;line-height:1.3}
+.ax-who b{font-weight:600}
+.ax-who small{font-size:.8rem;color:var(--muted);overflow-wrap:anywhere}
+.ax-lead{margin:0;font-size:.88rem;color:var(--muted)}
+.ax-g{margin:0;padding:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--raised)}
+.ax-g legend{float:left;width:100%;display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--sunken);font-size:.84rem;font-weight:600}
+.ax-g legend+*{clear:both}
+.ax-gi{width:26px;height:26px;border-radius:4px;display:grid;place-items:center;background:var(--raised);color:var(--hl-text)}
+.ax-gt{flex:1}
+.ax-gn{font-size:.74rem;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.ax-r{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:start;min-height:44px;padding:12px 14px;border-top:1px solid var(--border-soft);cursor:pointer;transition:background var(--fast)}
+.ax-g legend+.ax-r{border-top:0}
+.ax-r:hover{background:#FCFAF6}
+.ax-r input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--deep-forest);cursor:pointer}
+.ax-r:has(input:checked:not(:disabled)){background:#F8FAF8}
+.ax-r.inc{cursor:default}
+.ax-r.inc input{opacity:.55;cursor:not-allowed}
+.ax-r:has(input:focus-visible){outline:2px solid var(--deep-forest);outline-offset:-2px}
+.ax-t{display:grid;gap:2px;line-height:1.35;min-width:0}
+.ax-t b{font-size:.9rem;font-weight:600}
+.ax-t small{font-size:.8rem;color:var(--muted)}
+.ax-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:2px}
+.ax-meta code{font-size:.7rem;color:var(--muted)}
+.ax-inc{font-style:normal;font-size:.72rem;font-weight:600;color:var(--ok)}
+.ax-inc:empty{display:none}
+.ax-only{border:1px solid var(--border);border-radius:8px;background:var(--page)}
+.ax-only summary{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;font-size:.84rem;font-weight:600;cursor:pointer;color:var(--muted)}
+.ax-only ul{margin:0;padding:0 14px 12px 38px;font-size:.84rem;color:var(--muted);display:grid;gap:4px}
+.ax-danger{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 16px;margin-top:8px;padding:14px 16px;border:1px solid #E8C9C1;border-radius:8px;background:#FDF8F6}
+.ax-danger>div{display:grid;gap:2px;flex:1 1 260px}
+.ax-danger b{font-size:.9rem;font-weight:600;color:var(--bad)}
+.ax-danger small{font-size:.8rem;color:var(--muted)}
+.ax-dis{color:var(--bad);border-color:#D9A99D}
+.ax-dis:hover{background:var(--bad-bg)}
+.ax-foot{flex:none;display:grid;gap:12px;padding:14px 24px 18px;border-top:1px solid var(--border);background:var(--raised)}
+.ax-sum{display:grid;gap:4px;margin:0;font-size:.84rem;line-height:1.4}
+.ax-add{color:var(--ok);font-weight:600}
+.ax-rem{color:var(--bad);font-weight:600}
+.ax-warn{display:flex;align-items:flex-start;gap:6px;color:var(--warn)}
+.ax-warn .i{flex:none;margin-top:2px}
+.ax-btns{display:flex;justify-content:flex-end;gap:10px}
+.ax-btns .btn:disabled{opacity:.5;cursor:not-allowed}
+@media (max-width:599px){
+  dialog.dlg.dlg-drawer{width:100vw}
+  .ax-scroll{padding:16px}
+  .dlg-drawer .dlg-head{padding:14px 16px 12px}
+  .ax-foot{padding:12px 16px 16px}
+  .ax-btns .btn{flex:1}
+}
+/* Staff table: the areas someone can work in */
+.ax-areas{display:inline-flex;flex-wrap:wrap;gap:4px}
+.ax-cnt{display:block;margin-top:4px;font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums}
+/* Access overview: read only */
+.pg-card>header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 20px}
+.pg-key{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.76rem;color:var(--muted)}
+.pg-key span{display:inline-flex;align-items:center;gap:5px}
+.pg-key span:first-child .i{color:var(--ok)}
+.pg-key .inc .i,.pg-inc{color:var(--ok);opacity:.45}
+.pg-inc{display:inline-grid;place-items:center}
+.pg-man{display:block;margin:4px auto 0;font-size:.74rem}
+.pg-tbl thead th.pg-who{vertical-align:top;padding-top:14px}
+
