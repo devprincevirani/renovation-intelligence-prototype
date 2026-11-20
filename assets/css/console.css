@@ -1897,3 +1897,6 @@ dialog.dlg.dlg-drawer[open]{display:flex;animation:ax-in var(--slow) var(--ease-
 .k3.k3-inv .k3-f{color:#D8C9B5}
 .k3.k3-inv:focus-visible{outline-color:var(--deep-forest)}
 @media (max-width:719px){.fb-k{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.fb-k .k3{gap:8px;padding:14px}.fb-k .k3-ic,.fb-k .k3-sp{display:none}.fb-k .k3-m b{font-size:1.75rem}.fb-k .k3-f{flex-wrap:wrap;gap:4px 8px}}
+
+/* Back-tests list: on a phone the Report button runs the full width of its card */
+@media (max-width:759px){ .bt-tbl td.bt-actc{grid-column:1/-1;text-align:left} .bt-tbl td.bt-actc .us-act{width:100%;justify-content:center;min-height:44px} }

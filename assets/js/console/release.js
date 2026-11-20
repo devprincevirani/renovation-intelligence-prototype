@@ -225,11 +225,11 @@
       el.innerHTML = C.table({cls:'bt-tbl', empty:'No back-tests yet. Start one to replay houses with a draft.', cols:[{label:'Started'},{label:'House set'},{label:'Tested'},{label:'Result'},{label:'', cls:'bt-actc'}],
         rows:list.map(function(b){
           var g = C.btRunning(b) ? null : C.btGate(b);
-          return {attr:'data-go="#/backtests/' + b.id + '" tabindex="0" role="link" aria-label="Open the report of ' + C.time(b.at) + '"', cells:[
+          return {attr:'data-go="#/backtests/' + b.id + '"', cells:[
             '<span class="bt-when"><b>' + C.time(b.at) + '</b><small>' + RI.esc(b.by) + '</small></span>',
             '<span class="bt-when"><b>' + SETS[b.set][0] + '</b><small>' + b.houses + ' houses' + (g ? ' · lab ' + (g.pass ? 'pass' : 'fail') : '') + '</small></span>',
             '<span class="bt-when"><b>' + (b.drafts.length ? b.drafts.length + ' draft' + (b.drafts.length > 1 ? 's' : '') : 'Published only') + '</b><small>' + b.versions.map(function(v){ return v[0].split(' ')[0] + ' ' + v[1]; }).slice(0, 2).join(' · ') + ' · …</small></span>',
-            resultChips(b), '<span class="linkbtn small">' + (C.btRunning(b) ? 'Watch' : 'Report') + '</span>']};
+            resultChips(b), '<button type="button" class="us-act" data-go="#/backtests/' + b.id + '" aria-label="' + (C.btRunning(b) ? 'Watch the back-test of ' : 'Open the report of ') + C.time(b.at) + '">' + RI.icon(C.btRunning(b) ? 'eye' : 'file', 'i-sm') + (C.btRunning(b) ? 'Watch' : 'Report') + '</button>']};
         })});
       RI.fillIcons(el);
     }
