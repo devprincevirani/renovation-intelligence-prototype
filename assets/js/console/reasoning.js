@@ -82,6 +82,7 @@
     x.items = d.after.items; x.v++; x.at = Date.now(); x.by = d.by || 'Sam'; x.note = d.summary || ''; x.why = d.why || '';
     C.set('rtpl', t);
   };
+  C.BEFORE.templates = function(d){ var x = (C.get('rtpl', {}) || {})[d.ref]; return x ? {v:x.v, before:{items:C.copy(x.items)}} : null; };
   var countText = function(it){
     if(guide(it.k)) return '<span class="lb lb-guide">Guidance only</span>';
     if(it.lo == null) return '<span class="lb lb-unset">Not set</span>';
@@ -226,6 +227,8 @@
   C.ruleText = function(code){ var r = C.get('rules', []).filter(function(x){ return x.code === code; })[0]; return r ? r.plain : ''; };
   C.APPLY.rules = function(d){ var rs = C.get('rules', []); rs.forEach(function(r){ if(r.code === d.ref){ r.vals = d.after; r.v++; r.at = Date.now(); } }); C.set('rules', rs); };
   C.APPLY.sheets = function(d){ var s = C.get('sheets', {}); if(s[d.ref]){ s[d.ref].threshold = d.after.threshold; s[d.ref].v++; s[d.ref].at = Date.now(); C.set('sheets', s); } };
+  C.BEFORE.rules = function(d){ var r = C.get('rules', []).filter(function(x){ return x.code === d.ref; })[0]; return r ? {v:r.v, before:C.copy(r.vals || [])} : null; };
+  C.BEFORE.sheets = function(d){ var s = (C.get('sheets', {}) || {})[d.ref]; return s ? {v:s.v, before:{threshold:s.threshold}} : null; };
 
   /* Lines across every run that use a rule, or fall in a family */
   function allLines(){ var out = []; A.all().forEach(function(h){ var m = C.model(h); if(m) m.lines.forEach(function(l){ l.h = h; out.push(l); }); }); return out; }

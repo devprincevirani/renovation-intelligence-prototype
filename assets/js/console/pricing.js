@@ -15,6 +15,8 @@
   });
   C.APPLY.products = function(d){ var l = C.get('products', []); l.forEach(function(p){ if(p.id === d.ref){ Object.assign(p, d.after); p.v++; p.at = Date.now(); } }); C.set('products', l); };
   C.APPLY.rates = function(d){ var l = C.get('rates', []), r = l[+d.ref]; if(r){ r.lo = d.after.lo; r.hi = d.after.hi; if(d.after.src) r.src = d.after.src; r.v = (r.v || 0) + 1; r.at = d.after.eff || Date.now(); r.added = false; C.set('rates', l); } };
+  C.BEFORE.products = function(d){ var p = C.get('products', []).filter(function(x){ return x.id === d.ref; })[0]; if(!p) return null; var b = {}; Object.keys(d.after || {}).forEach(function(k){ b[k] = C.copy(p[k]); }); return {v:p.v, before:b}; };
+  C.BEFORE.rates = function(d){ var r = C.get('rates', [])[+d.ref]; return r ? {v:r.v, before:{lo:r.lo, hi:r.hi}} : null; };
 
   /* A small range line: the bar from Low to High on a shared scale, as on the user's screens */
   function rline(lo, hi, max){ return '<span class="pr-rl" aria-hidden="true"><i style="left:' + (lo / max * 100).toFixed(1) + '%;width:' + Math.max(1.5, (hi - lo) / max * 100).toFixed(1) + '%"></i></span>'; }

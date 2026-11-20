@@ -20,37 +20,275 @@
       {house:'4227 Hampton Dr', v:'Yes', note:'', at:now - 6 * DAY}
     ]);
   });
-  C.APPLY.guidance = function(d){ var g = C.get('guidance'); if(!g || !d.after) return; (d.after.kind === 'text' ? g.texts : g.mech).forEach(function(x){ if((x.k || x.name) === d.ref){ x.text = d.after.text; x.v++; x.at = Date.now(); } }); C.set('guidance', g); };
   C.APPLY.resources = function(d){ var l = C.get('docs', []); l.forEach(function(x){ if(x.id === d.ref){ x.live = true; x.at = Date.now(); } }); C.set('docs', l); };
 
-  /* ---------- Guidance and texts ---------- */
-  C.route('/guidance', function(view){
-    var g = C.get('guidance'), tab = C.query().tab || 'mech', cur = C.query().k || (tab === 'mech' ? g.mech[0].name : g.texts[0].k), edit = null, canEdit = C.can('content.edit');
-    view.innerHTML = C.page({kicker:'Content', title:'Guidance', sub:'The house systems guidance and the texts users read at key moments. Sam\'s wording; edits are drafts and old versions are kept.',
-      body:C.seg('gu-tab', [['mech','House systems',g.mech.length],['texts','Disclaimers and texts',g.texts.length]], tab) + '<div class="c-split c-mt"><aside class="c-list" id="gu-list"></aside><section class="c-detail" id="gu-detail"></section></div>'});
-    function items(){ return tab === 'mech' ? g.mech.map(function(m){ return {k:m.name, label:m.name, sub:m.life, text:m.text, v:m.v, at:m.at, m:m}; }) : g.texts.map(function(t){ return {k:t.k, label:t.label, sub:t.where, text:t.text, v:t.v, at:t.at}; }); }
-    function list(){ doc.getElementById('gu-list').innerHTML = '<p class="c-list-g">' + (tab === 'mech' ? 'Mechanicals' : 'Where users read them') + '</p>' + items().map(function(x){ var dr = C.draftFor('guidance', x.k); return '<button type="button" class="c-li' + (x.k === cur ? ' on' : '') + '" data-k="' + RI.esc(x.k) + '"><span><b>' + RI.esc(x.label) + '</b><small>' + RI.esc(x.sub) + '</small></span>' + (dr ? C.lbl('queued') : '') + '</button>'; }).join(''); }
-    function detail(){
-      var x = items().filter(function(i){ return i.k === cur; })[0], text = edit == null ? x.text : edit, el = doc.getElementById('gu-detail');
-      var preview = tab === 'mech' ? (RI.mechCard ? RI.mechCard(Object.assign({}, RI.SAMPLE.mechanicals.filter(function(m){ return m.name === x.k; })[0] || {}, {text:text})) : '<p>' + RI.esc(text) + '</p>') : '<div class="gu-pv-t"><span class="gu-tick"></span><p>' + RI.esc(text) + '</p></div>';
-      el.innerHTML = C.draftBar('guidance', x.k) + '<header class="c-dhead"><div><p class="c-kicker">' + (tab === 'mech' ? 'House system' : RI.esc(x.sub)) + '</p><h2>' + RI.esc(x.label) + '</h2><p class="c-sub">Version ' + x.v + ', published ' + C.ago(x.at) + '.' + (x.m ? ' Typical life: ' + RI.esc(x.m.life) + '. Typical range ' + RI.money(x.m.range[0]) + ' to ' + RI.money(x.m.range[1]) + ', never in a total.' : '') + '</p></div>' + (edit != null && edit !== x.text ? C.lbl('draft', 'not saved') : C.lbl('published')) + '</header>' +
-        '<div class="gu-ed"><div class="field"><label for="gu-t">Wording</label><textarea class="input" id="gu-t" rows="6"' + (canEdit ? '' : ' readonly') + '>' + RI.esc(text) + '</textarea><span class="help" id="gu-n">' + text.length + ' characters. Plain words, second person, no exclamation marks.</span></div>' +
-        '<div class="gu-pv"><p class="c-kicker">How users see it</p><div class="gu-pv-in">' + preview + '</div></div></div>' +
-        (edit != null && edit !== x.text && canEdit ? C.saveBar('gu') : '') + (canEdit ? '' : C.note('Editing texts needs the permission to edit text drafts.', 'lock'));
-      RI.fillIcons(el);
-    }
-    view.querySelector('#gu-tab').addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if(!b || edit != null) { if(edit != null) RI.toast('Save or undo your change first.', 'warn'); return; } tab = b.getAttribute('data-v'); cur = items()[0].k; view.querySelectorAll('#gu-tab [data-v]').forEach(function(y){ y.setAttribute('aria-selected', y === b); }); list(); detail(); });
-    view.addEventListener('click', function(e){
-      var li = e.target.closest('#gu-list [data-k]'); if(li){ if(edit != null){ RI.toast('Save or undo your change first.', 'warn'); return; } cur = li.getAttribute('data-k'); list(); detail(); return; }
-      if(e.target.closest('#gu-undo')){ edit = null; detail(); }
-      if(e.target.closest('#gu-save')){ var x = items().filter(function(i){ return i.k === cur; })[0];
-        C.askWhy((tab === 'mech' ? 'Guidance: ' : 'Text: ') + x.label, 'Wording changed, ' + edit.length + ' characters', function(why){ C.addDraft({area:'guidance', ref:x.k, title:(tab === 'mech' ? 'Guidance: ' : 'Text: ') + x.label, summary:'Wording changed', after:{kind:tab === 'mech' ? 'mech' : 'text', text:edit}, why:why}); edit = null; RI.toast('Saved as a draft. It waits in the publish queue.', 'check'); C.render(); }); }
+  /* ---------- Guidance (APP_FLOW 6.6 and 7, SCHEMA guidance_content_versions, BACKLOG M4-12 and M4-13) ----------
+     Each house system has four parts: what to look for, a typical lifespan, a typical range (never in any total)
+     and a next step (have it inspected). An edit is a draft, only Sam publishes, and old versions are kept.
+     The wording is sample text until Sam's final text arrives (STATUS.md: mechanicals content, Jan 25, 2027). */
+  var GU_DUE = 'Jan 25, 2027';
+  var GU_LOOK = {
+    'Roof':'Curled or missing shingles, granules in the gutters and stains on the ceiling below.',
+    'Heating and cooling':'Uneven heat between rooms, rust on the cabinet and a service tag with no recent visits.',
+    'Water heater':'Rust at the base or around the fittings, water on the floor and the year printed on the label.',
+    'Electrical panel':'Scorch marks, a cover that feels warm and breakers that trip often.'
+  };
+  var GU_NEXT = {
+    'Roof':'Have a roofer look at it before you buy or plan work under it.',
+    'Heating and cooling':'Ask a heating and cooling contractor to service it and tell you how it runs.',
+    'Water heater':'Have a plumber check it, and read the year on the label.',
+    'Electrical panel':'Have a licensed electrician check it before you add lighting or appliances.'
+  };
+  var GU_ICON = {
+    'Roof':'<path d="M2.5 12L12 4.5l9.5 7.5"/><path d="M5.5 10v10h13V10"/><path d="M15.5 7.2V4.5H18v4.6"/><path d="M10 20v-5h4v5"/>',
+    'Heating and cooling':'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="1.4"/><path d="M12 10.6c0-3 1.2-4.8 3.6-4.8M13.4 12c3 0 4.8 1.2 4.8 3.6M12 13.4c0 3-1.2 4.8-3.6 4.8M10.6 12c-3 0-4.8-1.2-4.8-3.6"/>',
+    'Water heater':'<rect x="6.5" y="3" width="11" height="16" rx="3"/><path d="M9 21h6M12 6.5v2.5"/><path d="M10.4 14.2c0-1.1 1.6-2.7 1.6-2.7s1.6 1.6 1.6 2.7a1.6 1.6 0 0 1-3.2 0z"/>',
+    'Electrical panel':'<rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7.5h2M13 7.5h2M9 11.5h2M13 11.5h2M9 15.5h2M13 15.5h2"/>',
+    _text:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>'
+  };
+  var GU_HYPE = ['seamless','robust','cutting-edge','unlock','empower','elevate','leverage','effortless','game-changing','next-level','revolutionary','supercharge','harness','world-class','best-in-class','state-of-the-art','delve','dive in'];
+  var GU_MF = ['look','life','lo','hi','inspect'], GU_TF = ['text'];
+  var GU_NAMES = {look:'What to look for', life:'Typical lifespan', lo:'Low', hi:'High', inspect:'Next step', text:'Wording'};
+  function guSvg(p){ return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>'; }
+  function guPick(x, kind){ var o = {}; (kind === 'text' ? GU_TF : GU_MF).forEach(function(k){ o[k] = x[k]; }); return o; }
+
+  /* Older saves kept one block of text per system; split it into the four parts once */
+  function guLoad(){
+    var g = C.get('guidance'); if(!g) return null; var changed = false, t0 = Date.now();
+    g.mech.forEach(function(m){
+      if(m.look != null) return;
+      var old = {look:m.text || '', life:m.life || '', lo:m.range ? m.range[0] : null, hi:m.range ? m.range[1] : null, inspect:''};
+      m.look = GU_LOOK[m.name] || m.text || ''; m.inspect = GU_NEXT[m.name] || '';
+      m.lo = old.lo; m.hi = old.hi; m.by = m.by || 'Sam'; m.why = m.why || 'Split into the four parts the presentation shows';
+      m.hist = [{v:Math.max(1, (m.v || 2) - 1), at:(m.at || t0) - 28 * DAY, by:'Sam', why:'First sample wording', f:old}];
+      delete m.text; delete m.range; changed = true;
     });
-    view.addEventListener('input', function(e){ if(e.target.id !== 'gu-t') return; var x = items().filter(function(i){ return i.k === cur; })[0], was = edit != null && edit !== x.text; edit = e.target.value; var is = edit !== x.text;
-      if(was !== is){ var pos = e.target.selectionStart; detail(); var t = doc.getElementById('gu-t'); t.focus(); t.setSelectionRange(pos, pos); return; }
-      doc.getElementById('gu-n').textContent = edit.length + ' characters. Plain words, second person, no exclamation marks.';
-      var pv = doc.querySelector('.gu-pv-in p'); if(pv) pv.textContent = edit; });
-    list(); detail();
+    g.texts.forEach(function(t){ if(!t.hist){ t.hist = []; t.by = t.by || 'Sam'; t.why = t.why || 'First sample wording'; changed = true; } });
+    if(changed) C.set('guidance', g);
+    return g;
+  }
+  C.APPLY.guidance = function(d){
+    var g = guLoad(); if(!g || !d.after) return;
+    var kind = d.after.kind === 'text' ? 'text' : 'mech';
+    (kind === 'text' ? g.texts : g.mech).forEach(function(x){
+      if((x.k || x.name) !== d.ref) return;
+      var f = d.after.fields || (kind === 'text' ? {text:d.after.text} : {look:d.after.text});
+      x.hist = x.hist || []; x.hist.unshift({v:x.v, at:x.at, by:x.by || 'Sam', why:x.why || '', f:guPick(x, kind)});
+      Object.assign(x, f); x.v++; x.at = Date.now(); x.by = d.by || 'Sam'; x.why = d.why || '';
+    });
+    C.set('guidance', g);
+  };
+  C.BEFORE.guidance = function(d){
+    var g = guLoad(); if(!g || !d.after) return null; var kind = d.after.kind === 'text' ? 'text' : 'mech';
+    var x = (kind === 'text' ? g.texts : g.mech).filter(function(y){ return (y.k || y.name) === d.ref; })[0];
+    return x ? {v:x.v, before:{kind:kind, fields:guPick(x, kind)}} : null;
+  };
+  /* The sample Water heater draft was saved with no new wording, so publishing it changed nothing. Give it the wording its summary describes */
+  C.REPAIRS.push(function(){
+    var g = guLoad(), ds = C.drafts(), fixed = false; if(!g) return;
+    ds.forEach(function(d){
+      if(d.area !== 'guidance' || d.status !== 'queued' || d.after) return;
+      var x = g.mech.filter(function(m){ return m.name === d.ref; })[0]; if(!x) return;
+      var f = guPick(x, 'mech');
+      if(d.ref === 'Water heater'){ f.look = 'Rust at the base or on the pipes, water on the floor, and the year on the label.'; f.inspect = 'Have a plumber check it. The year on the label tells you how old it is.'; }
+      d.after = {kind:'mech', fields:f}; d.summary = 'Changed: What to look for, Next step. Typical range unchanged.'; fixed = true;
+    });
+    if(fixed) C.set('drafts', ds);
+  });
+
+  /* The checks come from DESIGN.md section 9 and the product rules. A cross blocks saving; a warning does not */
+  function guChecks(kind, f){
+    var words = (kind === 'text' ? [f.text] : [f.look, f.life, f.inspect]).join(' '), low = words.toLowerCase(), out = [];
+    function add(ok, hard, label, fix){ out.push({ok:ok, hard:hard, label:label, fix:fix}); }
+    if(kind === 'mech'){
+      add(['look','life','inspect'].every(function(k){ return String(f[k] || '').trim().length > 0; }) && f.lo != null && f.hi != null, true, 'All four parts are filled in', 'Users always see what to look for, a lifespan, a range and a next step.');
+      add(f.lo == null || f.hi == null || f.lo <= f.hi, true, 'Low is not above High', 'Swap the two amounts.');
+      add(!/\b(condition|scores?|scored|scoring|rating|rated|grades?|graded|evaluat\w*)\b/.test(low), true, 'No scoring words', 'House systems get guidance, never a condition or a score.');
+      add(!/\breplac\w*/.test(low), false, 'Does not push a replacement', 'Age alone never means replace (SY-RULE-026). Point to an inspection instead.');
+    } else {
+      add(String(f.text || '').trim().length > 0, true, 'Wording is filled in', 'Users always see this text.');
+    }
+    add(!/\bquotes?\b/.test(low), true, 'Never says quote', 'Say estimate.');
+    add(!/[—–!]/.test(words), false, 'No dashes or exclamation marks', 'Use a period or a comma.');
+    var hype = GU_HYPE.filter(function(w){ return low.indexOf(w) > -1; });
+    add(!hype.length, false, hype.length ? 'Avoid: ' + hype.join(', ') : 'Plain words, no hype', 'These words read as machine written.');
+    return out;
+  }
+
+  var guMQ = window.matchMedia('(max-width: 899px)');
+  function guOnMQ(){ if(/^#\/guidance/.test(location.hash) && !C.dirty()) C.render(); }
+  if(guMQ.addEventListener) guMQ.addEventListener('change', guOnMQ); else if(guMQ.addListener) guMQ.addListener(guOnMQ);
+
+  C.route('/guidance', function(view){
+    var g = guLoad(), q = C.query(), tab = q.tab === 'texts' ? 'texts' : 'mech', kind = tab === 'mech' ? 'mech' : 'text';
+    var phone = guMQ.matches, canEdit = C.can('content.edit'), edit = null, esc = RI.esc;
+    var items = tab === 'mech' ? g.mech.map(function(m){ return {k:m.name, label:m.name, x:m}; }) : g.texts.map(function(t){ return {k:t.k, label:t.label, x:t}; });
+    var cur = q.k && items.some(function(i){ return i.k === q.k; }) ? q.k : (phone ? null : items[0].k);
+    var base = '#/guidance?tab=' + tab;
+    function item(){ return items.filter(function(i){ return i.k === cur; })[0]; }
+    function fields(){ return edit || guPick(item().x, kind); }
+    function differs(){ if(!edit) return false; var x = item().x; return (kind === 'text' ? GU_TF : GU_MF).some(function(k){ return String(edit[k] == null ? '' : edit[k]) !== String(x[k] == null ? '' : x[k]); }); }
+    function hardFail(){ return guChecks(kind, fields()).some(function(c){ return !c.ok && c.hard; }); }
+    function lifeShort(s){ return String(s || '').split(' for ')[0]; }
+    function parts(x){ return [x.look, x.life, x.lo != null && x.hi != null, x.inspect].filter(Boolean).length; }
+
+    /* ---- Overview: summary, tabs and the cards ---- */
+    function cardHTML(i){
+      var x = i.x, d = C.draftFor('guidance', i.k), on = i.k === cur;
+      return '<a class="gu-card' + (on ? ' on' : '') + '" href="' + base + '&k=' + encodeURIComponent(i.k) + '"' + (on ? ' aria-current="true"' : '') + '>' +
+        '<span class="gu-ic">' + guSvg(GU_ICON[i.k] || GU_ICON._text) + '</span>' +
+        '<span class="gu-card-b"><span class="gu-card-t"><b>' + esc(i.label) + '</b>' + (d ? C.lbl('queued') : '') + '</span>' +
+        (kind === 'mech' ? '<span class="gu-card-m">' + esc(lifeShort(x.life)) + '</span><span class="gu-card-m">' + C.range(x.lo, x.hi) + '</span>' : '<span class="gu-card-m">' + esc(x.where) + '</span>') +
+        '<span class="gu-card-f">Version ' + x.v + ', ' + C.ago(x.at) + (kind === 'mech' ? '<span class="gu-dot" aria-hidden="true"></span>' + parts(x) + ' of 4 parts' : '') + '</span></span>' +
+        '<span class="gu-chev" aria-hidden="true">' + RI.icon('chev', 'i-sm') + '</span></a>';
+    }
+    function overviewHTML(){
+      var waiting = C.queued().filter(function(d){ return d.area === 'guidance'; }).length;
+      return '<div class="gu-sum">' +
+          '<span class="gu-sum-i"><b>' + g.mech.length + '</b>house systems</span>' +
+          '<span class="gu-sum-i"><b>' + g.texts.length + '</b>texts</span>' +
+          '<a class="gu-sum-i" href="#/publish"><b>' + waiting + '</b>' + (waiting === 1 ? 'draft' : 'drafts') + ' waiting</a>' +
+          '<span class="gu-sum-s">' + C.lbl('sample') + '<span>Sam sends the final wording by ' + GU_DUE + '.</span></span></div>' +
+        C.seg('gu-tab', [['mech', 'House systems', g.mech.length], ['texts', 'Disclaimers and texts', g.texts.length]], tab) +
+        '<div class="gu-cards" id="gu-cards">' + items.map(cardHTML).join('') + '</div>';
+    }
+
+    /* ---- The editor ---- */
+    function stateHTML(){ return stateFor(differs()); }
+    function stateFor(dirty){ var d = C.draftFor('guidance', cur); return (dirty ? C.lbl('draft', 'not saved') : d ? C.lbl('queued') : C.lbl('published')) + C.lbl('sample'); }
+    function fieldHTML(n, key, label, help, control){
+      return '<section class="gu-f"><div class="gu-f-h">' + (n ? '<span class="gu-n" aria-hidden="true">' + n + '</span>' : '') + '<label for="gf-' + key + '">' + label + '</label></div>' +
+        '<p class="gu-help" id="gh-' + key + '">' + help + '</p>' + control + '</section>';
+    }
+    function area(key, rows){ var v = fields()[key] || ''; return '<textarea class="input" id="gf-' + key + '" data-f="' + key + '" rows="' + rows + '" aria-describedby="gh-' + key + '"' + (canEdit ? '' : ' readonly') + '>' + esc(v) + '</textarea><span class="gu-count" id="gc-' + key + '">' + v.length + ' characters</span>'; }
+    function formHTML(){
+      var f = fields(), ro = canEdit ? '' : ' readonly';
+      if(kind === 'text'){
+        return fieldHTML(0, 'text', 'Wording', 'Plain words, second person. Sam\'s wording replaces this sample.', area('text', 5)) +
+          '<section class="gu-f"><div class="gu-f-h"><span class="gu-f-l">Where users read it</span></div><div class="gu-where">' + String(item().x.where || '').split(', ').map(function(w){ return C.chip(esc(w)); }).join('') + '</div></section>';
+      }
+      var money = function(k, l){ return '<label class="gu-m"><span>' + l + '</span><span class="gu-cur"><span aria-hidden="true">$</span><input class="input" id="gf-' + k + '" data-f="' + k + '" inputmode="numeric" autocomplete="off" value="' + (f[k] == null ? '' : f[k]) + '" aria-describedby="gh-range"' + ro + '></span></label>'; };
+      return fieldHTML(1, 'look', 'What to look for', 'Signs anyone can check without tools.', area('look', 3)) +
+        fieldHTML(2, 'life', 'Typical lifespan', 'A range of years and the type it applies to.', '<input class="input" id="gf-life" data-f="life" value="' + esc(f.life || '') + '" aria-describedby="gh-life"' + ro + '>') +
+        '<section class="gu-f"><div class="gu-f-h"><span class="gu-n" aria-hidden="true">3</span><span class="gu-f-l" id="gl-range">Typical range, for planning</span></div><p class="gu-help" id="gh-range">Shown as a Low and a High. Never added to any total.</p>' +
+          '<div class="gu-money" role="group" aria-labelledby="gl-range">' + money('lo', 'Low') + '<span class="gu-to" aria-hidden="true">to</span>' + money('hi', 'High') + '</div></section>' +
+        fieldHTML(4, 'inspect', 'Next step', 'Who should look at it. Always a professional.', area('inspect', 3));
+    }
+    /* One value of the preview, by key. Typing updates only that value, so nothing else redraws */
+    function pvVal(k, f){
+      var miss = '<span class="gu-miss">Not written yet</span>';
+      if(k === 'range') return f.lo != null && f.hi != null ? RI.money(f.lo) + ' to ' + RI.money(f.hi) : miss;
+      return String(f[k] || '').trim() ? esc(f[k]) : miss;
+    }
+    function previewHTML(){
+      var f = fields();
+      if(kind === 'text'){
+        var tick = cur === 'estimate' || cur === 'rights';
+        return '<div class="gu-pv-t' + (tick ? '' : ' plain') + '">' + (tick ? '<span class="gu-tick" aria-hidden="true"></span>' : '') + '<p data-pv="text">' + pvVal('text', f) + '</p></div>';
+      }
+      var s = (RI.SAMPLE.mechanicals || []).filter(function(m){ return m.name === cur; })[0];
+      return '<div class="mech-card gu-mc"><h4>' + esc(cur) + '<span class="state state-guidance">Guidance</span></h4>' +
+        (s ? '<span class="src">' + esc(s.src) + ' · ' + RI.ev(s.ev) + '</span>' : '') +
+        '<dl class="gu-kv"><div class="w"><dt>What to look for</dt><dd data-pv="look">' + pvVal('look', f) + '</dd></div><div><dt>Typical lifespan</dt><dd data-pv="life">' + pvVal('life', f) + '</dd></div>' +
+        '<div><dt>Typical range, for planning</dt><dd data-pv="range">' + pvVal('range', f) + '</dd></div><div class="w"><dt>Next step</dt><dd data-pv="inspect">' + pvVal('inspect', f) + '</dd></div></dl>' +
+        '<span class="src">Guidance only. Never scored, never added to any total.</span></div>';
+    }
+    function checksHTML(){ return checksFor(fields()); }
+    function checksFor(ff){
+      var c = guChecks(kind, ff), bad = c.filter(function(x){ return !x.ok; }), hard = bad.some(function(x){ return x.hard; });
+      return '<header><h3>Wording checks</h3><span class="gu-ck-n ' + (hard ? 'bad' : bad.length ? 'warn' : 'ok') + '">' + (c.length - bad.length) + ' of ' + c.length + ' pass</span></header><ul class="gu-ck">' +
+        c.map(function(x){ var st = x.ok ? 'ok' : x.hard ? 'bad' : 'warn'; return '<li class="' + st + '"><span class="gu-ck-i">' + RI.icon(x.ok ? 'check' : x.hard ? 'x' : 'warn', 'i-sm') + '</span><span><b>' + esc(x.label) + '</b>' + (x.ok ? '' : '<small>' + esc(x.fix) + '</small>') + '</span></li>'; }).join('') + '</ul>';
+    }
+    function partsDL(f){
+      return '<dl class="gu-old">' + (kind === 'text' ? GU_TF : ['look', 'life', 'range', 'inspect']).map(function(k){
+        var v = k === 'range' ? (f.lo != null && f.hi != null ? RI.money(f.lo) + ' to ' + RI.money(f.hi) : '') : f[k];
+        return '<div><dt>' + (k === 'range' ? 'Typical range' : GU_NAMES[k]) + '</dt><dd>' + (String(v || '').trim() ? esc(v) : '<span class="muted">Empty</span>') + '</dd></div>'; }).join('') + '</dl>';
+    }
+    function histRows(){ var x = item().x; return [{cur:true, v:x.v, at:x.at, by:x.by || 'Sam', why:x.why || '', f:guPick(x, kind)}].concat(x.hist || []); }
+    function histHTML(){
+      return '<header><h3>Versions</h3><span class="small muted">Old versions are kept. Nothing is overwritten.</span></header><ol class="gu-tl">' + histRows().map(function(r, i){
+        return '<li' + (r.cur ? ' class="cur"' : '') + '><div class="gu-tl-h"><b>Version ' + r.v + '</b>' + (r.cur ? C.lbl('published', 'live') : '') + '<span class="small muted">' + C.date(r.at) + ' · ' + esc(r.by) + '</span></div>' +
+          (r.why ? '<p class="gu-tl-why">' + esc(r.why) + '</p>' : '') +
+          (r.cur ? '' : '<details class="gu-tl-d"><summary>See this version</summary>' + partsDL(r.f) + (canEdit ? '<button type="button" class="btn btn-secondary btn-sm" data-restore="' + i + '">Start a draft from it</button>' : '') + '</details>') + '</li>';
+      }).join('') + '</ol>';
+    }
+    function editorHTML(){
+      var x = item().x, d = C.draftFor('guidance', cur), mine = d && d.after && d.after.fields && canEdit;
+      var head = phone ? '<div class="gu-meta"><span id="gu-state">' + stateHTML() + '</span><span>Version ' + x.v + ', published ' + C.ago(x.at) + ' by ' + esc(x.by || 'Sam') + '</span></div>'
+        : '<header class="gu-eh"><div><p class="c-kicker">' + (kind === 'mech' ? 'House system' : 'Text users read') + '</p><h2>' + esc(item().label) + '</h2><p class="c-sub">Version ' + x.v + ', published ' + C.ago(x.at) + ' by ' + esc(x.by || 'Sam') + '.</p></div><span class="gu-state" id="gu-state">' + stateHTML() + '</span></header>';
+      return head + C.draftBar('guidance', cur) + (mine ? '<p class="gu-ld"><button type="button" class="btn btn-secondary btn-sm" id="gu-ld">Open the draft wording here</button></p>' : '') +
+        '<div class="gu-grid"><div class="gu-form" id="gu-form">' + formHTML() + '</div>' +
+        '<aside class="gu-side" aria-label="Preview and checks"><section class="gu-pane"><header><h3>How users see it</h3><span class="small muted">' + (kind === 'mech' ? 'Presentation, share view, PDF' : 'Live wording') + '</span></header><div class="gu-pvbox" id="gu-pv">' + previewHTML() + '</div></section>' +
+          '<section class="gu-pane" id="gu-ck">' + checksHTML() + '</section></aside>' +
+          '<section class="gu-pane gu-hist" id="gu-hist">' + histHTML() + '</section></div>' +
+        '<div id="gu-bar"></div>' + (canEdit ? '' : C.note('Editing guidance needs the permission to edit guidance drafts.', 'lock'));
+    }
+
+    /* ---- Page ---- */
+    if(phone && cur){
+      view.innerHTML = C.page({back:[base, tab === 'mech' ? 'All house systems' : 'All texts'], kicker:kind === 'mech' ? 'House system' : 'Text users read', title:esc(item().label), body:'<div class="gu-edit" id="gu-edit">' + editorHTML() + '</div>'});
+    } else {
+      view.innerHTML = C.page({kicker:'Content', title:'Guidance', sub:'What users read about the house systems, and the texts they see at key moments. Edits are drafts; only Sam publishes, and old versions are kept.',
+        body:overviewHTML() + (cur ? '<div class="gu-edit" id="gu-edit">' + editorHTML() + '</div>' : '')});
+    }
+    RI.fillIcons(view);
+
+    /* ---- Live updates while typing: preview, checks, state and the save bar ---- */
+    /* The bar is created once and then only changed when its state flips, so it never flickers while typing */
+    var barHard = null;
+    function syncBar(){
+      var bar = doc.getElementById('gu-bar'); if(!bar) return;
+      if(!differs() || !canEdit){ if(bar.firstChild) bar.innerHTML = ''; barHard = null; return; }
+      if(!bar.querySelector('.c-savebar')){ bar.innerHTML = C.saveBar('gu'); RI.fillIcons(bar); barHard = null; }
+      var hard = hardFail(); if(hard === barHard) return; barHard = hard;
+      doc.getElementById('gu-save').disabled = hard;
+      bar.querySelector('.c-savebar>span').innerHTML = RI.icon(hard ? 'warn' : 'info', 'i-sm') + (hard ? '<b>Fix the checks marked with a cross</b> to save this as a draft.' : '<b>Unsaved changes.</b> Saving makes a draft; it goes live when Sam publishes it.');
+    }
+    /* Typing touches only what really changed: one preview value, the checks when a result flips, the label when the state flips */
+    var lastCk = null, lastState = null;
+    function refresh(){
+      var f = fields();
+      doc.querySelectorAll('#gu-pv [data-pv]').forEach(function(el){ var h = pvVal(el.getAttribute('data-pv'), f); if(el._h === undefined) el._h = pvVal(el.getAttribute('data-pv'), guPick(item().x, kind)); if(el._h !== h){ el.innerHTML = h; el._h = h; } });
+      var ck = checksHTML(); if(lastCk === null) lastCk = checksFor(guPick(item().x, kind));
+      if(ck !== lastCk){ lastCk = ck; doc.getElementById('gu-ck').innerHTML = ck; }
+      var st = stateHTML(); if(lastState === null) lastState = stateFor(false);
+      if(st !== lastState){ lastState = st; doc.getElementById('gu-state').innerHTML = st; }
+      ['look', 'inspect', 'text'].forEach(function(k){ var c = doc.getElementById('gc-' + k), t = String(f[k] || '').length + ' characters'; if(c && c.textContent !== t) c.textContent = t; });
+      syncBar();
+    }
+    function redrawEditor(){ var ed = doc.getElementById('gu-edit'); if(!ed) return; ed.innerHTML = editorHTML(); RI.fillIcons(ed); lastCk = null; lastState = null; syncBar(); }
+
+    view.addEventListener('input', function(e){
+      var t = e.target, k = t.getAttribute('data-f'); if(!k || !canEdit || !cur) return;
+      if(!edit) edit = guPick(item().x, kind);
+      if(k === 'lo' || k === 'hi'){ var digits = t.value.replace(/[^\d]/g, ''); if(t.value !== digits) t.value = digits; edit[k] = digits === '' ? null : +digits; }
+      else edit[k] = t.value;
+      if(!differs()) edit = null;
+      refresh();
+    });
+    /* Moving to another system or tab with unsaved changes asks first (the console guard covers leaving the screen) */
+    view.addEventListener('click', function(e){
+      var a = e.target.closest('a[href^="#/guidance"]');
+      if(a && differs()){ e.preventDefault(); var to = a.getAttribute('href');
+        C.confirm('Leave without saving?', 'Your changes are not saved as a draft yet. If you leave, they are lost.', 'Leave', function(){ edit = null; location.hash = to; }, true); return; }
+      var tb = e.target.closest('#gu-tab [data-v]');
+      if(tb){ var go = function(){ location.hash = '#/guidance?tab=' + tb.getAttribute('data-v'); };
+        if(differs()) C.confirm('Leave without saving?', 'Your changes are not saved as a draft yet. If you leave, they are lost.', 'Leave', function(){ edit = null; go(); }, true); else go(); return; }
+      if(e.target.closest('#gu-undo')){ edit = null; redrawEditor(); return; }
+      if(e.target.closest('#gu-ld')){ var dr = C.draftFor('guidance', cur); edit = Object.assign(guPick(item().x, kind), dr.after.fields); if(!differs()) edit = null; redrawEditor(); RI.toast('The draft wording is open. Save to replace the draft.', 'info'); return; }
+      var rs = e.target.closest('[data-restore]');
+      if(rs){ var r = histRows()[+rs.getAttribute('data-restore')]; edit = Object.assign(guPick(item().x, kind), r.f); if(!differs()) edit = null; redrawEditor(); RI.toast('Version ' + r.v + ' is open. Save it as a draft to propose it.', 'info'); window.scrollTo({top:(doc.getElementById('gu-form').getBoundingClientRect().top + window.scrollY - 90), behavior:'smooth'}); return; }
+      if(e.target.closest('#gu-save')){
+        if(hardFail()) return;
+        var x = item().x, changed = (kind === 'text' ? GU_TF : GU_MF).filter(function(k){ return String(edit[k] == null ? '' : edit[k]) !== String(x[k] == null ? '' : x[k]); }).map(function(k){ return GU_NAMES[k]; });
+        var title = (kind === 'mech' ? 'Guidance: ' : 'Text: ') + item().label, fields2 = Object.assign({}, edit);
+        C.askWhy(title, 'Changed: ' + changed.join(', '), function(why){
+          C.addDraft({area:'guidance', ref:cur, title:title, summary:'Changed: ' + changed.join(', '), after:{kind:kind, fields:fields2}, why:why});
+          edit = null; RI.toast('Saved as a draft. It waits in the publish queue.', 'check'); C.render();
+        });
+      }
+    });
+    syncBar();
   }, {nav:'guidance', perm:'rulebook.view'});
 
   /* ---------- Builder documents ---------- */

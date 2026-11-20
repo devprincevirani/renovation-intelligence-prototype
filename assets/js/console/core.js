@@ -63,6 +63,13 @@
      An edit is a draft. It waits in the queue, may carry a back-test result, and only Sam publishes.
      The old version is kept. A grade never changes a released result. */
   C.APPLY = {};
+  /* Each area also says what is live right now, as {v, before}, in the same shape as a draft's after */
+  C.BEFORE = {};
+  C.copy = function(o){ return o == null ? o : JSON.parse(JSON.stringify(o)); };
+  /* Fixes for drafts saved by an older build; each runs on every start and only touches what is broken */
+  C.REPAIRS = [];
+  /* A published draft is retired once a later one for the same item goes live */
+  C.retiredBy = function(d){ if(d.status !== 'published') return null; return C.drafts().filter(function(x){ return x.status === 'published' && x.area === d.area && x.ref === d.ref && (x.doneAt || 0) > (d.doneAt || 0); }).sort(function(a, b){ return a.doneAt - b.doneAt; })[0] || null; };
   C.drafts = function(){ return C.get('drafts', []); };
   /* Staff see the drafts of their own area; Sam sees all (SECURITY 3.3) */
   C.AREA_PERM = {products:'pricing.edit', rates:'pricing.edit', guidance:'content.edit', resources:'content.edit'};
@@ -71,7 +78,7 @@
   C.draftFor = function(area, ref){ return C.queued().filter(function(d){ return d.area === area && d.ref === ref; })[0] || null; };
   C.addDraft = function(o){
     var m = C.me(), list = C.drafts(), old = C.draftFor(o.area, o.ref);
-    if(old){ list = list.map(function(d){ return d.id === old.id ? Object.assign(d, {status:'replaced'}) : d; }); }
+    if(old){ list = list.map(function(d){ return d.id === old.id ? Object.assign(d, {status:'replaced', doneAt:Date.now(), doneBy:m.name, note:''}) : d; }); }
     var d = Object.assign({id:C.uid('d'), status:'queued', at:Date.now(), by:m.name, bt:null}, o);
     list.unshift(d); C.set('drafts', list);
     C.log('Draft saved', o.title, o.why, o.area);
@@ -80,8 +87,12 @@
   C.setDraft = function(id, patch){ C.set('drafts', C.drafts().map(function(d){ return d.id === id ? Object.assign(d, patch) : d; })); };
   C.publish = function(id, note){
     var d = C.drafts().filter(function(x){ return x.id === id; })[0]; if(!d) return;
+    /* Keep the old version: the values live right before this publish, and which version they were (SCHEMA 10.1) */
+    var was = C.BEFORE[d.area] ? C.BEFORE[d.area](d) : null;
     if(C.APPLY[d.area]) C.APPLY[d.area](d);
-    C.setDraft(id, {status:'published', doneAt:Date.now(), doneBy:C.me().name, note:note || ''});
+    var rec = {status:'published', doneAt:Date.now(), doneBy:C.me().name, note:note || ''};
+    if(was){ rec.before = was.before; if(was.v != null){ rec.fromV = was.v; rec.toV = was.v + 1; } }
+    C.setDraft(id, rec);
     C.log('Published', d.title, note, d.area);
   };
   C.discard = function(id, note){
@@ -101,11 +112,13 @@
       RI.store.set('session', Object.assign({demo:true, at:Date.now()}, u)); A.seed();
     });
     if(real) RI.store.set('session', real); else RI.store.del('session');
-    if(C.get('seeded') === C.SEED_VERSION) return;
-    /* Seeds only fill what is missing, so a new screen never wipes earlier changes */
-    var realSet = C.set; C.set = function(k, v){ if(C.get(k) == null) realSet(k, v); return v; };
-    try { C.SEEDS.forEach(function(fn){ fn(); }); } finally { C.set = realSet; }
-    C.set('seeded', C.SEED_VERSION);
+    if(C.get('seeded') !== C.SEED_VERSION){
+      /* Seeds only fill what is missing, so a new screen never wipes earlier changes */
+      var realSet = C.set; C.set = function(k, v){ if(C.get(k) == null) realSet(k, v); return v; };
+      try { C.SEEDS.forEach(function(fn){ fn(); }); } finally { C.set = realSet; }
+      C.set('seeded', C.SEED_VERSION);
+    }
+    C.REPAIRS.forEach(function(fn){ try { fn(); } catch(e){} });
   };
 
   /* ---------- Small helpers ---------- */
@@ -119,7 +132,7 @@
   C.range = function(lo, hi){ return '<span class="num">' + RI.money(lo) + '<span class="to">to</span>' + RI.money(hi) + '</span>'; };
   /* Draft, queued and published are always labeled (DESIGN 8.6) */
   C.lbl = function(state, extra){
-    var map = {draft:['Draft','lb-draft'], queued:['Queued','lb-queued'], published:['Published','lb-pub'], discarded:['Discarded','lb-off'], replaced:['Replaced','lb-off'], sample:['Sample','lb-sample']};
+    var map = {draft:['Draft','lb-draft'], queued:['Queued','lb-queued'], published:['Published','lb-pub'], discarded:['Discarded','lb-off'], replaced:['Replaced','lb-off'], retired:['Retired','lb-off'], sample:['Sample','lb-sample']};
     var x = map[state] || [state, 'lb-off'];
     return '<span class="lb ' + x[1] + '">' + x[0] + (extra ? ' ' + extra : '') + '</span>';
   };
