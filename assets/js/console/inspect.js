@@ -90,43 +90,31 @@
       return o;
     });
   }
-  /* One range chart for both views: a row per item, the name on the left, a band from Low to High on a shared
-     scale with light gridlines, and the two numbers written right beside the band (never in its middle, DESIGN 8.1).
-     A partial band keeps its fill and gets a dashed outline */
-  function rangeChart(rows, top, label){
-    var ticks = [0, .25, .5, .75, 1], fmt = function(v){ return v === 0 ? '$0' : kmoney(v); };
-    var grid = ticks.map(function(t){ return '<i class="iv-g" style="left:' + t * 100 + '%"></i>'; }).join('');
-    return '<div class="iv-rch" role="list" aria-label="' + label + '"><div class="iv-rch-ax" aria-hidden="true"><span></span><div class="iv-rch-sc">' + ticks.map(function(t, i){ return i % 2 ? '' : '<span style="left:' + t * 100 + '%">' + fmt(top * t) + '</span>'; }).join('') + '</div></div>' +
-      rows.map(function(r){
-        var l = r.lo / top * 100, e = r.hi / top * 100, w = Math.max(.9, e - l), pos;
-        pos = e < 62 ? 'left:calc(' + (l + w) + '% + 10px)' : l > 38 ? 'right:calc(' + (100 - l) + '% + 10px)' : 'left:' + l + '%';
-        var band = r.none ? '<span class="iv-bl iv-bl-none">' + r.none + '</span>'
-          : '<span class="iv-band' + (r.part ? ' partial' : '') + '" style="left:' + l + '%;width:' + w + '%"></span><span class="iv-bl' + (l <= 38 && e >= 62 ? ' under' : '') + '" style="' + pos + '">' + C.range(r.lo, r.hi) + '</span>';
-        return '<div class="iv-rch-r" role="listitem" aria-label="' + RI.esc(r.name) + ': ' + (r.none ? r.none : 'Low ' + RI.money(r.lo) + ', High ' + RI.money(r.hi) + (r.part ? ', partial' : '')) + '"><div class="iv-rch-n"><b>' + RI.esc(r.name) + '</b>' + (r.sub ? '<small>' + r.sub + '</small>' : '') + (r.meta ? '<small class="iv-rch-m">' + r.meta + '</small>' : '') + '</div>' +
-          '<div class="iv-rch-t" aria-hidden="true">' + grid + band + '</div></div>';
-      }).join('') + '</div>';
-  }
-  function priceCard(h, m, view, pk){
-    var off = h.off || {}, tot = sums(m.lines, off), held = heldLines(m), goals = {}, body;
+  function mini(lo, hi, top, part){ return '<span class="iv-mini' + (part ? ' partial' : '') + '" aria-hidden="true"><i style="left:' + (lo / top * 100).toFixed(1) + '%;width:' + Math.max(1.2, (hi - lo) / top * 100).toFixed(1) + '%"></i></span>'; }
+  function priceCard(h, m, view){
+    var off = h.off || {}, tot = sums(m.lines, off), held = heldLines(m), goals = {};
     (RI.PACKAGES || []).forEach(function(p){ goals[p.key] = p.goal; });
-    var meta = function(t){ return plural(t.priced, 'line') + ' priced' + (t.left.length ? ', <b class="iv-lo">' + t.left.length + ' left out</b>' : ''); };
+    var body;
     if(view === 'room'){
-      var pi = PK.map(function(k){ return k[0]; }).indexOf(pk), by = {}, order = [];
-      m.lines.forEach(function(l){ if(!by[l.room]){ by[l.room] = []; order.push(l.room); } by[l.room].push(l); });
-      var rows = order.map(function(r){ var t = sums(by[r], off)[pi]; return {name:r, sub:plural(by[r].length, 'part'), lo:t.lo, hi:t.hi, part:t.left.length,
-        meta:t.left.length ? '<b class="iv-lo">' + plural(t.left.length, 'line') + ' not priced</b>' : '', none:!t.priced ? (t.left.length ? 'Not priced yet' : 'No work under ' + PK[pi][1]) : ''}; });
-      rows.sort(function(a, b){ return b.hi - a.hi; });
-      var T = tot[pi];
-      body = rangeChart(rows, niceTop(Math.max.apply(null, rows.map(function(r){ return r.hi; })) * 1.05), 'Rooms under ' + PK[pi][1]) +
-        '<div class="iv-rch-tot"><span>' + PK[pi][1] + ' total</span><b>' + C.range(T.lo, T.hi) + '</b>' + (T.left.length ? stateLbl('Partial, ' + T.left.length + ' left out') : '<span class="rel rel-ok">Complete</span>') + '</div>';
+      var rooms = [], by = {};
+      m.lines.forEach(function(l){ if(!by[l.room]){ by[l.room] = []; rooms.push(l.room); } by[l.room].push(l); });
+      var per = rooms.map(function(r){ return {room:r, n:by[r].length, s:sums(by[r], off)}; });
+      var top = niceTop(Math.max.apply(null, per.map(function(x){ return Math.max.apply(null, x.s.map(function(t){ return t.hi; })); })) * 1.02);
+      var cell = function(t){ return t.priced || t.left.length ? '<span class="iv-rc">' + (t.priced ? C.range(t.lo, t.hi) : '<span class="muted">No cost</span>') + mini(t.lo, t.hi, top, t.left.length) + (t.left.length ? '<small class="iv-lo">' + plural(t.left.length, 'line') + ' not priced</small>' : '') + '</span>' : '<span class="muted">No work</span>'; };
+      body = '<div class="c-tbl-wrap"><table class="c-tbl iv-tbl iv-rooms"><thead><tr><th scope="col">Room</th>' + PK.map(function(k){ return '<th scope="col" class="num">' + k[1] + '</th>'; }).join('') + '</tr></thead><tbody>' +
+        per.map(function(x){ return '<tr><td data-label="Room"><b>' + RI.esc(x.room) + '</b><small class="iv-rm-n">' + plural(x.n, 'part') + '</small></td>' + x.s.map(function(t, i){ return '<td data-label="' + PK[i][1] + '" class="num">' + cell(t) + '</td>'; }).join('') + '</tr>'; }).join('') +
+        '<tr class="iv-tot"><td data-label="">Priced total</td>' + tot.map(function(t, i){ return '<td data-label="' + PK[i][1] + '" class="num">' + C.range(t.lo, t.hi) + '</td>'; }).join('') + '</tr></tbody></table></div>';
     } else {
-      body = rangeChart(tot.map(function(t){ return {name:t.k[1], sub:RI.esc(goals[t.k[0]] || ''), meta:meta(t), lo:t.lo, hi:t.hi, part:t.left.length}; }),
-        niceTop(Math.max.apply(null, tot.map(function(t){ return t.hi; })) * 1.05), 'Price by package');
+      var topP = niceTop(Math.max.apply(null, tot.map(function(t){ return t.hi; })) * 1.04);
+      body = '<div class="iv-pks" data-scale="0,' + topP + '">' + tot.map(function(t){
+        return '<div class="iv-pk"><div class="iv-pk-n"><b>' + t.k[1] + '</b><small>' + RI.esc(goals[t.k[0]] || '') + '</small></div>' +
+          '<div class="iv-pk-l"><span class="rl thick' + (t.left.length ? ' partial' : '') + '" data-low="' + t.lo + '" data-high="' + t.hi + '"></span></div>' +
+          '<div class="iv-pk-v">' + C.range(t.lo, t.hi) + '<small>' + plural(t.priced, 'line') + ' priced' + (t.left.length ? ', <b class="iv-lo">' + t.left.length + ' left out</b>' : '') + '</small></div></div>';
+      }).join('') + '<div class="iv-pk iv-axis" aria-hidden="true"><span></span><div class="iv-pk-l"><span>$0</span><span>' + kmoney(topP / 2) + '</span><span>' + kmoney(topP) + '</span></div><span></span></div></div>';
     }
-    return '<section class="c-card iv-price"><header><div><h2>Price by package</h2><p class="iv-hint">' + (view === 'room' ? 'Where the money goes under one goal, largest room first.' : 'Low and High for each goal, on one scale.') + '</p></div>' +
-      (held.length ? stateLbl('Partial, ' + plural(held.length, 'line') + ' left out') : '<span class="rel rel-ok">Complete</span>') + '</header>' +
-      '<div class="iv-ptools">' + C.seg('iv-ovv', [['pk','By package'],['room','By room']], view) + (view === 'room' ? C.seg('iv-ovp', PK, pk) : '') + '</div>' + body +
-      '<p class="iv-legend"><span class="iv-key"></span>Priced range <span class="iv-key partial"></span>Partial: some lines are left out and named under Needs attention, never counted as zero</p></section>';
+    return '<section class="c-card iv-price"><header><div><h2>Price by package</h2><p class="iv-hint">' + (view === 'room' ? 'Each room under the three goals. A dashed line means a line in that room is not priced.' : 'The three goals on one scale. Low and High only; a dashed line is a partial total.') + '</p></div>' +
+      '<div class="iv-tools">' + C.seg('iv-ovv', [['pk','Packages'],['room','Rooms']], view) + (held.length ? stateLbl('Partial, ' + plural(held.length, 'line') + ' left out') : '<span class="rel rel-ok">Complete</span>') + '</div></header>' + body +
+      C.note('A line that is not priced is left out of the total and named under Needs attention, never counted as zero.') + '</section>';
   }
   /* What Sam can act on for this house: held lines, readings under their threshold, rooms with no photo, grading */
   function attentionCard(h, m){
@@ -230,7 +218,7 @@
     var h = A.get ? A.all().filter(function(x){ return x.id === p.id; })[0] : null;
     if(!h){ view.innerHTML = C.page({title:'That house is not here', sub:'It may have been removed, or the link is wrong.', back:['#/houses','House list']}); return; }
     repairConsents(); h = A.all().filter(function(x){ return x.id === p.id; })[0];
-    var st = A.status(h), ready = isReady(st), m = C.model(h), tab = C.query().tab || 'overview', qpk = h.pk || 'S', obsF = 'all', ovView = 'pk', ovPk = h.pk || 'S';
+    var st = A.status(h), ready = isReady(st), m = C.model(h), tab = C.query().tab || 'overview', qpk = h.pk || 'S', obsF = 'all', ovView = 'pk';
     var held = heldLines(m).length;
     var tabs = [['overview','Overview'],['photos','Photos',A.photoCount(h)]];
     if(m && ready) tabs = tabs.concat([['obs','Observations',m.lines.length],['dec','Decisions'],['qty','Quantities and prices'],['checks','Checks',held, held ? 'warn' : ''],['ledger','Ledger']]);
@@ -272,7 +260,7 @@
       var el = doc.getElementById('in-body'), html = '';
       el.setAttribute('aria-labelledby', 'ivt-' + tab);
       if(tab === 'overview'){
-        var main = ready ? priceCard(h, m, ovView, ovPk) + attentionCard(h, m) : st === 'draft' ? draftCard(h) : progressCard(h);
+        var main = ready ? priceCard(h, m, ovView) + attentionCard(h, m) : st === 'draft' ? draftCard(h) : progressCard(h);
         html = '<div class="iv-ov"><div class="iv-col">' + main + '</div><div class="iv-col iv-side">' + (m ? runCard(h, m, ready) : '') + factsCard(h) + consentCard(h, st) + '</div></div>';
       }
       if(tab === 'photos'){
@@ -362,7 +350,6 @@
     view.addEventListener('click', function(e){
       var t = e.target.closest('[data-tab]'); if(t){ show(t.getAttribute('data-tab')); tl.scrollIntoView({block:'nearest'}); return; }
       var ov = e.target.closest('#iv-ovv [data-v]'); if(ov){ ovView = ov.getAttribute('data-v'); body(); return; }
-      var op = e.target.closest('#iv-ovp [data-v]'); if(op){ ovPk = op.getAttribute('data-v'); body(); return; }
       var of = e.target.closest('#iv-obsf [data-f]'); if(of){ obsF = of.getAttribute('data-f'); body(); return; }
       var s = e.target.closest('#iv-qpk [data-v]'); if(s){ qpk = s.getAttribute('data-v'); body(); return; }
       var ph = e.target.closest('[data-ph]'); if(ph){ e.stopPropagation(); openPhoto(+ph.getAttribute('data-ph')); return; }
