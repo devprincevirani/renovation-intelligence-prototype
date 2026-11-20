@@ -204,7 +204,7 @@
     leaving = false; lastHash = location.hash;
     timers.forEach(function(t){ clearTimeout(t); clearInterval(t); }); timers = [];
     var view = doc.getElementById('view'), m = C.me();
-    var path = (location.hash || '#/houses').slice(1).split('?')[0]; if(path === '/' || path === '') path = '/houses';
+    var path = (location.hash || '#/overview').slice(1).split('?')[0]; if(path === '/' || path === '') path = '/overview';
     var match = null, params = {};
     C.routes.some(function(r){ var x = path.match(r.re); if(x){ match = r; r.keys.forEach(function(k, i){ params[k] = decodeURIComponent(x[i + 1]); }); return true; } });
     closeMenu();
@@ -271,7 +271,7 @@
     if(bare){ side.innerHTML = ''; side.hidden = true; top.innerHTML = '<div class="ct-in"><a class="c-brand" href="' + RI.url('') + '">' + RI.LOGO + '<span><b>Renovation Intelligence</b><small>Console</small></span></a></div>'; return; }
     side.hidden = false;
     var groupOf = '', nameOf = '', listOf = '#/houses';
-    side.innerHTML = '<div class="cs-in"><a class="c-brand" href="#/houses" aria-label="Console home, the house list">' + RI.LOGO + '<span><b>Renovation Intelligence</b><small>Console</small></span></a>' +
+    side.innerHTML = '<div class="cs-in"><a class="c-brand" href="#/overview" aria-label="Console home, the overview">' + RI.LOGO + '<span><b>Renovation Intelligence</b><small>Console</small></span></a>' +
       '<nav class="cs-nav" aria-label="Console">' + C.SCREENS.map(function(g){
         var items = g[1].filter(function(it){ return C.can(it[4]); }); if(!items.length) return '';
         return '<div class="cs-g">' + (g[0] ? '<p class="cs-gt">' + g[0] + '</p>' : '') + items.map(function(it){
