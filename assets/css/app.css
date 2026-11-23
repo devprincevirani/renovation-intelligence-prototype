@@ -1561,16 +1561,18 @@ button.tz-more{background:none;border:0;padding:0;font:inherit;cursor:pointer}
 .px-free{font-size:.7rem;font-weight:600;letter-spacing:.02em;padding:1px 6px;border-radius:var(--r-sm);background:var(--sunken);color:var(--deep-forest)}
 .rc-chip[aria-pressed="true"] .px-free{background:rgba(255,255,255,.16);color:#fff}
 .px-lockp{display:inline-flex;align-items:center;gap:6px;color:var(--muted)}
-.px-hid .rc-ti{overflow:hidden;position:relative}
+/* What this buys on the price page: the presentation's lines; a locked room blurs its prices and the lines after the first few */
+.wb-r .px-lockp .rc-blur{font-size:.88rem}
+.px-hidl .wb-th{position:relative}
+.px-hidl .wb-th img{filter:blur(8px);transform:scale(1.25)}
 .px-hid-lk{position:absolute;inset:0;display:grid;place-items:center}
-.px-hid-lk .i{box-sizing:content-box;padding:8px;border-radius:50%;background:var(--raised);color:var(--deep-forest)}
-.px-hid .rc-ti img{filter:blur(9px);transform:scale(1.2)}
-.px-hid .rc-tn{gap:6px;padding:11px 9px 12px}
-.px-hid .rc-tn i{display:block;height:7px;border-radius:var(--r-sm);background:var(--border-soft);width:82%}
-.px-hid .rc-tn i+i{width:56%}
+.px-hid-lk .i{box-sizing:content-box;padding:6px;border-radius:50%;background:var(--raised);color:var(--deep-forest)}
+.px-bars{gap:8px;padding-top:6px}
+.px-bars i{display:block;height:8px;border-radius:var(--r-sm);background:var(--border-soft);width:58%}
+.px-bars i:nth-child(2){width:86%}
+.px-bars i:nth-child(3){width:40%}
 .px-more{display:flex;align-items:center;gap:6px;margin:0;font-size:.86rem;font-weight:600;color:var(--deep-forest)}
 .px-cta{justify-self:start}
-.px-hid .rc-neutral{background:var(--border-soft)}
 @media (max-width:640px){
   .px-pick{flex-wrap:nowrap;overflow-x:auto;margin:4px calc(-1 * var(--gut)) 0;padding:0 var(--gut) 4px;scrollbar-width:none}
   .px-pick::-webkit-scrollbar{display:none}

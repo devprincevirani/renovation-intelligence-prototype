@@ -194,13 +194,57 @@
     }
     function cost(it){ return it.pk[sel][2] || 0; }
     function lockImg(it){ var m = RI.PRODUCT_IMG[it.id]; return m && m[sel] ? RI.img(m[sel]) : null; }
-    function lockTile(it, clear){
-      var a = it.pk[sel], img = lockImg(it);
-      var lk = clear ? '' : '<span class="px-hid-lk">' + RI.icon('lock','i-sm') + '</span>';
-      var pic = img ? '<span class="rc-ti"><img src="' + img + '" alt="" width="240" height="240" loading="lazy">' + lk + '</span>'
-        : '<span class="rc-ti rc-neutral">' + (clear ? RI.icon('dot','i-lg') + '<span>' + RI.esc(it.trade) + '</span>' : lk) + '</span>';
-      return '<li class="rc-tile' + (clear ? '' : ' px-hid') + '"' + (clear ? '' : ' aria-hidden="true"') + '>' + pic +
-        (clear ? '<span class="rc-tn"><b>' + RI.esc(a[3] || it.name) + '</b><span>' + RI.esc(it.name) + '</span></span>' : '<span class="rc-tn"><i></i><i></i></span>') + '</li>';
+    /* What this buys, as in the presentation: one line per item, biggest first, with its product photo, the kind of
+       work, the product and its range. No switches here: turning items on or off is part of the paid presentation.
+       lock 'clear': the line shows, its price is hidden. lock 'hid': the whole line is blurred. */
+    var LOCKP = '<span class="px-lockp"><span class="rc-blur" aria-hidden="true">$•,••• to $•,•••</span>' + RI.icon('lock','i-sm') + '<span class="sr">Price locked</span></span>';
+    function buyLine(it, lock){
+      var a = it.pk[sel], img = lockImg(it), k = RI.RoomCard.kind(a[0]);
+      if(lock === 'hid') return '<li class="wb-line px-hidl" aria-hidden="true"><span class="wb-th">' + (img ? '<img src="' + img + '" alt="" loading="lazy">' : '') + '<span class="px-hid-lk">' + RI.icon('lock','i-sm') + '</span></span>' +
+        '<span class="wb-t px-bars"><i></i><i></i><i></i></span><span class="wb-r"><span class="rc-blur">$•,••• to $•,•••</span></span></li>';
+      return '<li class="wb-line">' +
+        '<span class="wb-th">' + (img ? '<img src="' + img + '" alt="" loading="lazy">' : RI.icon('dot','i-lg')) + '</span>' +
+        '<span class="wb-t"><b>' + RI.esc(it.name) + '</b><span class="wb-act"><span class="wb-k' + (k === 'New' ? ' wb-k-new' : '') + '">' + k + '</span>' + RI.esc(a[0]) + '</span>' +
+          (a[3] ? '<span class="wb-prod">' + RI.esc(a[3]) + '</span>' : '') + '</span>' +
+        '<span class="wb-r">' + (lock ? LOCKP : '<span class="range-txt">' + RI.range(a[1], a[2]) + '</span>') + '</span></li>';
+    }
+    function heldLine(it){
+      var m = it.state === 'measure';
+      return '<li class="wb-line wb-hold"><span class="wb-th">' + RI.icon(m ? 'ruler' : 'camera','i-lg') + '</span>' +
+        '<span class="wb-t"><b>' + RI.esc(it.name) + '</b><span class="wb-act">' + RI.esc(it.fix) + ' would settle it.</span></span>' +
+        '<span class="wb-r"><span class="state ' + (m ? 'state-measure' : 'state-unverified') + '">' + (m ? 'Needs measurement' : 'Unverified') + '</span><span class="xsmall muted">Not in the total</span></span></li>';
+    }
+    function buysParts(r){
+      var b = {priced:[], kept:[], held:[]};
+      r.items.forEach(function(it){ if(RI.isHeld(it)) b.held.push(it); else if(!it.pk[sel] || it.pk[sel][1] == null) b.kept.push(it); else b.priced.push(it); });
+      b.priced.sort(function(x, y){ return cost(y) - cost(x); });
+      return b;
+    }
+    var BUYS_HD = '<div class="wb-hd"><h4>What this buys</h4><span class="state state-sample">Representative photos</span></div>';
+    function heldList(b){ return b.held.length ? '<ul class="wb-list wb-held">' + b.held.map(heldLine).join('') + '</ul>' : ''; }
+    /* The free room: every line open, with its range */
+    function freeBuys(r){
+      var b = buysParts(r), on = b.priced.length;
+      return '<section class="wb" aria-label="What this buys">' + BUYS_HD +
+        (on ? '<ul class="wb-list">' + b.priced.map(function(it){ return buyLine(it); }).join('') + '</ul>' : '<p class="small muted">Nothing to buy here under this goal.</p>') +
+        '<p class="wb-sum">' + (on === 0 ? 'Nothing is priced in this room right now.' : on === 1 ? 'This one item is the whole range above.' : 'These ' + on + ' items add up to the range above.') + (b.held.length ? ' ' + b.held.length + ' not priced yet, left out.' : '') + '</p>' +
+        heldList(b) +
+        (b.kept.length ? '<details class="wb-kept"><summary>Kept as is, no cost · ' + b.kept.length + ' item' + (b.kept.length === 1 ? '' : 's') + '</summary><ul>' + b.kept.map(function(it){ var a = it.pk[sel]; return '<li><b>' + RI.esc(it.name) + '</b>' + (a && a[0] ? '<span class="xsmall muted">' + RI.esc(a[0]) + '</span>' : '') + '</li>'; }).join('') + '</ul></details>' : '') +
+        '</section>';
+    }
+    /* A locked room (Nevil, Nov 2026): two or three lines in the clear when the room has enough, one when it has one
+       or two, items with a product photo first; every price hidden and every other line blurred */
+    function lockedBuys(r){
+      var b = buysParts(r), list = b.priced, n = list.length >= 5 ? 3 : list.length >= 3 ? 2 : list.length ? 1 : 0;
+      var clear = list.filter(lockImg).concat(list.filter(function(it){ return !lockImg(it); })).slice(0, n);
+      clear.sort(function(x, y){ return cost(y) - cost(x); });
+      var hid = list.filter(function(it){ return clear.indexOf(it) < 0; }), rest = hid.length;
+      var cta = credit ? '<button type="button" class="btn btn-primary px-cta" data-credit>Open every room with a credit</button>'
+        : A.hasCheckout ? '<a class="btn btn-primary px-cta" href="#/houses/' + h.id + '/checkout">Open every room, ' + price + '</a>' : '';
+      return '<section class="wb" aria-label="What this buys">' + BUYS_HD +
+        (list.length ? '<ul class="wb-list">' + clear.map(function(it){ return buyLine(it, 'clear'); }).join('') + hid.slice(0, 5).map(function(it){ return buyLine(it, 'hid'); }).join('') + '</ul>' +
+          '<p class="px-more">' + RI.icon('lock','i-sm') + '<span>' + (rest ? '+' + rest + ' more item' + (rest === 1 ? '' : 's') + ' and every price' : 'Its price is in the presentation') + '</span></p>' : '<p class="small muted">Nothing to buy here under this goal.</p>') +
+        heldList(b) + (list.length ? cta : '') + '</section>';
     }
     function lockedRoom(r){
       var pkd = RI.PACKAGES.filter(function(p){ return p.key === sel; })[0], src = roomPhoto(r) || RI.RoomCard.photoFor(r.key);
@@ -209,25 +253,12 @@
       /* No photos yet: nothing to tease, only the way to add them */
       if(r.items.every(RI.isHeld)) return '<article class="rc px-lockrc" data-room="' + r.key + '">' + photo + '<div class="rc-body">' + head + '</header>' +
         '<p class="rc-change">' + RI.esc(mainChange(r, sel)) + '.</p><a class="btn btn-secondary px-cta" href="#/houses/' + h.id + '/intake/photos">' + RI.icon('camera','i-sm') + 'Add photos of this room</a></div></article>';
-      var list = r.items.filter(function(it){ return !RI.isHeld(it) && it.pk[sel] && it.pk[sel][1] != null; }).sort(function(a, b){ return cost(b) - cost(a); });
-      /* Two or three in the clear when the room has enough, one when it has one or two; items with a product photo
-         go first. Every other item is a blurred tile, so there is always something left to open. */
-      var n = list.length >= 5 ? 3 : list.length >= 3 ? 2 : list.length ? 1 : 0;
-      var order = list.filter(lockImg).concat(list.filter(function(it){ return !lockImg(it); })), clear = order.slice(0, n);
-      var hid = list.filter(function(it){ return clear.indexOf(it) < 0; }), rest = hid.length;
-      hid = hid.filter(lockImg).concat(hid.filter(function(it){ return !lockImg(it); }));
-      var body = list.length ? '<ul class="rc-tiles">' + clear.map(function(it){ return lockTile(it, true); }).join('') + hid.slice(0, 6 - n).map(function(it){ return lockTile(it, false); }).join('') + '</ul>' : '';
-      var cta = credit ? '<button type="button" class="btn btn-primary px-cta" data-credit>Open every room with a credit</button>'
-        : A.hasCheckout ? '<a class="btn btn-primary px-cta" href="#/houses/' + h.id + '/checkout">Open every room, ' + price + '</a>' : '';
-      return '<article class="rc px-lockrc" data-room="' + r.key + '">' + photo + '<div class="rc-body">' + head +
-          (list.length ? '<span class="rc-range px-lockp"><span class="rc-blur" aria-hidden="true">$••,••• to $••,•••</span>' + RI.icon('lock','i-sm') + '<span class="sr">Price locked</span></span>' : '') + '</header>' +
-        '<p class="rc-change">' + RI.esc(RI.RoomCard.change(r, sel)) + '</p>' + body +
-        (list.length ? '<p class="px-more">' + RI.icon('lock','i-sm') + '<span>' + (rest ? '+' + rest + ' more item' + (rest === 1 ? '' : 's') + ' and every price' : 'Its price is in the presentation') + '</span></p>' + cta : '') +
-        '</div></article>';
+      var priced = r.items.some(function(it){ return !RI.isHeld(it) && it.pk[sel] && it.pk[sel][1] != null; });
+      return RI.RoomCard.html(r, sel, {photo:roomPhoto(r), range:priced ? LOCKP.replace('$•,••• to $•,•••', '$••,••• to $••,•••') : '', buysHtml:lockedBuys(r)});
     }
     function roomView(){
       var r = est.rooms.filter(function(x){ return x.key === pick; })[0] || open, t = RI.totals(sel, {}, r.key);
-      if(paid || r === open) return RI.RoomCard.html(r, sel, {photo:roomPhoto(r), range:t.high ? RI.range(t.low, t.high) : '<span class="muted">No cost</span>'});
+      if(paid || r === open) return RI.RoomCard.html(r, sel, {photo:roomPhoto(r), range:t.high ? RI.range(t.low, t.high) : '<span class="muted">No cost</span>', buysHtml:freeBuys(r)});
       return lockedRoom(r);
     }
     function drawRoom(){
