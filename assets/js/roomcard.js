@@ -55,14 +55,16 @@
   function html(room, pk, opts){
     opts = opts || {};
     var t = tiles(room, pk), pkd = RI.PACKAGES.filter(function(p){ return p.key === pk; })[0];
-    return '<article class="rc" data-room="' + room.key + '">' + photoHtml(room, opts) +
+    var buys = !!opts.buysHtml; /* the paid presentation: photo as a banner on top, the breakdown says what changes */
+    return '<article class="rc' + (buys ? ' rc-banner' : '') + '" data-room="' + room.key + '">' + photoHtml(room, opts) +
       '<div class="rc-body"><header class="rc-head"><div><h3>' + RI.esc(room.name) + '</h3><p class="xsmall muted">' + RI.esc(pkd.name) + ': ' + RI.esc(pkd.goal) + '</p></div>' +
         (opts.range ? '<span class="range-txt rc-range">' + opts.range + '</span>' : '') + '</header>' +
-      '<p class="rc-change">' + RI.esc(change(room, pk)) + '</p>' +
-      (function(){ var tp = t.filter(function(x){ return x.img; }); /* real product photos only, never a placeholder tile */
+      (buys ? '' : '<p class="rc-change">' + RI.esc(change(room, pk)) + '</p>') +
+      /* opts.buysHtml (the paid presentation): every line open, with its product and range, instead of tiles + folded list */
+      (opts.buysHtml || ((function(){ var tp = t.filter(function(x){ return x.img; }); /* real product photos only, never a placeholder tile */
         return tp.length ? '<ul class="rc-tiles">' + tp.slice(0, opts.max || 6).map(tileHtml).join('') + '</ul>' : '<p class="small muted">' + (t.length ? 'The products for this room are listed under What is included.' : 'No products to show for this room under this goal.') + '</p>';
       })() +
-      (opts.itemsHtml ? '<details class="rc-inc"><summary>What is included</summary><div class="rc-list">' + opts.itemsHtml + '</div></details>' : '') +
+      (opts.itemsHtml ? '<details class="rc-inc"><summary>What is included</summary><div class="rc-list">' + opts.itemsHtml + '</div></details>' : ''))) +
       '</div></article>';
   }
 
@@ -82,5 +84,14 @@
     host.addEventListener('click', function(e){ var x = e.target.closest('[data-pin]'); if(x){ host.querySelectorAll('[data-pin].on').forEach(function(y){ y.classList.remove('on'); }); on(x.getAttribute('data-pin'), true); } });
   }
 
-  RI.RoomCard = {html:html, locked:locked, tiles:tiles, change:change, counts:counts, wire:wire, photoFor:function(k){ return PHOTOS[k] ? RI.img(PHOTOS[k]) : null; }};
+  /* The kind of work, from the action words. In the product the engine gives it with each line. */
+  function kind(action){
+    var s = String(action || '').toLowerCase();
+    if(/^(re)?paint/.test(s)) return 'Paint';
+    if(/refinish|reglaze/.test(s)) return 'Refinish';
+    if(/clean|adjust|tighten|restretch|reseal|flapper|scrape|weatherstrip|hinge/.test(s)) return 'Repair';
+    return 'New';
+  }
+
+  RI.RoomCard = {html:html, locked:locked, kind:kind, tiles:tiles, change:change, counts:counts, wire:wire, photoFor:function(k){ return PHOTOS[k] ? RI.img(PHOTOS[k]) : null; }};
 })();

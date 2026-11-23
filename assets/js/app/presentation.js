@@ -92,6 +92,60 @@
       return '<div class="item' + (off ? ' off' : '') + '" data-item="' + it.id + '"><div><span class="nm">' + RI.esc(it.name) + '</span><div class="act">' + RI.esc(a[0]) + '</div><details class="rc-det"><summary>Details</summary><span>' + RI.esc(it.qty) + ' · ' + RI.esc(it.trade) + '</span></details><div class="meta">' + (a[3] ? '<span class="prod">' + (productImg(it) ? '<img class="prod-th" src="' + productImg(it) + '" alt="">' : RI.icon('dot','i-sm')) + RI.esc(a[3]) + '</span>' : '') + '</div></div>' +
         (keep ? '<span></span><span class="amt muted small">Keep, no cost</span>' : '<label class="switch sw"><input type="checkbox" data-id="' + it.id + '"' + (off ? '' : ' checked') + '><span class="track"></span><span class="sr">Include ' + RI.esc(it.name) + '</span></label><span class="amt range-txt">' + RI.range(a[1], a[2]) + '</span>') + '</div>';
     }
+    /* Where the money goes (Sam, meeting of Nov 2026): a bar splits the room's range by item, then one short row
+       per item with its product, its share and its range, biggest first. Switches wait behind Edit items.
+       Kept parts fold away; held lines stay out of the bar and the sum. */
+    var editing = false;
+    var SHADES = 6; /* one accent in six steps, never a colour per item (DESIGN.md) */
+    function mid(it){ var a = it.pk[h.pk]; return (a[1] + a[2]) / 2; }
+    function split(r){
+      var priced = [], kept = [], held = [];
+      r.items.forEach(function(it){ if(RI.isHeld(it)) held.push(it); else if(!it.pk[h.pk] || it.pk[h.pk][1] == null) kept.push(it); else priced.push(it); });
+      priced.sort(function(a, b){ return mid(b) - mid(a); });
+      var on = priced.filter(function(it){ return !h.off[it.id]; }), sum = on.reduce(function(t, it){ return t + mid(it); }, 0), shade = {};
+      on.forEach(function(it, i){ shade[it.id] = Math.min(i, SHADES - 1); });
+      return {priced:priced, kept:kept, held:held, on:on, sum:sum, shade:shade};
+    }
+    function buyLine(it, sp){
+      var a = it.pk[h.pk], off = !!h.off[it.id], img = productImg(it), k = RI.RoomCard.kind(a[0]);
+      var pct = off || !sp.sum ? 0 : Math.max(1, Math.round(mid(it) / sp.sum * 100));
+      return '<li class="wb-line' + (off ? ' off' : '') + '" data-item="' + it.id + '">' +
+        '<span class="wb-th">' + (img ? '<img src="' + img + '" alt="" loading="lazy">' : RI.icon('dot','i-lg')) + '</span>' +
+        '<span class="wb-t"><b>' + RI.esc(it.name) + '</b><span class="wb-sub"><span class="wb-k' + (k === 'New' ? ' wb-k-new' : '') + '">' + k + '</span>' + RI.esc(a[3] || a[0]) + '</span></span>' +
+        '<span class="wb-r"><span class="range-txt">' + RI.range(a[1], a[2]) + '</span><span class="wb-pct">' + (off ? 'Turned off' : '<i class="wb-sw s' + sp.shade[it.id] + '" aria-hidden="true"></i>' + pct + '% of the room') + '</span></span>' +
+        '<label class="switch sw wb-edit"><input type="checkbox" data-id="' + it.id + '"' + (off ? '' : ' checked') + '><span class="track"></span><span class="sr">Include ' + RI.esc(it.name) + '</span></label></li>';
+    }
+    function costBar(sp){
+      if(!sp.on.length) return '';
+      return '<div class="wb-bar" aria-hidden="true">' + sp.on.map(function(it){ return '<i class="s' + sp.shade[it.id] + '" data-seg="' + it.id + '" style="flex-grow:' + Math.round(mid(it)) + '" title="' + RI.esc(it.name) + '"></i>'; }).join('') + '</div>';
+    }
+    function heldLine(it){
+      return '<li class="wb-line wb-hold"><span class="wb-th">' + RI.icon(it.state === 'measure' ? 'ruler' : 'camera','i-lg') + '</span>' +
+        '<span class="wb-t"><b>' + RI.esc(it.name) + '</b><span class="wb-sub">' + RI.esc(it.fix) + ' would settle it.</span></span>' +
+        '<span class="wb-r">' + heldTag(it) + '<span class="wb-pct">Not in the total</span></span></li>';
+    }
+    function buysSum(r){
+      var on = 0, offN = 0, held = 0;
+      r.items.forEach(function(it){ if(RI.isHeld(it)){ held++; return; } var a = it.pk[h.pk]; if(!a || a[1] == null) return; if(h.off[it.id]) offN++; else on++; });
+      var s = on === 0 ? 'Nothing is priced in this room right now.' : on === 1 ? 'This one item is the whole range above.' : on + ' items add up to the range above.';
+      return s + (offN ? ' ' + offN + ' turned off.' : '') + (held ? ' ' + held + ' not priced yet, left out.' : '');
+    }
+    function buysHtml(r){
+      var sp = split(r);
+      return '<section class="wb' + (editing ? ' is-edit' : '') + '" aria-label="Where the money goes"><div class="wb-hd"><h4>Where the money goes</h4><span class="state state-sample">Representative photos</span></div>' +
+        costBar(sp) +
+        (sp.priced.length ? '<ul class="wb-list">' + sp.priced.map(function(it){ return buyLine(it, sp); }).join('') + '</ul>' : '<p class="small muted">Nothing to buy here under this goal.</p>') +
+        '<div class="wb-foot"><p class="wb-sum">' + buysSum(r) + '</p>' + (sp.priced.length ? '<button type="button" class="linkbtn small wb-editbtn" data-wbedit aria-pressed="' + editing + '">' + (editing ? 'Done' : 'Edit items') + '</button>' : '') + '</div>' +
+        (sp.held.length ? '<ul class="wb-list wb-held">' + sp.held.map(heldLine).join('') + '</ul>' : '') +
+        (sp.kept.length ? '<details class="wb-kept"><summary>Kept as is, no cost · ' + sp.kept.length + ' item' + (sp.kept.length === 1 ? '' : 's') + '</summary><ul>' + sp.kept.map(function(it){ var a = it.pk[h.pk]; return '<li><b>' + RI.esc(it.name) + '</b>' + (a && a[0] ? '<span class="xsmall muted">' + RI.esc(a[0]) + '</span>' : '') + '</li>'; }).join('') + '</ul></details>' : '') +
+        '</section>';
+    }
+    /* Re-draw the breakdown in place (a switch, Edit items), keeping focus where it was */
+    function redrawBuys(focusSel){
+      var r = est.rooms.filter(function(x){ return x.key === selRoom; })[0], wb = pv.querySelector('.wb'); if(!wb || !r) return;
+      wb.outerHTML = buysHtml(r); RI.fillIcons(pv);
+      var f = focusSel && pv.querySelector(focusSel); if(f) f.focus();
+    }
     function roomHead(r){
       var t = RI.totals(h.pk, h.off, r.key), hasHeld = r.items.some(RI.isHeld);
       return '<button type="button" class="room-head" aria-expanded="' + !!open[r.key] + '"><span><span class="rh-title">' + r.name + '</span><span class="sub">' + r.sub + (hasHeld ? ' · partial' : '') + '</span></span><span data-scale="0,' + Math.max(10000, Math.ceil(RI.totals('P', {}, r.key).high / 5000) * 5000) + '"><span class="rl' + (hasHeld ? ' partial' : '') + '" data-low="' + t.low + '" data-high="' + t.high + '"></span></span><span class="range-txt">' + (t.high ? RI.range(t.low, t.high) : '<span class="muted">' + (hasHeld ? 'Not priced yet' : 'No cost') + '</span>') + '</span><span class="chev" aria-hidden="true"></span></button>';
@@ -103,7 +157,7 @@
     function viewRooms(){
       var r = est.rooms.filter(function(x){ return x.key === selRoom; })[0] || est.rooms[0];
       pv.innerHTML = '<div class="rc-picker" role="group" aria-label="Rooms">' + est.rooms.map(function(x){ return '<button type="button" class="rc-chip" data-pick="' + x.key + '" aria-pressed="' + (x.key === r.key) + '">' + x.name + '</button>'; }).join('') + '</div>' +
-        RI.RoomCard.html(r, h.pk, {photo:roomPhoto(r.key), range:roomRange(r), itemsHtml:r.items.map(item).join('')}) +
+        RI.RoomCard.html(r, h.pk, {photo:roomPhoto(r.key), range:roomRange(r), buysHtml:buysHtml(r)}) +
         '<div class="pr-rooms" style="margin-top:20px"><div class="pr-plan card" id="pr-plan"></div></div>';
       RI.RoomCard.wire(pv);
       plan = RI.Plan.mount(pv.querySelector('#pr-plan'), {onSelect:function(k){ selRoom = k; viewRooms(); plan.update(h.pk, h.off, k); }});
@@ -113,6 +167,7 @@
     function refreshRooms(){
       if(tab !== 'rooms') return;
       var r = est.rooms.filter(function(x){ return x.key === selRoom; })[0], el = pv.querySelector('.rc-range'); if(el && r) el.innerHTML = roomRange(r);
+      var ae = doc.activeElement, fid = ae && ae.getAttribute && ae.getAttribute('data-id'); redrawBuys(fid ? 'input[data-id="' + fid + '"]' : null);
       if(plan) plan.update(h.pk, h.off, selRoom);
     }
     function viewTrades(){
@@ -182,14 +237,17 @@
     pv.addEventListener('click', function(e){
       var ph = e.target.closest('[data-ph]'); if(ph){ var kk = ph.getAttribute('data-ph').split('|'), pp = (h.photos[kk[0]] || []).filter(function(x){ return x.state === 'done'; })[+kk[1]]; if(pp) A.dialog(RI.esc(est.rooms.filter(function(r){ return r.key === kk[0]; })[0].name), '<img class="plan-view" src="' + pp.src + '" alt="' + RI.esc(pp.name) + '">', {wide:true}); return; }
       var pick = e.target.closest('[data-pick]'); if(pick){ selRoom = pick.getAttribute('data-pick'); viewRooms(); }
+      if(e.target.closest('[data-wbedit]')){ editing = !editing; redrawBuys('[data-wbedit]'); }
     });
+    function hl(e, on){ var x = e.target.closest('.wb-line[data-item], .wb-bar [data-seg]'); if(!x) return; var id = x.getAttribute('data-item') || x.getAttribute('data-seg'); pv.querySelectorAll('[data-item="' + id + '"], [data-seg="' + id + '"]').forEach(function(y){ y.classList.toggle('hl', on); }); }
+    pv.addEventListener('mouseover', function(e){ hl(e, true); }); pv.addEventListener('mouseout', function(e){ hl(e, false); });
     pv.addEventListener('change', function(e){
       var id = e.target.getAttribute('data-id'); if(!id) return;
       var on = e.target.checked, note = [];
       if(!on){ h.off[id] = true; (RI.DEPS[id] || []).forEach(function(d){ if(!h.off[d[0]]){ h.off[d[0]] = true; note.push(d[1]); } }); }
       else { delete h.off[id]; Object.keys(RI.DEPS).forEach(function(parent){ RI.DEPS[parent].forEach(function(d){ if(d[0] === id && h.off[parent]){ delete h.off[parent]; note.push('Turned back on with it: ' + d[1].toLowerCase()); } }); }); }
       save();
-      pv.querySelectorAll('.item[data-item]').forEach(function(row){ var iid = row.getAttribute('data-item'), cb = row.querySelector('input[data-id]'); row.classList.toggle('off', !!h.off[iid]); if(cb) cb.checked = !h.off[iid]; });
+      pv.querySelectorAll('[data-item]').forEach(function(row){ var iid = row.getAttribute('data-item'), cb = row.querySelector('input[data-id]'); row.classList.toggle('off', !!h.off[iid]); if(cb) cb.checked = !h.off[iid]; });
       if(note.length) RI.toast((on ? '' : 'Also turned off. ') + note.join(' '), 'info');
       totals(true); refreshRooms();
     });
@@ -210,10 +268,13 @@
         if(e.target.closest('#sh-off')){ h.shares.forEach(function(x){ x.active = false; }); save(); d.querySelector('#sh-b').innerHTML = body(); RI.fillIcons(d); RI.toast('The link is turned off. Anyone who opens it sees that it has expired.'); }
       });
     });
-    /* PDF through the browser's print dialog, with every room open */
+    /* PDF through the browser's print dialog: every room, one after another, with what each one buys.
+       The screen goes back to the one-room view once the dialog closes. */
     view.querySelector('#pdf').addEventListener('click', function(){
       if(tab !== 'rooms') show('rooms');
-      pv.querySelectorAll('details.rc-inc').forEach(function(d){ d.open = true; });
+      pv.innerHTML = '<div class="wb-all">' + est.rooms.map(function(r){ return RI.RoomCard.html(r, h.pk, {photo:roomPhoto(r.key), range:roomRange(r), buysHtml:buysHtml(r)}); }).join('') + '</div>';
+      pv.querySelectorAll('details.wb-kept').forEach(function(d){ d.open = true; }); RI.fillIcons(pv);
+      window.addEventListener('afterprint', function(){ if(tab === 'rooms') viewRooms(); RI.fillIcons(pv); }, {once:true});
       RI.toast('Choose "Save as PDF" in the print dialog.', 'file');
       RI.track('pdf_downloaded', {house:h.id}); setTimeout(function(){ window.print(); }, 400);
     });
