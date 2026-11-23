@@ -1477,3 +1477,28 @@ button.tz-more{background:none;border:0;padding:0;font:inherit;cursor:pointer}
   .tz-bars{padding-left:32px}
 }
 @media (prefers-reduced-motion:reduce){ .hm-room.tz-lock{transition:none} }
+
+/* ===================================================================
+   Suggested room size on the room card (sz-). Sam's meeting, Nov 2026:
+   measured from the photos, shown as an estimate, "Roughly right?
+   Yes / Edit". Typed sizes are never overwritten.
+   =================================================================== */
+.sz{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin:0 16px 14px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--raised);font-size:.85rem;line-height:1.4}
+.sz[hidden]{display:none}
+.sz>.i{flex:none;color:var(--muted)}
+.sz-v{display:inline-flex;align-items:flex-start;gap:8px;min-width:0}
+.sz-v>.i{margin-top:2px;color:var(--deep-forest)}
+.sz-v>span{display:grid;gap:1px}
+.sz-v b{font-weight:600;font-size:.95rem}
+.sz-top{display:inline-flex;align-items:center;flex-wrap:wrap;gap:4px 8px}
+.sz-from{font-size:.76rem;color:var(--muted)}
+.sz-ask{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%}
+.sz-q{grid-column:1/-1;font-weight:600}
+.sz-ask .btn{min-height:36px;padding:0 10px;justify-content:center}
+.sz.is-wait{border-style:dashed;color:var(--muted);justify-content:flex-start}
+.sz.is-none{color:var(--state-ink);justify-content:flex-start;flex-wrap:nowrap;align-items:flex-start}
+.sz.is-none>.i{margin-top:2px}
+.sz.is-none .linkbtn{min-height:0;font-size:inherit}
+@media (max-width:640px){
+  .sz{margin:0 12px 12px}
+}

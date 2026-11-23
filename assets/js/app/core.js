@@ -74,10 +74,10 @@
         ['E','S','P'].forEach(function(p){ var a = it.pk[p]; if(a && a[1] != null){ a[1] = round(a[1]); a[2] = round(a[2]); } });
         it.state = null;
         if(photos === 0){ it.state = 'unverified'; it.fix = 'Photos of the ' + r.name.toLowerCase(); it.ev = 'unknown'; return; }
-        if(it.id === 'k5'){ var s = (h.sizes || {}).kitchen; if(!(s && +s.l && +s.w)){ it.state = 'measure'; it.ev = 'unknown'; } else { it.ev = 'reported'; it.qty = Math.round(s.l * s.w) + ' sq ft from your sizes'; } }
+        if(it.id === 'k5'){ var s = (h.sizes || {}).kitchen; if(!(s && +s.l && +s.w)){ it.state = 'measure'; it.ev = 'unknown'; } else { it.ev = 'reported'; it.qty = Math.round(s.l * s.w) + (s.src === 'photo' && !s.ok ? ' sq ft, measured from your photos' : ' sq ft from your sizes'); } }
         if(it.id === 'h1' && photos < 2){ it.state = 'unverified'; it.ev = 'unknown'; }
         if(it.id === 's2' && photos < 2){ it.state = 'unverified'; it.ev = 'unknown'; }
-        if(it.id === 'b1'){ var b = (h.sizes || {}).bedrooms; it.qty = b && +b.l && +b.w ? Math.round(b.l * b.w * (+f.beds || 3)) + ' sq ft from your sizes' : 'About ' + Math.round(140 * (+f.beds || 3)) + ' sq ft, room template'; it.ev = b && +b.l ? 'reported' : 'inferred'; }
+        if(it.id === 'b1'){ var b = (h.sizes || {}).bedrooms; it.qty = b && +b.l && +b.w ? Math.round(b.l * b.w * (+f.beds || 3)) + (b.src === 'photo' && !b.ok ? ' sq ft, measured from your photos' : ' sq ft from your sizes') : 'About ' + Math.round(140 * (+f.beds || 3)) + ' sq ft, room template'; it.ev = b && +b.l ? 'reported' : 'inferred'; }
       });
       r.items.forEach(function(it){ if(it.state === 'unverified' && (it.id === 'h1' || it.id === 's2') && photos > 0) it.fix = it.id === 'h1' ? 'A photo of the tub and its walls' : 'A brighter photo of the basement walls'; });
     });

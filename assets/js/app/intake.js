@@ -327,7 +327,7 @@
     return '';
   }
   function stepRooms(main, h, finish){
-    h.photos = h.photos || {}; h.fps = h.fps || []; h.consents = h.consents || {}; h.sizes = h.sizes || {}; h.notes = h.notes || {};
+    h.photos = h.photos || {}; h.fps = h.fps || []; h.consents = h.consents || {}; h.sizes = h.sizes || {}; h.notes = h.notes || {}; h.measured = h.measured || {};
     var rooms = A.roomsFor(h);
     var ACCEPT = 'image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif';
     function nameOf(k){ var r = rooms.filter(function(x){ return x[0] === k; })[0]; return r ? r[1] : k; }
@@ -371,6 +371,7 @@
         '<div class="rc3-media"></div>' +
         '<div class="rc3-body"><span class="rc3-ic">' + RI.icon(iconFor(r)) + '</span><div class="rc3-t"><h2 id="rc2-' + r[0] + '">' + nm + '</h2><p>' + A.hintFor(r[2] || r[0]) + '</p></div>' +
           (r[3] ? '<button type="button" class="icon-btn ru-del" data-delroom="' + r[0] + '" aria-label="Remove ' + nm + '">' + RI.icon('x','i-sm') + '</button>' : '') + '</div>' +
+        (sizeable(r) ? '<div class="sz" data-sz="' + r[0] + '" aria-live="polite" hidden></div>' : '') +
         '<details class="rc3-foot"><summary><span class="rc3-sum"></span><span class="rc3-state"></span></summary><div class="rc2-meta">' +
           (sizeable(r) ? '<div class="rc2-size"><span class="xsmall muted">Size <span class="opt">(optional)</span></span><span class="lw"><label class="sr" for="l-' + r[0] + '">Length in feet</label><input class="input" id="l-' + r[0] + '" data-l="' + r[0] + '" inputmode="decimal" placeholder="L" value="' + (s.l || '') + '"><span aria-hidden="true">×</span><label class="sr" for="w-' + r[0] + '">Width in feet</label><input class="input" id="w-' + r[0] + '" data-w="' + r[0] + '" inputmode="decimal" placeholder="W" value="' + (s.w || '') + '"><span class="xsmall muted">ft</span></span></div>' : '') +
           '<label class="sr" for="n-' + r[0] + '">Note for ' + nm + '</label><input class="input rc2-note" id="n-' + r[0] + '" data-note="' + r[0] + '" maxlength="140" placeholder="A note, if anything matters here" value="' + RI.esc(h.notes[r[0]] || '') + '"></div></details></section>';
@@ -378,9 +379,54 @@
     /* The card's bottom strip: the size once it is in, else an invitation; and whether a note is there */
     function foot(k){
       var sec = main.querySelector('.rc2[data-room="' + k + '"]'); if(!sec) return;
-      var s = h.sizes[k], r = roomOf(k), n = A.photoCount(h, k);
-      sec.querySelector('.rc3-sum').innerHTML = s && s.l ? RI.icon('ruler','i-sm') + '<b>' + s.l + ' × ' + s.w + ' ft</b>' : RI.icon('chev','i-sm rc3-chev') + (r && sizeable(r) ? 'Add size' : 'Add a note') + ' <span class="opt">(optional)</span>';
-      sec.querySelector('.rc3-state').textContent = h.notes[k] ? 'Note added' : n ? '' : 'No photos yet';
+      var s = h.sizes[k], r = roomOf(k), n = A.photoCount(h, k), est = s && s.src === 'photo' && !s.ok;
+      /* An estimate still waiting for a yes shows in the strip above, so the footer does not repeat it */
+      sec.querySelector('.rc3-sum').innerHTML = s && s.l && !est ? RI.icon('ruler','i-sm') + '<b>' + s.l + ' × ' + s.w + ' ft</b>' : RI.icon('chev','i-sm rc3-chev') + (est ? 'Edit the size or add a note' : (r && sizeable(r) ? 'Add size' : 'Add a note') + ' <span class="opt">(optional)</span>');
+      sec.querySelector('.rc3-state').textContent = h.notes[k] ? 'Note added' : s && s.src === 'photo' && s.ok ? 'Confirmed' : n ? '' : 'No photos yet';
+      drawSize(k);
+    }
+    /* ---------- Suggested room size (Sam's meeting, Nov 2026): once a room has photos, a size is measured from
+       them and shown as an estimate with "Roughly right? Yes / Edit". A size you type is never overwritten,
+       and a size you clear is not suggested again. The measuring itself is pretend (fakeai.js). ---------- */
+    var measuring = {};
+    function drawSize(k){
+      var sec = main.querySelector('.rc2[data-room="' + k + '"]'), el = sec && sec.querySelector('.sz'); if(!el) return;
+      var s = h.sizes[k], nm = RI.esc(nameOf(k)), html = '', cls = 'sz';
+      if(measuring[k]){ cls += ' is-wait'; html = RI.icon('ruler','i-sm') + '<span>Measuring the ' + nm.toLowerCase() + ' from your photos…</span>'; }
+      else if(s && s.src === 'photo' && !s.ok){
+        html = '<span class="sz-v">' + RI.icon('ruler','i-sm') + '<span><span class="sz-top"><b>About ' + s.l + ' × ' + s.w + ' ft</b><span class="state state-sample">Sample</span></span><span class="sz-from">Measured from your photos</span></span></span>' +
+          '<span class="sz-ask"><span class="sz-q">Roughly right?</span><button type="button" class="btn btn-secondary btn-sm" data-szok="' + k + '" aria-label="Yes, ' + nm + ' is about ' + s.l + ' by ' + s.w + ' feet">' + RI.icon('check','i-sm') + 'Yes</button><button type="button" class="btn btn-secondary btn-sm" data-szedit="' + k + '" aria-label="Edit the size of ' + nm + '">' + RI.icon('pencil','i-sm') + 'Edit</button></span>';
+      }
+      else if(!s && h.measured[k] === 'none' && A.photoCount(h, k)){ cls += ' is-none'; html = RI.icon('ruler','i-sm') + '<span>We could not size this room from the photos. Add a wider photo, or <button type="button" class="linkbtn" data-szedit="' + k + '">type the size</button>.</span>'; }
+      el.className = cls; el.innerHTML = html; el.hidden = !html;
+    }
+    /* The card's own length and width boxes follow the saved size, so Edit opens them filled in */
+    function setInputs(k){
+      var sec = main.querySelector('.rc2[data-room="' + k + '"]'), s = h.sizes[k] || {}; if(!sec) return;
+      var cl = sec.querySelector('[data-l]'), cw = sec.querySelector('[data-w]'); if(cl){ cl.value = s.l || ''; cw.value = s.w || ''; }
+    }
+    function maybeMeasure(k){
+      var r = roomOf(k);
+      if(!r || !sizeable(r) || h.sizes[k] || h.measured[k] || measuring[k] || !A.photoCount(h, k)) return;
+      measuring[k] = true; drawSize(k);
+      setTimeout(function(){
+        delete measuring[k];
+        if(!doc.body.contains(main)) return;              /* left the screen: measured next time */
+        if(h.sizes[k] || !A.photoCount(h, k)){ drawSize(k); return; }
+        var ps = (h.photos[k] || []).filter(function(p){ return p.state === 'done'; });
+        var poor = ps.every(function(p){ return (p.flags || []).some(function(f){ return f === 'small' || f === 'blurry'; }); });
+        var s = poor ? null : A.AI.sizeFor(h, k, r[2] || r[0]);
+        h.measured[k] = s ? 'photo' : 'none';
+        if(s) h.sizes[k] = {l:s.l, w:s.w, src:'photo', ok:false};
+        saved(h); setInputs(k); foot(k); totals();
+      }, A.AI.MEASURE_MS);
+    }
+    /* A room that loses all its photos also loses a size that only came from them */
+    function dropEstimate(k){
+      var s = h.sizes[k];
+      if(A.photoCount(h, k)) return;
+      if(s && s.src === 'photo' && !s.ok){ delete h.sizes[k]; setInputs(k); }
+      if(h.measured[k] === 'photo' || h.measured[k] === 'none') delete h.measured[k];
     }
     var pending = {}, picked = {}; /* photos ticked in the tray, to put in a room together */
     function thumb(p, room){
@@ -453,7 +499,8 @@
     function counts(){
       var rs = rooms.filter(function(r){ return r[0] !== 'other' || A.photoCount(h, 'other'); });
       var withP = rs.filter(function(r){ return A.photoCount(h, r[0]); }).length, sz = Object.keys(h.sizes).filter(function(k){ return h.sizes[k] && h.sizes[k].l; }).length;
-      return {rooms:rs.length, withP:withP, sizes:sz, unver:rs.length - withP, unsorted:(h.photos.unsorted || []).length};
+      var est = Object.keys(h.sizes).filter(function(k){ return h.sizes[k] && h.sizes[k].src === 'photo' && !h.sizes[k].ok; }).length;
+      return {rooms:rs.length, withP:withP, sizes:sz, est:est, unver:rs.length - withP, unsorted:(h.photos.unsorted || []).length};
     }
     function totals(){
       var c = counts();
@@ -466,7 +513,7 @@
       main.querySelector('#flags-sum').innerHTML = parts.length ? '<p class="rp2-flags">' + RI.icon('eye','i-sm') + '<span><b>' + parts.join(', ') + '.</b> They are kept. ' + (fl.near && !fl.blurry && !fl.small ? 'You can remove extras.' : 'A sharper photo helps.') + '</span></p>' : '';
       RI.fillIcons(main.querySelector('#flags-sum'));
       var bar = doc.getElementById('sub-sum');
-      if(bar) bar.innerHTML = '<span class="sb-short"><b>' + c.withP + '/' + c.rooms + '</b> rooms with photos</span><span class="sb-long"><b>' + c.withP + ' of ' + c.rooms + '</b> rooms have photos<span class="sb-dot">·</span>' + c.sizes + ' size' + (c.sizes === 1 ? '' : 's') + (c.unver ? '<span class="sb-dot">·</span><span class="sb-un">' + c.unver + ' will show as unverified</span>' : '') + '</span>';
+      if(bar) bar.innerHTML = '<span class="sb-short"><b>' + c.withP + '/' + c.rooms + '</b> rooms with photos</span><span class="sb-long"><b>' + c.withP + ' of ' + c.rooms + '</b> rooms have photos<span class="sb-dot">·</span>' + c.sizes + ' size' + (c.sizes === 1 ? '' : 's') + (c.est ? ', ' + c.est + ' to confirm' : '') + (c.unver ? '<span class="sb-dot">·</span><span class="sb-un">' + c.unver + ' will show as unverified</span>' : '') + '</span>';
       metaRefresh(h);
     }
     function all(){ drawUnsorted(); rooms.forEach(function(r){ drawRoom(r[0]); }); totals(); dots(); }
@@ -482,7 +529,7 @@
         if(p.drop){ drawRoom(key); totals(); return; }
         if(fail){ p.state = 'fail'; (pending[key] = pending[key] || []).push(p); }
         else { p.state = 'done'; delete p.pct; (h.photos[key] = h.photos[key] || []).push(p); if(p.fp) h.fps.push(p.fp); saved(h); }
-        drawRoom(key); totals();
+        drawRoom(key); totals(); if(p.state === 'done' && key !== 'unsorted') maybeMeasure(key);
       })(t0);
     }
     function existingHashes(){ var out = []; Object.keys(h.photos).forEach(function(k){ (h.photos[k] || []).forEach(function(p){ if(p.hash) out.push(p.hash); }); }); Object.keys(pending).forEach(function(k){ pending[k].forEach(function(p){ if(p.hash) out.push(p.hash); }); }); return out; }
@@ -521,14 +568,14 @@
       var p = (h.photos[from] || []).filter(function(x){ return x.id === id; })[0]; if(!p || from === to) return;
       h.photos[from] = h.photos[from].filter(function(x){ return x.id !== id; }); delete p.suggest; (h.photos[to] = h.photos[to] || []).push(p);
       if(h.covers && h.covers[from] === id) delete h.covers[from];
-      saved(h); drawRoom(from); drawRoom(to); totals();
+      dropEstimate(from); saved(h); drawRoom(from); drawRoom(to); totals(); maybeMeasure(to);
     }
     function delPhoto(k, id){
       var gone = (h.photos[k] || []).filter(function(x){ return x.id === id; })[0]; if(gone && gone.fp) h.fps = h.fps.filter(function(f){ return f !== gone.fp; });
       (pending[k] || []).forEach(function(x){ if(x.id === id) x.drop = true; });
       h.photos[k] = (h.photos[k] || []).filter(function(x){ return x.id !== id; }); pending[k] = (pending[k] || []).filter(function(x){ return x.id !== id; });
       if(h.covers && h.covers[k] === id) delete h.covers[k];
-      saved(h); drawRoom(k); totals();
+      dropEstimate(k); saved(h); drawRoom(k); totals();
     }
     function retry(k, id){ var p = (pending[k] || []).filter(function(x){ return x.id === id; })[0]; if(p){ pending[k] = pending[k].filter(function(x){ return x !== p; }); p.retried = true; upload(p, k); } }
     /* ---------- The edit sheet for one room: add, remove, move, pick the cover, size and note.
@@ -601,7 +648,8 @@
       if(li && sizeable(r)){
         var l = parseFloat(li.value), w = parseFloat(wi.value), any = li.value.trim() || wi.value.trim();
         if(any && !(l > 2 && l < 80 && w > 2 && w < 80)){ d.querySelector('#ed-err').textContent = 'Use feet, from 3 to 79, for both.'; d.querySelector('.ed-det').open = true; li.focus(); return; }
-        if(any) h.sizes[key] = {l:l, w:w}; else delete h.sizes[key];
+        var prev = h.sizes[key], same = prev && prev.src === 'photo' && prev.l === l && prev.w === w;
+        if(any && !same){ h.sizes[key] = {l:l, w:w, src:'user', ok:true}; h.measured[key] = 'user'; } else if(!any && prev){ delete h.sizes[key]; h.measured[key] = 'cleared'; }
       }
       var note = d.querySelector('#ed-t').value.trim(); if(note) h.notes[key] = note; else delete h.notes[key];
       ed.saved = true; editing = null;
@@ -623,7 +671,7 @@
       var t = e.target, k;
       if((k = t.getAttribute('data-l') || t.getAttribute('data-w'))){
         var l = parseFloat(main.querySelector('[data-l="' + k + '"]').value), w = parseFloat(main.querySelector('[data-w="' + k + '"]').value);
-        if(l > 2 && l < 80 && w > 2 && w < 80) h.sizes[k] = {l:l, w:w}; else delete h.sizes[k];
+        if(l > 2 && l < 80 && w > 2 && w < 80){ h.sizes[k] = {l:l, w:w, src:'user', ok:true}; h.measured[k] = 'user'; } else { delete h.sizes[k]; h.measured[k] = 'cleared'; }
       }
       if(k) foot(k);
       if((k = t.getAttribute('data-note'))){ if(t.value.trim()) h.notes[k] = t.value.trim(); else delete h.notes[k]; foot(k); }
@@ -654,6 +702,8 @@
       if(e.target.closest('#accept-all')){ (h.photos.unsorted || []).slice().forEach(function(p){ if(p.suggest) move('unsorted', p.id, p.suggest); }); RI.toast('Suggestions accepted.'); return; }
       if(del) delPhoto(del.getAttribute('data-room'), del.getAttribute('data-del'));
       if(re) retry(re.getAttribute('data-room'), re.getAttribute('data-retry'));
+      var szok = e.target.closest('[data-szok]'); if(szok){ var sk = szok.getAttribute('data-szok'); if(h.sizes[sk]){ h.sizes[sk].ok = true; saved(h); foot(sk); totals(); var sm = main.querySelector('.rc2[data-room="' + sk + '"] .rc3-foot>summary'); if(sm) sm.focus(); RI.toast(nameOf(sk) + ': ' + h.sizes[sk].l + ' × ' + h.sizes[sk].w + ' ft confirmed.', 'check'); } return; }
+      var sze = e.target.closest('[data-szedit]'); if(sze){ var ek = sze.getAttribute('data-szedit'), esec = main.querySelector('.rc2[data-room="' + ek + '"]'); setInputs(ek); esec.querySelector('.rc3-foot').open = true; var li = esec.querySelector('[data-l]'); if(li){ li.focus(); li.select(); } return; }
       if(e.target.closest('#sample')){
         /* Team only: sample photos land in the tray with their suggested room, to show the sorting */
         if(!h.rights){ h.rights = true; h.consents.rights = {at:Date.now(), version:RIGHTS.version, text:RIGHTS.text}; }
@@ -719,7 +769,7 @@
       A.dialog(RI.esc(p.name), p.src ? (p.kind === 'pdf' ? '<object class="plan-view" data="' + p.src + '" type="application/pdf"><p><a href="' + p.src + '" download="' + RI.esc(p.name) + '">Download it</a>.</p></object>' : '<img class="plan-view" src="' + p.src + '" alt="Floor plan">') : '<p class="muted">In the product this file is stored privately and opens here.</p>', {wide:true});
     }
     function plans(){ main.querySelector('#plan-files').innerHTML = (h.plans || []).map(function(p, i){ return '<li>' + RI.icon('file','i-sm') + '<span>' + RI.esc(p.name) + '</span><span class="xsmall muted">' + (p.kind === 'pdf' ? 'PDF' : 'Image') + ', ' + p.kb + ' KB</span><button type="button" class="linkbtn" data-viewplan="' + i + '">View</button><button type="button" class="linkbtn" data-rmplan="' + i + '">Remove</button></li>'; }).join(''); RI.fillIcons(main.querySelector('#plan-files')); }
-    plans(); all();
+    plans(); all(); rooms.forEach(function(r){ maybeMeasure(r[0]); });
     /* Desktop: the photo card ends just above the submit dock, wherever the page is scrolled */
     var trayEl = main.querySelector('.rp2-tray'), fitQ = false;
     function fitTray(){
