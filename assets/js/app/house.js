@@ -182,7 +182,58 @@
               '<span class="hm-foot">' + (act || RI.icon('lock','i-sm') + 'Price in the presentation') + (part ? '<span class="hm-part">Partial</span>' : '') + '</span></div></article>';
         }).join('') + '</div>';
     }
-    function openRoom(){ return RI.RoomCard.html(open, sel, {photo:roomPhoto(open), range:RI.range(RI.totals(sel, {}, open.key).low, RI.totals(sel, {}, open.key).high)}); }
+    /* ---------- Room by room, as in the presentation (Sam's meeting, Nov 2026): the same room buttons and room card.
+       The free room opens in full. A locked room shows its photo, what changes, two or three of its products
+       and the rest blurred, never a price, then the button to open every room. ---------- */
+    var pick = open.key;
+    function pickerHtml(){
+      return est.rooms.map(function(r){
+        var lk = !paid && r !== open;
+        return '<button type="button" class="rc-chip' + (lk ? ' px-lk' : '') + '" data-pick="' + r.key + '" aria-pressed="' + (r.key === pick) + '">' + (lk ? RI.icon('lock','i-sm') : '') + RI.esc(r.name) + (lk ? '<span class="sr">, locked</span>' : paid ? '' : '<span class="px-free">Free</span>') + '</button>';
+      }).join('');
+    }
+    function cost(it){ return it.pk[sel][2] || 0; }
+    function lockImg(it){ var m = RI.PRODUCT_IMG[it.id]; return m && m[sel] ? RI.img(m[sel]) : null; }
+    function lockTile(it, clear){
+      var a = it.pk[sel], img = lockImg(it);
+      var lk = clear ? '' : '<span class="px-hid-lk">' + RI.icon('lock','i-sm') + '</span>';
+      var pic = img ? '<span class="rc-ti"><img src="' + img + '" alt="" width="240" height="240" loading="lazy">' + lk + '</span>'
+        : '<span class="rc-ti rc-neutral">' + (clear ? RI.icon('dot','i-lg') + '<span>' + RI.esc(it.trade) + '</span>' : lk) + '</span>';
+      return '<li class="rc-tile' + (clear ? '' : ' px-hid') + '"' + (clear ? '' : ' aria-hidden="true"') + '>' + pic +
+        (clear ? '<span class="rc-tn"><b>' + RI.esc(a[3] || it.name) + '</b><span>' + RI.esc(it.name) + '</span></span>' : '<span class="rc-tn"><i></i><i></i></span>') + '</li>';
+    }
+    function lockedRoom(r){
+      var pkd = RI.PACKAGES.filter(function(p){ return p.key === sel; })[0], src = roomPhoto(r) || RI.RoomCard.photoFor(r.key);
+      var photo = src ? '<div class="rc-photo"><img src="' + src + '" alt="' + RI.esc(r.name) + '" loading="lazy"></div>' : '<div class="rc-photo rc-nophoto" aria-hidden="true">' + RI.icon(r.key === 'whole' ? 'house' : 'camera', 'i-lg') + '<span>' + RI.esc(r.name) + '</span></div>';
+      var head = '<header class="rc-head"><div><h3>' + RI.esc(r.name) + '</h3><p class="xsmall muted">' + RI.esc(pkd.name) + ': ' + RI.esc(pkd.goal) + '</p></div>';
+      /* No photos yet: nothing to tease, only the way to add them */
+      if(r.items.every(RI.isHeld)) return '<article class="rc px-lockrc" data-room="' + r.key + '">' + photo + '<div class="rc-body">' + head + '</header>' +
+        '<p class="rc-change">' + RI.esc(mainChange(r, sel)) + '.</p><a class="btn btn-secondary px-cta" href="#/houses/' + h.id + '/intake/photos">' + RI.icon('camera','i-sm') + 'Add photos of this room</a></div></article>';
+      var list = r.items.filter(function(it){ return !RI.isHeld(it) && it.pk[sel] && it.pk[sel][1] != null; }).sort(function(a, b){ return cost(b) - cost(a); });
+      /* Two or three in the clear when the room has enough, one when it has one or two; items with a product photo
+         go first. Every other item is a blurred tile, so there is always something left to open. */
+      var n = list.length >= 5 ? 3 : list.length >= 3 ? 2 : list.length ? 1 : 0;
+      var order = list.filter(lockImg).concat(list.filter(function(it){ return !lockImg(it); })), clear = order.slice(0, n);
+      var hid = list.filter(function(it){ return clear.indexOf(it) < 0; }), rest = hid.length;
+      hid = hid.filter(lockImg).concat(hid.filter(function(it){ return !lockImg(it); }));
+      var body = list.length ? '<ul class="rc-tiles">' + clear.map(function(it){ return lockTile(it, true); }).join('') + hid.slice(0, 6 - n).map(function(it){ return lockTile(it, false); }).join('') + '</ul>' : '';
+      var cta = credit ? '<button type="button" class="btn btn-primary px-cta" data-credit>Open every room with a credit</button>'
+        : A.hasCheckout ? '<a class="btn btn-primary px-cta" href="#/houses/' + h.id + '/checkout">Open every room, ' + price + '</a>' : '';
+      return '<article class="rc px-lockrc" data-room="' + r.key + '">' + photo + '<div class="rc-body">' + head +
+          (list.length ? '<span class="rc-range px-lockp"><span class="rc-blur" aria-hidden="true">$••,••• to $••,•••</span>' + RI.icon('lock','i-sm') + '<span class="sr">Price locked</span></span>' : '') + '</header>' +
+        '<p class="rc-change">' + RI.esc(RI.RoomCard.change(r, sel)) + '</p>' + body +
+        (list.length ? '<p class="px-more">' + RI.icon('lock','i-sm') + '<span>' + (rest ? '+' + rest + ' more item' + (rest === 1 ? '' : 's') + ' and every price' : 'Its price is in the presentation') + '</span></p>' + cta : '') +
+        '</div></article>';
+    }
+    function roomView(){
+      var r = est.rooms.filter(function(x){ return x.key === pick; })[0] || open, t = RI.totals(sel, {}, r.key);
+      if(paid || r === open) return RI.RoomCard.html(r, sel, {photo:roomPhoto(r), range:t.high ? RI.range(t.low, t.high) : '<span class="muted">No cost</span>'});
+      return lockedRoom(r);
+    }
+    function drawRoom(){
+      view.querySelector('#px-open').innerHTML = roomView(); /* hotspots stay wired: RoomCard.wire(view) listens above it */
+      view.querySelectorAll('#px-pick [data-pick]').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-pick') === pick); });
+    }
     var pf = A.priceFor(h), price = '$' + pf.amount;
     view.innerHTML = '<div class="app-wrap px-page">' + A.houseHead(h) +
       '<section class="price-s"><header class="ps-head"><div><p class="label">Your price by package' + (h.version > 1 ? ' · version ' + h.version : '') + '</p><h2>Three goals, one house</h2><p class="muted small">' + (zip ? 'Priced for ZIP ' + RI.esc(zip) + '. ' : '') + 'From ' + photoN + ' photos' + (Object.keys(h.sizes || {}).length ? ' and your room sizes' : '') + '.</p></div>' +
@@ -196,7 +247,8 @@
       '</section>' +
       '<div class="px-layout"><div class="px-sec">' +
         '<section class="hm" id="px-map" aria-live="polite">' + mapHtml() + '</section>' +
-        '<div class="px-open-h"><p class="label">Open now, free</p><h2>One room, in full</h2></div><div id="px-open">' + openRoom() + '</div></div>' +
+        '<div class="px-open-h"><p class="label">Room by room</p><h2>' + (paid ? 'Every room, in full' : 'One room in full, free') + '</h2></div>' +
+        '<div class="rc-picker px-pick" id="px-pick" role="group" aria-label="Rooms">' + pickerHtml() + '</div><div id="px-open">' + roomView() + '</div></div>' +
         '<aside class="px-side px-pin" aria-label="Open the full presentation"><p class="label">The full presentation</p><h2>' + (paid ? 'Your presentation is open' : 'Open every room') + '</h2>' +
           '<ul><li>Every room with its photo and products</li><li>Switch goals, turn items on or off</li><li>Guidance on the roof, heating, water heater and panel</li><li>A PDF and a private link</li></ul>' +
           (paid ? '<a class="btn btn-primary btn-block px-btn" href="#/houses/' + h.id + '/presentation">Open presentation ' + RI.icon('arrow','i-sm i-arrow') + '</a>'
@@ -224,7 +276,7 @@
     function setGoal(k){
       sel = k; view.querySelectorAll('.pk-card').forEach(function(c){ var on = c.getAttribute('data-goal') === k; c.classList.toggle('is-default', on); c.setAttribute('aria-selected', on); });
       var ms = view.querySelector('.pk-seg-m'); ms.querySelectorAll('[data-goal]').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-goal') === k); }); RI.syncSeg(ms);
-      view.querySelector('#px-open').innerHTML = openRoom(); RI.RoomCard.wire(view);
+      drawRoom();
       var map = view.querySelector('#px-map'); map.innerHTML = mapHtml(); RI.fillIcons && RI.fillIcons(map); RI.syncSeg(map.querySelector('.hm-seg'));
       map.classList.remove('hm-flash'); void map.offsetWidth; map.classList.add('hm-flash');
     }
@@ -232,6 +284,7 @@
       var c = e.target.closest('.hm-seg [data-goal]'); if(c) setGoal(c.getAttribute('data-goal'));
       /* A locked room opens the same way as the main button: a credit when there is one, else checkout */
       if(e.target.closest('[data-goopen]')){
+        if(pick !== open.key){ pick = open.key; drawRoom(); }
         var oh = view.querySelector('.px-open-h'), hh = oh.querySelector('h2');
         oh.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
         hh.setAttribute('tabindex', '-1'); hh.focus({preventScroll:true}); return;
@@ -239,6 +292,9 @@
       var t = e.target.closest('.tz-more[href$="/checkout"]'); if(t && (credit || !A.hasCheckout)){ e.preventDefault(); var b = view.querySelector('#credit-open'); if(b) b.click(); }
     });
     RI.syncSeg(view.querySelector('.hm-seg'));
+    /* The room buttons; a locked room's button opens with a credit when there is one, as the main button does */
+    view.querySelector('#px-pick').addEventListener('click', function(e){ var b = e.target.closest('[data-pick]'); if(b && b.getAttribute('data-pick') !== pick){ pick = b.getAttribute('data-pick'); drawRoom(); } });
+    view.querySelector('#px-open').addEventListener('click', function(e){ if(e.target.closest('[data-credit]')){ var b = view.querySelector('#credit-open'); if(b) b.click(); } });
     view.querySelector('.pk-cards').addEventListener('click', function(e){ var c = e.target.closest('[data-goal]'); if(c) setGoal(c.getAttribute('data-goal')); });
     view.querySelector('.pk-seg-m').addEventListener('click', function(e){ var c = e.target.closest('[data-goal]'); if(c) setGoal(c.getAttribute('data-goal')); });
     RI.syncSeg(view.querySelector('.pk-seg-m'));
