@@ -8,7 +8,10 @@
   var STEPS = [['house','Tell us about the home'],['rooms','Rooms and photos']];
   var OLD = {remarks:'rooms', consent:'rooms', photos:'rooms', measurements:'rooms', review:'rooms'}; /* older drafts and links */
   var LAST = STEPS.length - 1;
-  var SAMPLE_PHOTOS = {kitchen:['kitchen-dated.jpg','kitchen-dated-wide.jpg','cabinet-run.jpg'], living:['wood-floor.jpg','finishes/ct-stonelook.jpg'], bedrooms:['wood-floor.jpg'], hallbath:['finishes/bs-white.jpg','finishes/fx-black.jpg'], halfbath:['finishes/fx-single.jpg'], basement:['finishes/lt-old.jpg','finishes/lt-recessed.jpg'], exterior:['brick-ranch.jpg','livonia-street.jpg'], other:[]};
+  /* Team only: a mixed set of photos for the bulk upload demo, named the way a phone names them; each carries the room
+     it shows, so the pretend reading sorts them the same way every time ('?' = not sure on purpose) */
+  var SAMPLE_BULK = [['kitchen-dated.jpg','kitchen'],['cabinet-run.jpg','kitchen'],['kitchen-dated-wide.jpg','kitchen'],['wood-floor.jpg','living'],['finishes/pr-carpet.jpg','bedrooms'],['finishes/pr-lvp.jpg','bedrooms'],
+    ['finishes/pr-vanity.jpg','hallbath'],['finishes/fx-black.jpg','hallbath'],['finishes/fx-single.jpg','halfbath'],['finishes/lt-old.jpg','basement'],['finishes/pr-stairs.jpg','basement'],['brick-ranch.jpg','exterior'],['livonia-street.jpg','exterior'],['finishes/lt-pendant.jpg','?']];
   var MAX_MB = 25, MAX_PHOTOS = 150, MAX_PLAN_KEEP = 1.5;            /* SECURITY 7; plan size kept in this demo */
   var TYPES_OK = /\.(jpe?g|png|webp|heic|heif)$/i;
   var RIGHTS = {version:'Draft 1, November 2026', text:'I took these photos or have the right to use them.'};
@@ -319,20 +322,13 @@
 
   /* ---------- Screen 2: rooms and photos (change 6). One tray for every photo, room cards with photos, size and a note,
      the photo rights asked once on the first upload, and the house submitted from this screen. ---------- */
-  /* A suggested room from the file name. The product would use a quick read of each photo (a decision for Sam);
-     without it the chip is empty and the person picks the room. */
-  var SUGGEST = [[/kitchen|cabinet|counter|ct-|bs-|pulldown/i,'kitchen'],[/half/i,'halfbath'],[/bath|vanity|toilet|tub|shower|fx-black/i,'hallbath'],[/bed/i,'bedrooms'],[/living|family|dining|hall|wood-floor|floor/i,'living'],[/basement|lt-old|lt-recessed/i,'basement'],[/exterior|front|street|ranch|colonial|yard|outside/i,'exterior']];
-  function suggestFor(name, rooms){
-    for(var i = 0; i < SUGGEST.length; i++){ if(SUGGEST[i][0].test(name) && rooms.some(function(r){ return r[0] === SUGGEST[i][1]; })) return SUGGEST[i][1]; }
-    return '';
-  }
   function stepRooms(main, h, finish){
     h.photos = h.photos || {}; h.fps = h.fps || []; h.consents = h.consents || {}; h.sizes = h.sizes || {}; h.notes = h.notes || {}; h.measured = h.measured || {};
     var rooms = A.roomsFor(h);
     var ACCEPT = 'image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif';
     function nameOf(k){ var r = rooms.filter(function(x){ return x[0] === k; })[0]; return r ? r[1] : k; }
     function sizeable(r){ return r[0] !== 'exterior' && r[0] !== 'other' && !/^x-(ext|deck|patio|porch|driveway|pool|accessory)/.test(r[0]); }
-    main.innerHTML = '<header class="wiz-head rp3-head"><div><p class="label">Screen 2 of 2</p><h1>Rooms and photos</h1><p class="muted">Add all your photos at once, then put each one in its room. Sizes are optional.</p></div>' +
+    main.innerHTML = '<header class="wiz-head rp3-head"><div><p class="label">Screen 2 of 2</p><h1>Rooms and photos</h1><p class="muted">Add all your photos at once. We put each one in its room, and you check. Sizes are optional.</p></div>' +
         '<div class="rp3-prog" id="rp3-prog" aria-live="polite"></div></header>' +
       '<div class="rp2">' +
         '<aside class="rp2-tray up3" aria-label="Your photos">' +
@@ -371,6 +367,7 @@
         '<div class="rc3-media"></div>' +
         '<div class="rc3-body"><span class="rc3-ic">' + RI.icon(iconFor(r)) + '</span><div class="rc3-t"><h2 id="rc2-' + r[0] + '">' + nm + '</h2><p>' + A.hintFor(r[2] || r[0]) + '</p></div>' +
           (r[3] ? '<button type="button" class="icon-btn ru-del" data-delroom="' + r[0] + '" aria-label="Remove ' + nm + '">' + RI.icon('x','i-sm') + '</button>' : '') + '</div>' +
+        '<div class="ps" data-ps="' + r[0] + '" aria-live="polite" hidden></div>' +
         (sizeable(r) ? '<div class="sz" data-sz="' + r[0] + '" aria-live="polite" hidden></div>' : '') +
         '<details class="rc3-foot"><summary><span class="rc3-sum"></span><span class="rc3-state"></span></summary><div class="rc2-meta">' +
           (sizeable(r) ? '<div class="rc2-size"><span class="xsmall muted">Size <span class="opt">(optional)</span></span><span class="lw"><label class="sr" for="l-' + r[0] + '">Length in feet</label><input class="input" id="l-' + r[0] + '" data-l="' + r[0] + '" inputmode="decimal" placeholder="L" value="' + (s.l || '') + '"><span aria-hidden="true">×</span><label class="sr" for="w-' + r[0] + '">Width in feet</label><input class="input" id="w-' + r[0] + '" data-w="' + r[0] + '" inputmode="decimal" placeholder="W" value="' + (s.w || '') + '"><span class="xsmall muted">ft</span></span></div>' : '') +
@@ -383,7 +380,7 @@
       /* An estimate still waiting for a yes shows in the strip above, so the footer does not repeat it */
       sec.querySelector('.rc3-sum').innerHTML = s && s.l && !est ? RI.icon('ruler','i-sm') + '<b>' + s.l + ' × ' + s.w + ' ft</b>' : RI.icon('chev','i-sm rc3-chev') + (est ? 'Edit the size or add a note' : (r && sizeable(r) ? 'Add size' : 'Add a note') + ' <span class="opt">(optional)</span>');
       sec.querySelector('.rc3-state').textContent = h.notes[k] ? 'Note added' : s && s.src === 'photo' && s.ok ? 'Confirmed' : n ? '' : 'No photos yet';
-      drawSize(k);
+      drawSort(k); drawSize(k);
     }
     /* ---------- Suggested room size (Sam's meeting, Nov 2026): once a room has photos, a size is measured from
        them and shown as an estimate with "Roughly right? Yes / Edit". A size you type is never overwritten,
@@ -407,13 +404,13 @@
     }
     function maybeMeasure(k){
       var r = roomOf(k);
-      if(!r || !sizeable(r) || h.sizes[k] || h.measured[k] || measuring[k] || !A.photoCount(h, k)) return;
+      if(!r || !sizeable(r) || h.sizes[k] || h.measured[k] || measuring[k] || !confirmedN(k)) return;
       measuring[k] = true; drawSize(k);
       setTimeout(function(){
         delete measuring[k];
         if(!doc.body.contains(main)) return;              /* left the screen: measured next time */
-        if(h.sizes[k] || !A.photoCount(h, k)){ drawSize(k); return; }
-        var ps = (h.photos[k] || []).filter(function(p){ return p.state === 'done'; });
+        if(h.sizes[k] || !confirmedN(k)){ drawSize(k); return; }
+        var ps = (h.photos[k] || []).filter(function(p){ return p.state === 'done' && !p.sug; });
         var poor = ps.every(function(p){ return (p.flags || []).some(function(f){ return f === 'small' || f === 'blurry'; }); });
         var s = poor ? null : A.AI.sizeFor(h, k, r[2] || r[0]);
         h.measured[k] = s ? 'photo' : 'none';
@@ -421,6 +418,43 @@
         saved(h); setInputs(k); foot(k); totals();
       }, A.AI.MEASURE_MS);
     }
+    /* ---------- Photos sort themselves (Sam's meeting, Nov 2026): every photo added to the tray is read, then moved
+       into the room it shows, marked Suggested. Each room asks "Right room? Yes / Fix"; a photo we are not sure about
+       stays in the tray with its three best rooms. The reading is pretend (fakeai.js). ---------- */
+    var reading = {}, readQ = 0;
+    function confirmedN(k){ return (h.photos[k] || []).filter(function(p){ return p.state === 'done' && !p.sug; }).length; }
+    function sugIn(k){ return (h.photos[k] || []).filter(function(p){ return p.state === 'done' && p.sug; }).length; }
+    function read(p){
+      if(reading[p.id] || p.unsure) return;
+      reading[p.id] = true; readQ++; drawUnsorted();
+      setTimeout(function(){
+        delete reading[p.id]; readQ = Math.max(0, readQ - 1);
+        if(!doc.body.contains(main)) return;              /* left the screen: read next time */
+        if(!(h.photos.unsorted || []).some(function(x){ return x.id === p.id; })){ drawUnsorted(); return; }
+        var res = A.AI.readPhoto(p, rooms, h); delete p.suggest;
+        if(res.room){ p.sug = true; move('unsorted', p.id, res.room, true); }
+        else { p.unsure = true; p.alts = res.alts; saved(h); drawUnsorted(); }
+      }, A.AI.readMs(p) + (readQ - 1) * 160);
+    }
+    function drawSort(k){
+      var sec = main.querySelector('.rc2[data-room="' + k + '"]'), el = sec && sec.querySelector('.ps'); if(!el) return;
+      var all = (h.photos[k] || []).filter(function(p){ return p.state === 'done'; }).length, sg = sugIn(k), nm = RI.esc(nameOf(k));
+      sec.classList.toggle('is-sug', sg > 0);
+      if(!sg){ el.hidden = true; el.innerHTML = ''; return; }
+      el.innerHTML = '<span class="ps-t">' + RI.icon('image','i-sm') + '<span><b>' + (sg === all ? 'We put ' : 'We added ') + sg + ' photo' + (sg === 1 ? '' : 's') + ' here</b><span class="ps-from">Sorted by reading your photos</span></span></span>' +
+        '<span class="ps-ask"><span class="ps-q">Right room?</span><button type="button" class="btn btn-secondary btn-sm" data-psok="' + k + '" aria-label="Yes, these photos show ' + nm + '">' + RI.icon('check','i-sm') + 'Yes</button><button type="button" class="btn btn-secondary btn-sm" data-psfix="' + k + '" aria-label="Fix the photos in ' + nm + '">' + RI.icon('pencil','i-sm') + 'Fix</button></span>';
+      el.hidden = false;
+    }
+    /* The tray's top line: reading now, or how many photos wait for a yes, with Confirm all */
+    function sortHtml(){
+      var nRead = Object.keys(reading).length, sg = 0, rs = 0;
+      rooms.forEach(function(r){ var n = sugIn(r[0]); if(n){ sg += n; rs++; } });
+      if(nRead) return '<p class="ps-sum is-wait">' + RI.icon('image','i-sm') + '<span><b>Reading ' + nRead + ' photo' + (nRead === 1 ? '' : 's') + '…</b> Each one goes to the room it shows.</span></p>';
+      if(sg) return '<div class="ps-sum"><p>' + RI.icon('check','i-sm') + '<span><b>' + sg + ' photo' + (sg === 1 ? '' : 's') + ' sorted into ' + rs + ' room' + (rs === 1 ? '' : 's') + '.</b> Check each room, or confirm them all. <span class="state state-sample">Sample</span></span></p>' +
+        '<button type="button" class="btn btn-primary btn-sm btn-block" data-psall>' + RI.icon('check','i-sm') + 'Confirm all</button></div>';
+      return '';
+    }
+    function confirmRoom(k){ (h.photos[k] || []).forEach(function(p){ delete p.sug; }); }
     /* A room that loses all its photos also loses a size that only came from them */
     function dropEstimate(k){
       var s = h.sizes[k];
@@ -437,14 +471,15 @@
         (p.state === 'fail' ? '<span class="th-fail">' + RI.icon('warn','i-sm') + 'Did not upload<button type="button" data-retry="' + p.id + '" data-room="' + room + '">Retry</button></span>' : '') +
         '<button type="button" class="th-x" data-del="' + p.id + '" data-room="' + room + '" aria-label="Remove photo">' + RI.icon('x','i-sm') + '</button></figure>';
     }
-    /* An unsorted photo: tap to select it; the suggested room chip (tap to accept) when there is one */
+    /* An unsorted photo: being read; not sure, with its three best rooms one tap away; or plain, tap to select it */
     function unsortedItem(p){
       if(p.state !== 'done') return '<li class="us-item">' + thumb(p, 'unsorted') + '</li>';
-      var on = !!picked[p.id];
-      return '<li class="us-item' + (on ? ' is-picked' : '') + '">' +
+      if(reading[p.id]) return '<li class="us-item is-reading"><div class="us-ph">' + thumb(p, 'unsorted') + '<span class="us-read">' + RI.icon('eye','i-sm') + 'Reading…</span></div></li>';
+      var on = !!picked[p.id], alts = (p.alts || (p.suggest ? [p.suggest] : [])).filter(function(k){ return roomOf(k); });
+      return '<li class="us-item' + (on ? ' is-picked' : '') + (alts.length ? ' is-unsure' : '') + '">' +
         '<div class="us-ph">' + thumb(p, 'unsorted') +
           '<button type="button" class="us-tick" data-pick="' + p.id + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Unselect' : 'Select') + ' this photo">' + RI.icon('check','i-sm') + '</button></div>' +
-        (p.suggest ? '<button type="button" class="us-chip" data-accept="' + p.id + '" data-to="' + p.suggest + '" title="Put it in ' + RI.esc(nameOf(p.suggest)) + '">' + RI.icon('check','i-sm') + '<span>' + RI.esc(nameOf(p.suggest)) + '</span></button>' : '') + '</li>';
+        (alts.length ? '<div class="us-alts"><span class="us-q">Which room?</span>' + alts.map(function(k){ return '<button type="button" class="us-chip" data-accept="' + p.id + '" data-to="' + k + '">' + RI.esc(nameOf(k)) + '</button>'; }).join('') + '</div>' : '') + '</li>';
     }
     var bulkTo = '';
     function drawUnsorted(){
@@ -454,15 +489,15 @@
       /* The room picker starts on the room the picked photos have in common, or the last room used */
       var common = ids.map(function(id){ return (list.filter(function(p){ return p.id === id; })[0] || {}).suggest || ''; }).reduce(function(a, b){ return a === null ? b : a === b ? a : ''; }, null) || '';
       var to = bulkTo || common;
-      u.innerHTML = list.length ? '<header><h2>Not sorted yet <span class="n">' + list.length + '</span></h2>' +
+      u.innerHTML = sortHtml() + (list.length ? '<header><h2>Not sorted yet <span class="n">' + list.length + '</span></h2>' +
           '<span class="us-hacts">' + (sug > 1 ? '<button type="button" class="linkbtn small" id="accept-all">Accept suggestions</button>' : '') + (done > 1 && n < done ? '<button type="button" class="linkbtn small" id="pick-all">Select all</button>' : '') + '</span></header>' +
-        '<p class="us-help">' + RI.icon('info','i-sm') + '<span>Tap photos, then pick the room once. Or drag a photo onto a room.</span></p>' +
+        '<p class="us-help">' + RI.icon('info','i-sm') + '<span>Tap the room under a photo, or tap photos and pick the room once. You can also drag a photo onto a room.</span></p>' +
         '<ul class="us-list">' + list.map(unsortedItem).join('') + '</ul>' +
         (n ? '<div class="us-bulk" role="region" aria-label="Put selected photos in a room"><div class="us-bulk-h"><b>' + n + ' selected</b><button type="button" class="linkbtn small" id="pick-clear">Clear</button></div>' +
           '<div class="us-bulk-r"><label class="us-sel-w"><span class="sr">Room for the selected photos</span><select class="us-sel" id="bulk-to"><option value="">Choose a room</option>' +
             rooms.map(function(r){ return '<option value="' + r[0] + '"' + (r[0] === to ? ' selected' : '') + '>' + RI.esc(r[1]) + '</option>'; }).join('') + '</select></label>' +
           '<button type="button" class="btn btn-primary btn-sm" id="bulk-go">' + RI.icon('arrow','i-sm') + 'Move ' + (n === 1 ? 'it' : 'them') + '</button></div></div>' : '')
-        : '<p class="xsmall muted rp2-empty">' + (A.photoCount(h) ? RI.icon('check','i-sm') + 'Every photo is in a room.' : 'Photos you add land here first.') + '</p>';
+        : '<p class="xsmall muted rp2-empty">' + (A.photoCount(h) ? RI.icon('check','i-sm') + 'Every photo is in a room.' : 'Photos you add land here first.') + '</p>');
       RI.fillIcons(u);
       /* While photos wait to be sorted, the upload area shrinks so they stay in view */
       main.querySelector('.up3').classList.toggle('busy', list.length > 0);
@@ -479,7 +514,7 @@
       if(cv){
         var rest = done.filter(function(p){ return p !== cv; }), more = rest.length - 2;
         m.innerHTML = '<button type="button" class="rc3-cover" data-edit="' + key + '" tabindex="-1" aria-hidden="true"><img src="' + cv.src + '" alt=""></button>' +
-          (n ? '<span class="rc3-ready">' + RI.icon('check','i-sm') + 'Ready</span><span class="rc3-cnt">' + RI.icon('camera','i-sm') + n + ' photo' + (n === 1 ? '' : 's') + '</span>' : '') +
+          (n ? (sugIn(key) === n ? '<span class="rc3-ready is-sug">' + RI.icon('eye','i-sm') + 'Check</span>' : '<span class="rc3-ready">' + RI.icon('check','i-sm') + 'Ready</span>') + '<span class="rc3-cnt">' + RI.icon('camera','i-sm') + n + ' photo' + (n === 1 ? '' : 's') + '</span>' : '') +
           '<button type="button" class="rc3-edit" data-edit="' + key + '">' + RI.icon('pencil','i-sm') + 'Edit<span class="sr"> ' + nm + ' photos</span></button>' +
           (rest.length ? '<span class="rc3-mini" aria-hidden="true">' + rest.slice(0, 2).map(function(p){ return '<span><img src="' + p.src + '" alt=""></span>'; }).join('') + (more > 0 ? '<span class="more">+' + more + '</span>' : '') + '</span>' : '') +
           (up.length ? '<span class="rc3-up" data-p="' + up[0].id + '"><span>Uploading ' + up.length + ' photo' + (up.length === 1 ? '' : 's') + '</span><span class="th-bar"><i style="width:' + (up[0].pct || 0) + '%"></i></span></span>' : '');
@@ -529,7 +564,7 @@
         if(p.drop){ drawRoom(key); totals(); return; }
         if(fail){ p.state = 'fail'; (pending[key] = pending[key] || []).push(p); }
         else { p.state = 'done'; delete p.pct; (h.photos[key] = h.photos[key] || []).push(p); if(p.fp) h.fps.push(p.fp); saved(h); }
-        drawRoom(key); totals(); if(p.state === 'done' && key !== 'unsorted') maybeMeasure(key);
+        drawRoom(key); totals(); if(p.state === 'done') (key === 'unsorted' ? read(p) : maybeMeasure(key));
       })(t0);
     }
     function existingHashes(){ var out = []; Object.keys(h.photos).forEach(function(k){ (h.photos[k] || []).forEach(function(p){ if(p.hash) out.push(p.hash); }); }); Object.keys(pending).forEach(function(k){ pending[k].forEach(function(p){ if(p.hash) out.push(p.hash); }); }); return out; }
@@ -553,7 +588,7 @@
         if(total() >= MAX_PHOTOS){ RI.toast('A house can have up to ' + MAX_PHOTOS + ' photos.', 'warn'); return; }
         var fp = file.name + '|' + file.size + '|' + file.lastModified;
         if(h.fps.indexOf(fp) > -1 || Object.keys(pending).some(function(k){ return pending[k].some(function(p){ return p.fp === fp; }); })){ RI.toast(file.name + ' is already added.', 'info'); return; }
-        var sug = key === 'unsorted' ? suggestFor(file.name, rooms) : '';
+        var sug = ''; /* the room is decided by reading the photo once it is in (read, below) */
         if(isHeic){ upload({id:A.uid('p'), name:file.name, src:heicThumb(file.name), fp:fp, flags:['heic'], suggest:sug}, key); return; }
         A.shrink(file).then(function(r){
           var flags = [];
@@ -564,9 +599,9 @@
         }, function(){ RI.toast(file.name + ' could not be opened as an image, so it was not added.', 'warn'); });
       });
     }
-    function move(from, id, to){
+    function move(from, id, to, auto){
       var p = (h.photos[from] || []).filter(function(x){ return x.id === id; })[0]; if(!p || from === to) return;
-      h.photos[from] = h.photos[from].filter(function(x){ return x.id !== id; }); delete p.suggest; (h.photos[to] = h.photos[to] || []).push(p);
+      h.photos[from] = h.photos[from].filter(function(x){ return x.id !== id; }); delete p.suggest; delete p.unsure; delete p.alts; if(!auto) delete p.sug; (h.photos[to] = h.photos[to] || []).push(p);
       if(h.covers && h.covers[from] === id) delete h.covers[from];
       dropEstimate(from); saved(h); drawRoom(from); drawRoom(to); totals(); maybeMeasure(to);
     }
@@ -656,10 +691,11 @@
       Object.keys(ed.rm).forEach(function(id){ delPhoto(key, id); });
       Object.keys(ed.mv).forEach(function(id){ move(key, id, ed.mv[id]); });
       if(ed.cover && (h.photos[key] || []).some(function(p){ return p.id === ed.cover; })){ h.covers = h.covers || {}; h.covers[key] = ed.cover; }
+      confirmRoom(key); /* saving the sheet means the room was checked */
       /* the card's own size and note fields follow */
       var sec = main.querySelector('.rc2[data-room="' + key + '"]'), sz = h.sizes[key] || {};
       if(sec){ var cl = sec.querySelector('[data-l]'), cw = sec.querySelector('[data-w]'), cn = sec.querySelector('[data-note]'); if(cl){ cl.value = sz.l || ''; cw.value = sz.w || ''; } if(cn) cn.value = h.notes[key] || ''; }
-      saved(h); drawRoom(key); totals(); d.close(); RI.toast(nameOf(key) + ' saved.', 'check');
+      saved(h); drawRoom(key); drawUnsorted(); totals(); d.close(); RI.toast(nameOf(key) + ' saved.', 'check'); maybeMeasure(key);
     }
     function edRevert(ed){
       var key = ed.key, n = 0;
@@ -702,14 +738,20 @@
       if(e.target.closest('#accept-all')){ (h.photos.unsorted || []).slice().forEach(function(p){ if(p.suggest) move('unsorted', p.id, p.suggest); }); RI.toast('Suggestions accepted.'); return; }
       if(del) delPhoto(del.getAttribute('data-room'), del.getAttribute('data-del'));
       if(re) retry(re.getAttribute('data-room'), re.getAttribute('data-retry'));
+      var pok = e.target.closest('[data-psok]'); if(pok){ var pk = pok.getAttribute('data-psok'), pn = sugIn(pk); confirmRoom(pk); saved(h); drawRoom(pk); drawUnsorted(); totals(); maybeMeasure(pk); var ps2 = main.querySelector('.rc2[data-room="' + pk + '"] .rc3-foot>summary'); if(ps2) ps2.focus(); RI.toast(nameOf(pk) + ': ' + pn + ' photo' + (pn === 1 ? '' : 's') + ' confirmed.', 'check'); return; }
+      var pfx = e.target.closest('[data-psfix]'); if(pfx){ editRoom(pfx.getAttribute('data-psfix')); return; }
+      if(e.target.closest('[data-psall]')){ var cn = 0; rooms.forEach(function(r){ var x = sugIn(r[0]); if(x){ cn += x; confirmRoom(r[0]); } }); saved(h); all(); rooms.forEach(function(r){ maybeMeasure(r[0]); }); RI.toast(cn + ' photo' + (cn === 1 ? '' : 's') + ' confirmed in their rooms.', 'check'); return; }
       var szok = e.target.closest('[data-szok]'); if(szok){ var sk = szok.getAttribute('data-szok'); if(h.sizes[sk]){ h.sizes[sk].ok = true; saved(h); foot(sk); totals(); var sm = main.querySelector('.rc2[data-room="' + sk + '"] .rc3-foot>summary'); if(sm) sm.focus(); RI.toast(nameOf(sk) + ': ' + h.sizes[sk].l + ' × ' + h.sizes[sk].w + ' ft confirmed.', 'check'); } return; }
       var sze = e.target.closest('[data-szedit]'); if(sze){ var ek = sze.getAttribute('data-szedit'), esec = main.querySelector('.rc2[data-room="' + ek + '"]'); setInputs(ek); esec.querySelector('.rc3-foot').open = true; var li = esec.querySelector('[data-l]'); if(li){ li.focus(); li.select(); } return; }
       if(e.target.closest('#sample')){
-        /* Team only: sample photos land in the tray with their suggested room, to show the sorting */
+        /* Team only: a mixed bulk set lands in the tray, is read, and each photo moves to its room */
         if(!h.rights){ h.rights = true; h.consents.rights = {at:Date.now(), version:RIGHTS.version, text:RIGHTS.text}; }
-        var added = 0;
-        rooms.forEach(function(r){ var sp = SAMPLE_PHOTOS[r[2] || r[0]]; if(A.photoCount(h, r[0]) || !sp || !sp.length) return; sp.forEach(function(s){ upload({id:A.uid('p'), name:s.split('/').pop(), src:RI.img(s), retried:true, suggest:r[0]}, 'unsorted'); added++; }); });
-        RI.toast(added ? 'Sample photos added to the tray, each with a suggested room.' : 'Every room already has photos.');
+        var added = 0, types = {}; rooms.forEach(function(r){ if(!A.photoCount(h, r[0])) types[r[2] || r[0]] = true; });
+        SAMPLE_BULK.forEach(function(x, i){
+          var fp = 'sample|' + x[0]; if(x[1] !== '?' && !types[x[1]]) return; if(h.fps.indexOf(fp) > -1) return;
+          upload({id:A.uid('p'), name:'IMG_' + (4101 + i) + '.jpg', src:RI.img(x[0]), fp:fp, retried:true, demo:x[1], demoAlts:x[1] === '?' ? ['kitchen','living','dining'] : null}, 'unsorted'); added++;
+        });
+        RI.toast(added ? added + ' sample photos added. Watch them sort themselves.' : 'The sample photos are already in.');
       }
       if(e.target.closest('#add-room')) roomPicker();
       var vp = e.target.closest('[data-viewplan]'); if(vp) viewPlan(+vp.getAttribute('data-viewplan'));
@@ -770,6 +812,7 @@
     }
     function plans(){ main.querySelector('#plan-files').innerHTML = (h.plans || []).map(function(p, i){ return '<li>' + RI.icon('file','i-sm') + '<span>' + RI.esc(p.name) + '</span><span class="xsmall muted">' + (p.kind === 'pdf' ? 'PDF' : 'Image') + ', ' + p.kb + ' KB</span><button type="button" class="linkbtn" data-viewplan="' + i + '">View</button><button type="button" class="linkbtn" data-rmplan="' + i + '">Remove</button></li>'; }).join(''); RI.fillIcons(main.querySelector('#plan-files')); }
     plans(); all(); rooms.forEach(function(r){ maybeMeasure(r[0]); });
+    (h.photos.unsorted || []).forEach(function(p){ if(p.state === 'done') read(p); });
     /* Desktop: the photo card ends just above the submit dock, wherever the page is scrolled */
     var trayEl = main.querySelector('.rp2-tray'), fitQ = false;
     function fitTray(){
@@ -795,9 +838,16 @@
     return function(){
       var up = Object.keys(pending).some(function(k){ return pending[k].some(function(p){ return p.state === 'up'; }); });
       if(up){ RI.toast('A few photos are still uploading. One moment.', 'clock'); return false; }
-      var n = (h.photos.unsorted || []).length;
-      if(n){ A.confirm(n + ' photo' + (n > 1 ? 's are' : ' is') + ' not in a room yet', 'Photos left in the tray are not used. Sort them first, or submit without them.', 'Submit without them', disclaimer); return false; }
-      disclaimer(); return false;
+      if(Object.keys(reading).length){ RI.toast('A few photos are still being read. One moment.', 'clock'); return false; }
+      function trayThenSubmit(){
+        var n = (h.photos.unsorted || []).length;
+        if(n){ A.confirm(n + ' photo' + (n > 1 ? 's are' : ' is') + ' not in a room yet', 'Photos left in the tray are not used. Sort them first, or submit without them.', 'Submit without them', disclaimer); return; }
+        disclaimer();
+      }
+      /* Photos still only suggested get one clear question first, before the estimate tick */
+      var sg = 0; rooms.forEach(function(r){ sg += sugIn(r[0]); });
+      if(sg){ A.confirm(sg + ' photo' + (sg === 1 ? ' is' : 's are') + ' still suggested', 'We put ' + (sg === 1 ? 'it' : 'them') + ' in rooms by reading the photos. Confirm ' + (sg === 1 ? 'it' : 'them') + ' as ' + (sg === 1 ? 'it is' : 'they are') + ', or check each room first.', 'Confirm them', function(){ rooms.forEach(function(r){ confirmRoom(r[0]); }); saved(h); all(); rooms.forEach(function(r){ maybeMeasure(r[0]); }); trayThenSubmit(); }); return false; }
+      trayThenSubmit(); return false;
     };
   }
 

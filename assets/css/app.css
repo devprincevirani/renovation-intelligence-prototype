@@ -1577,3 +1577,42 @@ button.tz-more{background:none;border:0;padding:0;font:inherit;cursor:pointer}
   .px-pick .rc-chip{flex:none}
   .px-cta{justify-self:stretch;justify-content:center}
 }
+
+/* ===================================================================
+   Photos sort themselves (ps-). Sam's meeting, Nov 2026: photos added to
+   the tray are read and moved into the room they show, marked Suggested;
+   each room asks "Right room? Yes / Fix"; unsure photos stay in the tray
+   with three rooms one tap away. Calm: no motion beyond a fade.
+   =================================================================== */
+.ps{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin:0 16px 10px;padding:10px 12px;border:1px solid var(--deep-forest);border-radius:var(--r-md);background:#EEF3F1;font-size:.85rem;line-height:1.4}
+.ps[hidden]{display:none}
+.ps-t{display:inline-flex;align-items:flex-start;gap:8px;min-width:0}
+.ps-t>.i{margin-top:2px;color:var(--deep-forest)}
+.ps-t>span{display:grid;gap:1px}
+.ps-t b{font-weight:600;font-size:.92rem}
+.ps-from{font-size:.76rem;color:var(--muted)}
+.ps-ask{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%}
+.ps-q{grid-column:1/-1;font-weight:600}
+.ps-ask .btn{min-height:36px;padding:0 10px;justify-content:center;background:var(--raised)}
+.rc2.rc3.is-sug{border-color:var(--deep-forest)}
+.rc3-ready.is-sug{background:var(--raised);color:var(--deep-forest);box-shadow:inset 0 0 0 1px var(--deep-forest)}
+/* The tray: what is being read now, or how many wait for a yes */
+.ps-sum{display:grid;gap:8px;margin:0 0 12px;padding:10px 12px;border:1px solid var(--deep-forest);border-radius:var(--r-md);background:#EEF3F1;font-size:.82rem;line-height:1.4}
+.ps-sum p{margin:0;display:flex;gap:8px;align-items:flex-start}
+.ps-sum .i{flex:none;margin-top:2px;color:var(--deep-forest)}
+.ps-sum.is-wait{display:flex;gap:8px;align-items:flex-start;border-style:dashed;background:var(--raised);color:var(--muted)}
+.ps-sum.is-wait b{color:var(--text)}
+.us-item.is-reading .th img{opacity:.55}
+.us-read{position:absolute;left:6px;right:6px;bottom:6px;display:flex;align-items:center;justify-content:center;gap:5px;padding:3px 6px;border-radius:var(--r-sm);background:rgba(255,255,255,.94);color:var(--deep-forest);font-size:.72rem;font-weight:600}
+.us-read .i{width:12px;height:12px}
+@media (prefers-reduced-motion:no-preference){ .us-item.is-reading .us-read{animation:ps-pulse 1.4s ease-in-out infinite} }
+@keyframes ps-pulse{50%{opacity:.55}}
+/* Not sure: the photo takes the full row, with its three best rooms beside it */
+.us-item.is-unsure{grid-column:1/-1;grid-template-columns:96px minmax(0,1fr);gap:10px;align-items:start}
+.us-alts{display:grid;gap:5px;align-content:start}
+.us-q{font-size:.76rem;font-weight:600;color:var(--state-ink)}
+.us-alts .us-chip{justify-content:flex-start;border-radius:var(--r-md);text-align:left}
+@media (max-width:640px){
+  .ps{margin:0 12px 10px}
+  .us-item.is-unsure{grid-template-columns:88px minmax(0,1fr)}
+}
