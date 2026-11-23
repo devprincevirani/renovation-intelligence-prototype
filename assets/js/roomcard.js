@@ -55,10 +55,11 @@
   function html(room, pk, opts){
     opts = opts || {};
     var t = tiles(room, pk), pkd = RI.PACKAGES.filter(function(p){ return p.key === pk; })[0];
-    return '<article class="rc" data-room="' + room.key + '">' + photoHtml(room, opts) +
+    var buys = !!opts.buysHtml; /* the paid presentation: photo as a banner on top, the breakdown says what changes */
+    return '<article class="rc' + (buys ? ' rc-banner' : '') + '" data-room="' + room.key + '">' + photoHtml(room, opts) +
       '<div class="rc-body"><header class="rc-head"><div><h3>' + RI.esc(room.name) + '</h3><p class="xsmall muted">' + RI.esc(pkd.name) + ': ' + RI.esc(pkd.goal) + '</p></div>' +
         (opts.range ? '<span class="range-txt rc-range">' + opts.range + '</span>' : '') + '</header>' +
-      '<p class="rc-change">' + RI.esc(change(room, pk)) + '</p>' +
+      (buys ? '' : '<p class="rc-change">' + RI.esc(change(room, pk)) + '</p>') +
       /* opts.buysHtml (the paid presentation): every line open, with its product and range, instead of tiles + folded list */
       (opts.buysHtml || ((function(){ var tp = t.filter(function(x){ return x.img; }); /* real product photos only, never a placeholder tile */
         return tp.length ? '<ul class="rc-tiles">' + tp.slice(0, opts.max || 6).map(tileHtml).join('') + '</ul>' : '<p class="small muted">' + (t.length ? 'The products for this room are listed under What is included.' : 'No products to show for this room under this goal.') + '</p>';
