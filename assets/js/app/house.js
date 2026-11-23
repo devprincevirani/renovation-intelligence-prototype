@@ -168,12 +168,18 @@
               '<ul class="tz-list">' + tz.show.map(function(it){ return tzLine(it, sel); }).join('') + '</ul>' +
               (tz.hidden ? '<span class="tz-bars" aria-hidden="true">' + '<i></i><i></i><i></i>'.slice(0, 7 * Math.min(3, tz.hidden)) + '</span>' : '') +
               '<span class="hm-foot"><a class="tz-more" href="#/houses/' + h.id + '/checkout">' + RI.icon('lock','i-sm') + (tz.hidden ? '+' + tz.hidden + ' more item' + (tz.hidden === 1 ? '' : 's') + ' and every price' : 'Its price is in the presentation') + '</a>' + (part ? '<span class="hm-part">Partial</span>' : '') + '</span></div></article>';
-          return '<article class="hm-room ' + l.cls + '" data-room="' + r.key + '">' +
+          /* Every card that can do something does it from anywhere on the card: paid opens the presentation,
+             the free room scrolls to its full view below, a room with no photos goes to the photo step */
+          var act = paid ? '<a class="tz-more" href="#/houses/' + h.id + '/presentation">' + RI.icon('eye','i-sm') + 'Open in the presentation</a>'
+            : r === open ? '<button type="button" class="tz-more" data-goopen>' + RI.icon('eye','i-sm') + 'Open below, free</button>'
+            : l.cls === 'held' ? '<a class="tz-more" href="#/houses/' + h.id + '/intake/photos">' + RI.icon('camera','i-sm') + 'Add photos of this room</a>'
+            : null;
+          return '<article class="hm-room ' + l.cls + (act ? ' tz-lock' : '') + '" data-room="' + r.key + '">' +
             '<div class="hm-ph">' + (ph ? '<img src="' + ph + '" alt="' + RI.esc(r.name) + '" loading="lazy">' : '<span class="hm-noph">' + RI.icon(r.key === 'whole' ? 'house' : 'camera') + '</span>') + '<span class="hm-tag">' + l.name + '</span></div>' +
             '<div class="hm-b"><div class="hm-top"><b>' + RI.esc(r.name) + '</b>' + meter(l) + '</div>' +
               '<p>' + RI.esc(mainChange(r, sel)) + '.</p>' +
               (pr.length ? '<span class="hm-prods">' + pr.map(function(x){ return '<img src="' + x[0] + '" alt="" title="' + RI.esc(x[1]) + '" loading="lazy">'; }).join('') + '</span>' : '') +
-              '<span class="hm-foot">' + (r === open ? RI.icon('eye','i-sm') + 'Open below, free' : RI.icon('lock','i-sm') + 'Price in the presentation') + (part ? '<span class="hm-part">Partial</span>' : '') + '</span></div></article>';
+              '<span class="hm-foot">' + (act || RI.icon('lock','i-sm') + 'Price in the presentation') + (part ? '<span class="hm-part">Partial</span>' : '') + '</span></div></article>';
         }).join('') + '</div>';
     }
     function openRoom(){ return RI.RoomCard.html(open, sel, {photo:roomPhoto(open), range:RI.range(RI.totals(sel, {}, open.key).low, RI.totals(sel, {}, open.key).high)}); }
@@ -225,7 +231,12 @@
     view.querySelector('#px-map').addEventListener('click', function(e){
       var c = e.target.closest('.hm-seg [data-goal]'); if(c) setGoal(c.getAttribute('data-goal'));
       /* A locked room opens the same way as the main button: a credit when there is one, else checkout */
-      var t = e.target.closest('.tz-more'); if(t && (credit || !A.hasCheckout)){ e.preventDefault(); var b = view.querySelector('#credit-open'); if(b) b.click(); }
+      if(e.target.closest('[data-goopen]')){
+        var oh = view.querySelector('.px-open-h'), hh = oh.querySelector('h2');
+        oh.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
+        hh.setAttribute('tabindex', '-1'); hh.focus({preventScroll:true}); return;
+      }
+      var t = e.target.closest('.tz-more[href$="/checkout"]'); if(t && (credit || !A.hasCheckout)){ e.preventDefault(); var b = view.querySelector('#credit-open'); if(b) b.click(); }
     });
     RI.syncSeg(view.querySelector('.hm-seg'));
     view.querySelector('.pk-cards').addEventListener('click', function(e){ var c = e.target.closest('[data-goal]'); if(c) setGoal(c.getAttribute('data-goal')); });

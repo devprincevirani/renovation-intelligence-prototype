@@ -1513,6 +1513,9 @@ dialog.dlg .dlg-body{overscroll-behavior:contain}
 .tz-more{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--deep-forest);text-decoration:none}
 .tz-more::after{content:"";position:absolute;inset:0}
 .tz-more:focus-visible{outline:none}
+button.tz-more{background:none;border:0;padding:0;font:inherit;cursor:pointer}
+.px-open-h{scroll-margin-top:calc(var(--head-h) + 16px)}
+.px-open-h h2:focus{outline:none}
 .hm-room.tz-lock .hm-foot{font-size:.74rem}
 @media (max-width:640px){
   .tz-list li{grid-template-columns:26px minmax(0,1fr);gap:6px}
