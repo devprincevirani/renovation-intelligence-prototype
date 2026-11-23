@@ -1444,3 +1444,177 @@ dialog.dlg .dlg-body{overscroll-behavior:contain}
 .rc3-state{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Tablets: the submit dock uses its short count so it never wraps */
 @media (max-width:1023px){ .sb-short{display:inline} .sb-long{display:none} }
+
+/* ===================================================================
+   Presentation: What this buys (wb-). Sam's meeting, Nov 2026: the room's
+   range broken into the things it pays for, each with its product.
+   =================================================================== */
+.wb{display:grid;gap:10px;border-top:1px solid var(--border-soft);padding-top:14px}
+.wb-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.wb-hd h4{margin:0;font-size:1rem}
+.wb-list{list-style:none;margin:0;padding:0}
+.wb-line{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px 0;border-top:1px solid var(--border-soft);transition:opacity var(--fast)}
+.wb-line:first-child{border-top:0;padding-top:2px}
+.wb-th{width:56px;height:56px;border-radius:var(--r-md);overflow:hidden;background:var(--sunken);display:grid;place-items:center;color:var(--muted)}
+.wb-th img{width:100%;height:100%;object-fit:cover;display:block}
+.wb-t{display:grid;gap:3px;min-width:0}
+.wb-t b{font-weight:600;line-height:1.3}
+.wb-act{font-size:.86rem;line-height:1.45}
+.wb-k{display:inline-block;font-size:.72rem;font-weight:600;line-height:1.5;padding:0 6px;margin-right:6px;border:1px solid var(--border);border-radius:var(--r-sm);color:var(--state-ink);vertical-align:1px}
+.wb-k-new{border-color:var(--accent);color:var(--accent)}
+.wb-prod{font-size:.8rem;color:var(--muted)}
+.wb-r{display:grid;justify-items:end;gap:2px;text-align:right}
+.wb-r .range-txt{font-size:.92rem;white-space:nowrap;padding-top:1px}
+.wb-r .switch{min-height:36px}
+.wb-line.off{opacity:.5}
+.wb-line.off .range-txt{text-decoration:line-through;text-decoration-color:var(--muted)}
+.wb-sum{margin:0;font-size:.82rem;color:var(--muted)}
+.wb-held{border-top:1px solid var(--border-soft)}
+.wb-hold .wb-th{background:transparent;border:1px dashed var(--border-strong)}
+.wb-hold .wb-r{gap:6px}
+.wb-kept{border-top:1px solid var(--border-soft);padding-top:8px}
+.wb-kept>summary{cursor:pointer;font-weight:600;font-size:.88rem;min-height:40px;display:flex;align-items:center}
+.wb-kept ul{list-style:none;margin:2px 0 4px;padding:0;display:grid;gap:8px}
+.wb-kept li{display:grid;gap:1px;font-size:.88rem}
+.wb-kept li b{font-weight:600}
+.wb-all{display:grid;gap:16px}
+@media (max-width:640px){
+  .wb-line{grid-template-columns:48px minmax(0,1fr);gap:10px 12px}
+  .wb-th{width:48px;height:48px}
+  .wb-r{grid-column:2;grid-auto-flow:column;justify-content:space-between;align-items:center;justify-items:start;text-align:left}
+  .pres .rc-head{flex-direction:column;gap:6px}
+}
+@media print{
+  .wb-line.off{display:none}
+  .wb-line{break-inside:avoid}
+  .wb-all .rc{break-inside:auto}
+  .rc-picker{display:none!important}
+}
+
+/* ===================================================================
+   Price page teaser (tz-). Sam's meeting, Nov 2026: each locked room shows
+   a few real items, no prices, grey lines for the rest. The card opens
+   checkout. No blur (DESIGN.md), no hover lift.
+   =================================================================== */
+.hm-room.tz-lock{position:relative;cursor:pointer}
+.hm-room.tz-lock:hover{transform:none;box-shadow:none;border-color:var(--deep-forest)}
+.hm-room.tz-lock:focus-within{outline:2px solid var(--deep-forest);outline-offset:2px}
+.tz-list{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.tz-list li{display:grid;grid-template-columns:30px minmax(0,1fr);gap:8px;align-items:center}
+.tz-th{width:30px;height:30px;border-radius:var(--r-sm);overflow:hidden;background:var(--sunken);display:grid;place-items:center;color:var(--muted)}
+.tz-th img{width:100%;height:100%;object-fit:cover;display:block}
+.tz-t{display:grid;min-width:0;line-height:1.3}
+.tz-t b{font-size:.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tz-t span{font-size:.74rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tz-bars{display:grid;gap:6px;padding:2px 0 2px 38px}
+.tz-bars i{display:block;height:7px;border-radius:var(--r-sm);background:var(--border-soft)}
+.tz-bars i:nth-child(2){width:74%}
+.tz-bars i:nth-child(3){width:52%}
+.tz-more{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--deep-forest);text-decoration:none}
+.tz-more::after{content:"";position:absolute;inset:0}
+.tz-more:focus-visible{outline:none}
+button.tz-more{background:none;border:0;padding:0;font:inherit;cursor:pointer}
+.px-open-h{scroll-margin-top:calc(var(--head-h) + 16px)}
+.px-open-h h2:focus{outline:none}
+.hm-room.tz-lock .hm-foot{font-size:.74rem}
+@media (max-width:640px){
+  .tz-list li{grid-template-columns:26px minmax(0,1fr);gap:6px}
+  .tz-th{width:26px;height:26px}
+  .tz-bars{padding-left:32px}
+}
+@media (prefers-reduced-motion:reduce){ .hm-room.tz-lock{transition:none} }
+
+/* ===================================================================
+   Suggested room size on the room card (sz-). Sam's meeting, Nov 2026:
+   measured from the photos, shown as an estimate, "Roughly right?
+   Yes / Edit". Typed sizes are never overwritten.
+   =================================================================== */
+.sz{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin:0 16px 14px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--raised);font-size:.85rem;line-height:1.4}
+.sz[hidden]{display:none}
+.sz>.i{flex:none;color:var(--muted)}
+.sz-v{display:inline-flex;align-items:flex-start;gap:8px;min-width:0}
+.sz-v>.i{margin-top:2px;color:var(--deep-forest)}
+.sz-v>span{display:grid;gap:1px}
+.sz-v b{font-weight:600;font-size:.95rem}
+.sz-top{display:inline-flex;align-items:center;flex-wrap:wrap;gap:4px 8px}
+.sz-from{font-size:.76rem;color:var(--muted)}
+.sz-ask{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%}
+.sz-q{grid-column:1/-1;font-weight:600}
+.sz-ask .btn{min-height:36px;padding:0 10px;justify-content:center}
+.sz.is-wait{border-style:dashed;color:var(--muted);justify-content:flex-start}
+.sz.is-none{color:var(--state-ink);justify-content:flex-start;flex-wrap:nowrap;align-items:flex-start}
+.sz.is-none>.i{margin-top:2px}
+.sz.is-none .linkbtn{min-height:0;font-size:inherit}
+@media (max-width:640px){
+  .sz{margin:0 12px 12px}
+}
+
+/* ===================================================================
+   Price page, room by room (px-pick, px-lockrc). Sam's meeting, Nov 2026:
+   the presentation's room buttons and room card. The free room opens in
+   full; a locked room shows two or three products and the rest blurred.
+   =================================================================== */
+.px-pick{margin:4px 0 0;position:relative}
+.px-pick .rc-chip{display:inline-flex;align-items:center;gap:6px;position:relative}
+.px-pick .rc-chip .i{color:var(--muted)}
+.px-pick .rc-chip[aria-pressed="true"] .i{color:inherit}
+.px-free{font-size:.7rem;font-weight:600;letter-spacing:.02em;padding:1px 6px;border-radius:var(--r-sm);background:var(--sunken);color:var(--deep-forest)}
+.rc-chip[aria-pressed="true"] .px-free{background:rgba(255,255,255,.16);color:#fff}
+.px-lockp{display:inline-flex;align-items:center;gap:6px;color:var(--muted)}
+/* What this buys on the price page: the presentation's lines; a locked room blurs its prices and the lines after the first few */
+.wb-r .px-lockp .rc-blur{font-size:.88rem}
+.px-hidl .wb-th{position:relative}
+.px-hidl .wb-th img{filter:blur(8px);transform:scale(1.25)}
+.px-hid-lk{position:absolute;inset:0;display:grid;place-items:center}
+.px-hid-lk .i{box-sizing:content-box;padding:6px;border-radius:50%;background:var(--raised);color:var(--deep-forest)}
+.px-bars{gap:8px;padding-top:6px}
+.px-bars i{display:block;height:8px;border-radius:var(--r-sm);background:var(--border-soft);width:58%}
+.px-bars i:nth-child(2){width:86%}
+.px-bars i:nth-child(3){width:40%}
+.px-more{display:flex;align-items:center;gap:6px;margin:0;font-size:.86rem;font-weight:600;color:var(--deep-forest)}
+.px-cta{justify-self:start}
+@media (max-width:640px){
+  .px-pick{flex-wrap:nowrap;overflow-x:auto;margin:4px calc(-1 * var(--gut)) 0;padding:0 var(--gut) 4px;scrollbar-width:none}
+  .px-pick::-webkit-scrollbar{display:none}
+  .px-pick .rc-chip{flex:none}
+  .px-cta{justify-self:stretch;justify-content:center}
+}
+
+/* ===================================================================
+   Photos sort themselves (ps-). Sam's meeting, Nov 2026: photos added to
+   the tray are read and moved into the room they show, marked Suggested;
+   each room asks "Right room? Yes / Fix"; unsure photos stay in the tray
+   with three rooms one tap away. Calm: no motion beyond a fade.
+   =================================================================== */
+.ps{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin:0 16px 10px;padding:10px 12px;border:1px solid var(--deep-forest);border-radius:var(--r-md);background:#EEF3F1;font-size:.85rem;line-height:1.4}
+.ps[hidden]{display:none}
+.ps-t{display:inline-flex;align-items:flex-start;gap:8px;min-width:0}
+.ps-t>.i{margin-top:2px;color:var(--deep-forest)}
+.ps-t>span{display:grid;gap:1px}
+.ps-t b{font-weight:600;font-size:.92rem}
+.ps-from{font-size:.76rem;color:var(--muted)}
+.ps-ask{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%}
+.ps-q{grid-column:1/-1;font-weight:600}
+.ps-ask .btn{min-height:36px;padding:0 10px;justify-content:center;background:var(--raised)}
+.rc2.rc3.is-sug{border-color:var(--deep-forest)}
+.rc3-ready.is-sug{background:var(--raised);color:var(--deep-forest);box-shadow:inset 0 0 0 1px var(--deep-forest)}
+/* The tray: what is being read now, or how many wait for a yes */
+.ps-sum{display:grid;gap:8px;margin:0 0 12px;padding:10px 12px;border:1px solid var(--deep-forest);border-radius:var(--r-md);background:#EEF3F1;font-size:.82rem;line-height:1.4}
+.ps-sum p{margin:0;display:flex;gap:8px;align-items:flex-start}
+.ps-sum .i{flex:none;margin-top:2px;color:var(--deep-forest)}
+.ps-sum.is-wait{display:flex;gap:8px;align-items:flex-start;border-style:dashed;background:var(--raised);color:var(--muted)}
+.ps-sum.is-wait b{color:var(--text)}
+.us-item.is-reading .th img{opacity:.55}
+.us-read{position:absolute;left:6px;right:6px;bottom:6px;display:flex;align-items:center;justify-content:center;gap:5px;padding:3px 6px;border-radius:var(--r-sm);background:rgba(255,255,255,.94);color:var(--deep-forest);font-size:.72rem;font-weight:600}
+.us-read .i{width:12px;height:12px}
+@media (prefers-reduced-motion:no-preference){ .us-item.is-reading .us-read{animation:ps-pulse 1.4s ease-in-out infinite} }
+@keyframes ps-pulse{50%{opacity:.55}}
+/* Not sure: the photo takes the full row, with its three best rooms beside it */
+.us-item.is-unsure{grid-column:1/-1;grid-template-columns:96px minmax(0,1fr);gap:10px;align-items:start}
+.us-alts{display:grid;gap:5px;align-content:start}
+.us-q{font-size:.76rem;font-weight:600;color:var(--state-ink)}
+.us-alts .us-chip{justify-content:flex-start;border-radius:var(--r-md);text-align:left}
+@media (max-width:640px){
+  .ps{margin:0 12px 10px}
+  .us-item.is-unsure{grid-template-columns:88px minmax(0,1fr)}
+}

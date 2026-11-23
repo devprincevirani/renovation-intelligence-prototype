@@ -138,6 +138,20 @@
       return '<p class="pk-sum">' + sumHtml(g) + '</p>' +
         (ph.length ? '<span class="pk-ph">' + ph.map(function(x){ return '<img src="' + x[0] + '" alt="" title="' + RI.esc(x[1]) + '" loading="lazy">'; }).join('') + '</span>' : '');
     }
+    /* A locked room's teaser (Sam's meeting, Nov 2026): a few real items, never their prices, then grey lines
+       for the rest with the true count. Items with a product photo first, then the biggest cost. Two at most,
+       never more than half the room (one when the room has one or two). */
+    function teaser(r, k){
+      var list = r.items.filter(function(it){ return !RI.isHeld(it) && it.pk[k] && it.pk[k][1] != null; });
+      var hasImg = function(it){ return !!(RI.PRODUCT_IMG[it.id] && RI.PRODUCT_IMG[it.id][k]); };
+      list.sort(function(a, b){ return hasImg(a) === hasImg(b) ? b.pk[k][2] - a.pk[k][2] : (hasImg(b) ? 1 : -1); });
+      var n = list.length ? Math.min(2, Math.max(1, Math.floor(list.length / 2))) : 0;
+      return {show:list.slice(0, n), hidden:list.length - n};
+    }
+    function tzLine(it, k){
+      var a = it.pk[k], m = RI.PRODUCT_IMG[it.id], img = m && m[k] ? RI.img(m[k]) : null;
+      return '<li><span class="tz-th">' + (img ? '<img src="' + img + '" alt="" loading="lazy">' : RI.icon('dot','i-sm')) + '</span><span class="tz-t"><b>' + RI.esc(it.name) + '</b><span>' + RI.esc(a[3] || a[0]) + '</span></span></li>';
+    }
     function meter(l){ return '<span class="hm-meter" aria-hidden="true">' + [1,2,3].map(function(n){ return '<i' + (l.i >= n ? ' class="on"' : '') + '></i>'; }).join('') + '</span>'; }
     function mapHtml(){
       var g = goalSummary(sel), t = RI.totals(sel, {});
@@ -147,15 +161,110 @@
         '<div class="hm-legend" aria-hidden="true">' + LEVELS.map(function(n, i){ return '<span>' + meter({i:i}) + n + '</span>'; }).join('') + '<span class="held">' + meter({i:-1}) + 'Needs a photo</span></div>' +
         '<div class="hm-grid">' + est.rooms.map(function(r){
           var l = level(r, sel), ph = roomPhoto(r), pr = prodImgs(r, sel), part = r.items.some(RI.isHeld) && l.i >= 0;
-          return '<article class="hm-room ' + l.cls + '" data-room="' + r.key + '">' +
+          var tz = !paid && r !== open ? teaser(r, sel) : null;
+          if(tz && tz.show.length) return '<article class="hm-room tz-lock ' + l.cls + '" data-room="' + r.key + '">' +
+            '<div class="hm-ph">' + (ph ? '<img src="' + ph + '" alt="' + RI.esc(r.name) + '" loading="lazy">' : '<span class="hm-noph">' + RI.icon(r.key === 'whole' ? 'house' : 'camera') + '</span>') + '<span class="hm-tag">' + l.name + '</span></div>' +
+            '<div class="hm-b"><div class="hm-top"><b>' + RI.esc(r.name) + '</b>' + meter(l) + '</div>' +
+              '<ul class="tz-list">' + tz.show.map(function(it){ return tzLine(it, sel); }).join('') + '</ul>' +
+              (tz.hidden ? '<span class="tz-bars" aria-hidden="true">' + '<i></i><i></i><i></i>'.slice(0, 7 * Math.min(3, tz.hidden)) + '</span>' : '') +
+              '<span class="hm-foot"><a class="tz-more" href="#/houses/' + h.id + '/checkout">' + RI.icon('lock','i-sm') + (tz.hidden ? '+' + tz.hidden + ' more item' + (tz.hidden === 1 ? '' : 's') + ' and every price' : 'Its price is in the presentation') + '</a>' + (part ? '<span class="hm-part">Partial</span>' : '') + '</span></div></article>';
+          /* Every card that can do something does it from anywhere on the card: paid opens the presentation,
+             the free room scrolls to its full view below, a room with no photos goes to the photo step */
+          var act = paid ? '<a class="tz-more" href="#/houses/' + h.id + '/presentation">' + RI.icon('eye','i-sm') + 'Open in the presentation</a>'
+            : r === open ? '<button type="button" class="tz-more" data-goopen>' + RI.icon('eye','i-sm') + 'Open below, free</button>'
+            : l.cls === 'held' ? '<a class="tz-more" href="#/houses/' + h.id + '/intake/photos">' + RI.icon('camera','i-sm') + 'Add photos of this room</a>'
+            : null;
+          return '<article class="hm-room ' + l.cls + (act ? ' tz-lock' : '') + '" data-room="' + r.key + '">' +
             '<div class="hm-ph">' + (ph ? '<img src="' + ph + '" alt="' + RI.esc(r.name) + '" loading="lazy">' : '<span class="hm-noph">' + RI.icon(r.key === 'whole' ? 'house' : 'camera') + '</span>') + '<span class="hm-tag">' + l.name + '</span></div>' +
             '<div class="hm-b"><div class="hm-top"><b>' + RI.esc(r.name) + '</b>' + meter(l) + '</div>' +
               '<p>' + RI.esc(mainChange(r, sel)) + '.</p>' +
               (pr.length ? '<span class="hm-prods">' + pr.map(function(x){ return '<img src="' + x[0] + '" alt="" title="' + RI.esc(x[1]) + '" loading="lazy">'; }).join('') + '</span>' : '') +
-              '<span class="hm-foot">' + (r === open ? RI.icon('eye','i-sm') + 'Open below, free' : RI.icon('lock','i-sm') + 'Price in the presentation') + (part ? '<span class="hm-part">Partial</span>' : '') + '</span></div></article>';
+              '<span class="hm-foot">' + (act || RI.icon('lock','i-sm') + 'Price in the presentation') + (part ? '<span class="hm-part">Partial</span>' : '') + '</span></div></article>';
         }).join('') + '</div>';
     }
-    function openRoom(){ return RI.RoomCard.html(open, sel, {photo:roomPhoto(open), range:RI.range(RI.totals(sel, {}, open.key).low, RI.totals(sel, {}, open.key).high)}); }
+    /* ---------- Room by room, as in the presentation (Sam's meeting, Nov 2026): the same room buttons and room card.
+       The free room opens in full. A locked room shows its photo, what changes, two or three of its products
+       and the rest blurred, never a price, then the button to open every room. ---------- */
+    var pick = open.key;
+    function pickerHtml(){
+      return est.rooms.map(function(r){
+        var lk = !paid && r !== open;
+        return '<button type="button" class="rc-chip' + (lk ? ' px-lk' : '') + '" data-pick="' + r.key + '" aria-pressed="' + (r.key === pick) + '">' + (lk ? RI.icon('lock','i-sm') : '') + RI.esc(r.name) + (lk ? '<span class="sr">, locked</span>' : paid ? '' : '<span class="px-free">Free</span>') + '</button>';
+      }).join('');
+    }
+    function cost(it){ return it.pk[sel][2] || 0; }
+    function lockImg(it){ var m = RI.PRODUCT_IMG[it.id]; return m && m[sel] ? RI.img(m[sel]) : null; }
+    /* What this buys, as in the presentation: one line per item, biggest first, with its product photo, the kind of
+       work, the product and its range. No switches here: turning items on or off is part of the paid presentation.
+       lock 'clear': the line shows, its price is hidden. lock 'hid': the whole line is blurred. */
+    var LOCKP = '<span class="px-lockp"><span class="rc-blur" aria-hidden="true">$•,••• to $•,•••</span>' + RI.icon('lock','i-sm') + '<span class="sr">Price locked</span></span>';
+    function buyLine(it, lock){
+      var a = it.pk[sel], img = lockImg(it), k = RI.RoomCard.kind(a[0]);
+      if(lock === 'hid') return '<li class="wb-line px-hidl" aria-hidden="true"><span class="wb-th">' + (img ? '<img src="' + img + '" alt="" loading="lazy">' : '') + '<span class="px-hid-lk">' + RI.icon('lock','i-sm') + '</span></span>' +
+        '<span class="wb-t px-bars"><i></i><i></i><i></i></span><span class="wb-r"><span class="rc-blur">$•,••• to $•,•••</span></span></li>';
+      return '<li class="wb-line">' +
+        '<span class="wb-th">' + (img ? '<img src="' + img + '" alt="" loading="lazy">' : RI.icon('dot','i-lg')) + '</span>' +
+        '<span class="wb-t"><b>' + RI.esc(it.name) + '</b><span class="wb-act"><span class="wb-k' + (k === 'New' ? ' wb-k-new' : '') + '">' + k + '</span>' + RI.esc(a[0]) + '</span>' +
+          (a[3] ? '<span class="wb-prod">' + RI.esc(a[3]) + '</span>' : '') + '</span>' +
+        '<span class="wb-r">' + (lock ? LOCKP : '<span class="range-txt">' + RI.range(a[1], a[2]) + '</span>') + '</span></li>';
+    }
+    function heldLine(it){
+      var m = it.state === 'measure';
+      return '<li class="wb-line wb-hold"><span class="wb-th">' + RI.icon(m ? 'ruler' : 'camera','i-lg') + '</span>' +
+        '<span class="wb-t"><b>' + RI.esc(it.name) + '</b><span class="wb-act">' + RI.esc(it.fix) + ' would settle it.</span></span>' +
+        '<span class="wb-r"><span class="state ' + (m ? 'state-measure' : 'state-unverified') + '">' + (m ? 'Needs measurement' : 'Unverified') + '</span><span class="xsmall muted">Not in the total</span></span></li>';
+    }
+    function buysParts(r){
+      var b = {priced:[], kept:[], held:[]};
+      r.items.forEach(function(it){ if(RI.isHeld(it)) b.held.push(it); else if(!it.pk[sel] || it.pk[sel][1] == null) b.kept.push(it); else b.priced.push(it); });
+      b.priced.sort(function(x, y){ return cost(y) - cost(x); });
+      return b;
+    }
+    var BUYS_HD = '<div class="wb-hd"><h4>What this buys</h4><span class="state state-sample">Representative photos</span></div>';
+    function heldList(b){ return b.held.length ? '<ul class="wb-list wb-held">' + b.held.map(heldLine).join('') + '</ul>' : ''; }
+    /* The free room: every line open, with its range */
+    function freeBuys(r){
+      var b = buysParts(r), on = b.priced.length;
+      return '<section class="wb" aria-label="What this buys">' + BUYS_HD +
+        (on ? '<ul class="wb-list">' + b.priced.map(function(it){ return buyLine(it); }).join('') + '</ul>' : '<p class="small muted">Nothing to buy here under this goal.</p>') +
+        '<p class="wb-sum">' + (on === 0 ? 'Nothing is priced in this room right now.' : on === 1 ? 'This one item is the whole range above.' : 'These ' + on + ' items add up to the range above.') + (b.held.length ? ' ' + b.held.length + ' not priced yet, left out.' : '') + '</p>' +
+        heldList(b) +
+        (b.kept.length ? '<details class="wb-kept"><summary>Kept as is, no cost · ' + b.kept.length + ' item' + (b.kept.length === 1 ? '' : 's') + '</summary><ul>' + b.kept.map(function(it){ var a = it.pk[sel]; return '<li><b>' + RI.esc(it.name) + '</b>' + (a && a[0] ? '<span class="xsmall muted">' + RI.esc(a[0]) + '</span>' : '') + '</li>'; }).join('') + '</ul></details>' : '') +
+        '</section>';
+    }
+    /* A locked room (Nevil, Nov 2026): two or three lines in the clear when the room has enough, one when it has one
+       or two, items with a product photo first; every price hidden and every other line blurred */
+    function lockedBuys(r){
+      var b = buysParts(r), list = b.priced, n = list.length >= 5 ? 3 : list.length >= 3 ? 2 : list.length ? 1 : 0;
+      var clear = list.filter(lockImg).concat(list.filter(function(it){ return !lockImg(it); })).slice(0, n);
+      clear.sort(function(x, y){ return cost(y) - cost(x); });
+      var hid = list.filter(function(it){ return clear.indexOf(it) < 0; }), rest = hid.length;
+      var cta = credit ? '<button type="button" class="btn btn-primary px-cta" data-credit>Open every room with a credit</button>'
+        : A.hasCheckout ? '<a class="btn btn-primary px-cta" href="#/houses/' + h.id + '/checkout">Open every room, ' + price + '</a>' : '';
+      return '<section class="wb" aria-label="What this buys">' + BUYS_HD +
+        (list.length ? '<ul class="wb-list">' + clear.map(function(it){ return buyLine(it, 'clear'); }).join('') + hid.slice(0, 5).map(function(it){ return buyLine(it, 'hid'); }).join('') + '</ul>' +
+          '<p class="px-more">' + RI.icon('lock','i-sm') + '<span>' + (rest ? '+' + rest + ' more item' + (rest === 1 ? '' : 's') + ' and every price' : 'Its price is in the presentation') + '</span></p>' : '<p class="small muted">Nothing to buy here under this goal.</p>') +
+        heldList(b) + (list.length ? cta : '') + '</section>';
+    }
+    function lockedRoom(r){
+      var pkd = RI.PACKAGES.filter(function(p){ return p.key === sel; })[0], src = roomPhoto(r) || RI.RoomCard.photoFor(r.key);
+      var photo = src ? '<div class="rc-photo"><img src="' + src + '" alt="' + RI.esc(r.name) + '" loading="lazy"></div>' : '<div class="rc-photo rc-nophoto" aria-hidden="true">' + RI.icon(r.key === 'whole' ? 'house' : 'camera', 'i-lg') + '<span>' + RI.esc(r.name) + '</span></div>';
+      var head = '<header class="rc-head"><div><h3>' + RI.esc(r.name) + '</h3><p class="xsmall muted">' + RI.esc(pkd.name) + ': ' + RI.esc(pkd.goal) + '</p></div>';
+      /* No photos yet: nothing to tease, only the way to add them */
+      if(r.items.every(RI.isHeld)) return '<article class="rc px-lockrc" data-room="' + r.key + '">' + photo + '<div class="rc-body">' + head + '</header>' +
+        '<p class="rc-change">' + RI.esc(mainChange(r, sel)) + '.</p><a class="btn btn-secondary px-cta" href="#/houses/' + h.id + '/intake/photos">' + RI.icon('camera','i-sm') + 'Add photos of this room</a></div></article>';
+      var priced = r.items.some(function(it){ return !RI.isHeld(it) && it.pk[sel] && it.pk[sel][1] != null; });
+      return RI.RoomCard.html(r, sel, {photo:roomPhoto(r), range:priced ? LOCKP.replace('$•,••• to $•,•••', '$••,••• to $••,•••') : '', buysHtml:lockedBuys(r)});
+    }
+    function roomView(){
+      var r = est.rooms.filter(function(x){ return x.key === pick; })[0] || open, t = RI.totals(sel, {}, r.key);
+      if(paid || r === open) return RI.RoomCard.html(r, sel, {photo:roomPhoto(r), range:t.high ? RI.range(t.low, t.high) : '<span class="muted">No cost</span>', buysHtml:freeBuys(r)});
+      return lockedRoom(r);
+    }
+    function drawRoom(){
+      view.querySelector('#px-open').innerHTML = roomView(); /* hotspots stay wired: RoomCard.wire(view) listens above it */
+      view.querySelectorAll('#px-pick [data-pick]').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-pick') === pick); });
+    }
     var pf = A.priceFor(h), price = '$' + pf.amount;
     view.innerHTML = '<div class="app-wrap px-page">' + A.houseHead(h) +
       '<section class="price-s"><header class="ps-head"><div><p class="label">Your price by package' + (h.version > 1 ? ' · version ' + h.version : '') + '</p><h2>Three goals, one house</h2><p class="muted small">' + (zip ? 'Priced for ZIP ' + RI.esc(zip) + '. ' : '') + 'From ' + photoN + ' photos' + (Object.keys(h.sizes || {}).length ? ' and your room sizes' : '') + '.</p></div>' +
@@ -169,7 +278,8 @@
       '</section>' +
       '<div class="px-layout"><div class="px-sec">' +
         '<section class="hm" id="px-map" aria-live="polite">' + mapHtml() + '</section>' +
-        '<div class="px-open-h"><p class="label">Open now, free</p><h2>One room, in full</h2></div><div id="px-open">' + openRoom() + '</div></div>' +
+        '<div class="px-open-h"><p class="label">Room by room</p><h2>' + (paid ? 'Every room, in full' : 'One room in full, free') + '</h2></div>' +
+        '<div class="rc-picker px-pick" id="px-pick" role="group" aria-label="Rooms">' + pickerHtml() + '</div><div id="px-open">' + roomView() + '</div></div>' +
         '<aside class="px-side px-pin" aria-label="Open the full presentation"><p class="label">The full presentation</p><h2>' + (paid ? 'Your presentation is open' : 'Open every room') + '</h2>' +
           '<ul><li>Every room with its photo and products</li><li>Switch goals, turn items on or off</li><li>Guidance on the roof, heating, water heater and panel</li><li>A PDF and a private link</li></ul>' +
           (paid ? '<a class="btn btn-primary btn-block px-btn" href="#/houses/' + h.id + '/presentation">Open presentation ' + RI.icon('arrow','i-sm i-arrow') + '</a>'
@@ -197,12 +307,25 @@
     function setGoal(k){
       sel = k; view.querySelectorAll('.pk-card').forEach(function(c){ var on = c.getAttribute('data-goal') === k; c.classList.toggle('is-default', on); c.setAttribute('aria-selected', on); });
       var ms = view.querySelector('.pk-seg-m'); ms.querySelectorAll('[data-goal]').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-goal') === k); }); RI.syncSeg(ms);
-      view.querySelector('#px-open').innerHTML = openRoom(); RI.RoomCard.wire(view);
+      drawRoom();
       var map = view.querySelector('#px-map'); map.innerHTML = mapHtml(); RI.fillIcons && RI.fillIcons(map); RI.syncSeg(map.querySelector('.hm-seg'));
       map.classList.remove('hm-flash'); void map.offsetWidth; map.classList.add('hm-flash');
     }
-    view.querySelector('#px-map').addEventListener('click', function(e){ var c = e.target.closest('.hm-seg [data-goal]'); if(c) setGoal(c.getAttribute('data-goal')); });
+    view.querySelector('#px-map').addEventListener('click', function(e){
+      var c = e.target.closest('.hm-seg [data-goal]'); if(c) setGoal(c.getAttribute('data-goal'));
+      /* A locked room opens the same way as the main button: a credit when there is one, else checkout */
+      if(e.target.closest('[data-goopen]')){
+        if(pick !== open.key){ pick = open.key; drawRoom(); }
+        var oh = view.querySelector('.px-open-h'), hh = oh.querySelector('h2');
+        oh.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
+        hh.setAttribute('tabindex', '-1'); hh.focus({preventScroll:true}); return;
+      }
+      var t = e.target.closest('.tz-more[href$="/checkout"]'); if(t && (credit || !A.hasCheckout)){ e.preventDefault(); var b = view.querySelector('#credit-open'); if(b) b.click(); }
+    });
     RI.syncSeg(view.querySelector('.hm-seg'));
+    /* The room buttons; a locked room's button opens with a credit when there is one, as the main button does */
+    view.querySelector('#px-pick').addEventListener('click', function(e){ var b = e.target.closest('[data-pick]'); if(b && b.getAttribute('data-pick') !== pick){ pick = b.getAttribute('data-pick'); drawRoom(); } });
+    view.querySelector('#px-open').addEventListener('click', function(e){ if(e.target.closest('[data-credit]')){ var b = view.querySelector('#credit-open'); if(b) b.click(); } });
     view.querySelector('.pk-cards').addEventListener('click', function(e){ var c = e.target.closest('[data-goal]'); if(c) setGoal(c.getAttribute('data-goal')); });
     view.querySelector('.pk-seg-m').addEventListener('click', function(e){ var c = e.target.closest('[data-goal]'); if(c) setGoal(c.getAttribute('data-goal')); });
     RI.syncSeg(view.querySelector('.pk-seg-m'));
