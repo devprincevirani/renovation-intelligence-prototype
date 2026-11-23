@@ -138,6 +138,20 @@
       return '<p class="pk-sum">' + sumHtml(g) + '</p>' +
         (ph.length ? '<span class="pk-ph">' + ph.map(function(x){ return '<img src="' + x[0] + '" alt="" title="' + RI.esc(x[1]) + '" loading="lazy">'; }).join('') + '</span>' : '');
     }
+    /* A locked room's teaser (Sam's meeting, Nov 2026): a few real items, never their prices, then grey lines
+       for the rest with the true count. Items with a product photo first, then the biggest cost. Two at most,
+       never more than half the room (one when the room has one or two). */
+    function teaser(r, k){
+      var list = r.items.filter(function(it){ return !RI.isHeld(it) && it.pk[k] && it.pk[k][1] != null; });
+      var hasImg = function(it){ return !!(RI.PRODUCT_IMG[it.id] && RI.PRODUCT_IMG[it.id][k]); };
+      list.sort(function(a, b){ return hasImg(a) === hasImg(b) ? b.pk[k][2] - a.pk[k][2] : (hasImg(b) ? 1 : -1); });
+      var n = list.length ? Math.min(2, Math.max(1, Math.floor(list.length / 2))) : 0;
+      return {show:list.slice(0, n), hidden:list.length - n};
+    }
+    function tzLine(it, k){
+      var a = it.pk[k], m = RI.PRODUCT_IMG[it.id], img = m && m[k] ? RI.img(m[k]) : null;
+      return '<li><span class="tz-th">' + (img ? '<img src="' + img + '" alt="" loading="lazy">' : RI.icon('dot','i-sm')) + '</span><span class="tz-t"><b>' + RI.esc(it.name) + '</b><span>' + RI.esc(a[3] || a[0]) + '</span></span></li>';
+    }
     function meter(l){ return '<span class="hm-meter" aria-hidden="true">' + [1,2,3].map(function(n){ return '<i' + (l.i >= n ? ' class="on"' : '') + '></i>'; }).join('') + '</span>'; }
     function mapHtml(){
       var g = goalSummary(sel), t = RI.totals(sel, {});
@@ -147,6 +161,13 @@
         '<div class="hm-legend" aria-hidden="true">' + LEVELS.map(function(n, i){ return '<span>' + meter({i:i}) + n + '</span>'; }).join('') + '<span class="held">' + meter({i:-1}) + 'Needs a photo</span></div>' +
         '<div class="hm-grid">' + est.rooms.map(function(r){
           var l = level(r, sel), ph = roomPhoto(r), pr = prodImgs(r, sel), part = r.items.some(RI.isHeld) && l.i >= 0;
+          var tz = !paid && r !== open ? teaser(r, sel) : null;
+          if(tz && tz.show.length) return '<article class="hm-room tz-lock ' + l.cls + '" data-room="' + r.key + '">' +
+            '<div class="hm-ph">' + (ph ? '<img src="' + ph + '" alt="' + RI.esc(r.name) + '" loading="lazy">' : '<span class="hm-noph">' + RI.icon(r.key === 'whole' ? 'house' : 'camera') + '</span>') + '<span class="hm-tag">' + l.name + '</span></div>' +
+            '<div class="hm-b"><div class="hm-top"><b>' + RI.esc(r.name) + '</b>' + meter(l) + '</div>' +
+              '<ul class="tz-list">' + tz.show.map(function(it){ return tzLine(it, sel); }).join('') + '</ul>' +
+              (tz.hidden ? '<span class="tz-bars" aria-hidden="true">' + '<i></i><i></i><i></i>'.slice(0, 7 * Math.min(3, tz.hidden)) + '</span>' : '') +
+              '<span class="hm-foot"><a class="tz-more" href="#/houses/' + h.id + '/checkout">' + RI.icon('lock','i-sm') + (tz.hidden ? '+' + tz.hidden + ' more item' + (tz.hidden === 1 ? '' : 's') + ' and every price' : 'Its price is in the presentation') + '</a>' + (part ? '<span class="hm-part">Partial</span>' : '') + '</span></div></article>';
           return '<article class="hm-room ' + l.cls + '" data-room="' + r.key + '">' +
             '<div class="hm-ph">' + (ph ? '<img src="' + ph + '" alt="' + RI.esc(r.name) + '" loading="lazy">' : '<span class="hm-noph">' + RI.icon(r.key === 'whole' ? 'house' : 'camera') + '</span>') + '<span class="hm-tag">' + l.name + '</span></div>' +
             '<div class="hm-b"><div class="hm-top"><b>' + RI.esc(r.name) + '</b>' + meter(l) + '</div>' +
@@ -201,7 +222,11 @@
       var map = view.querySelector('#px-map'); map.innerHTML = mapHtml(); RI.fillIcons && RI.fillIcons(map); RI.syncSeg(map.querySelector('.hm-seg'));
       map.classList.remove('hm-flash'); void map.offsetWidth; map.classList.add('hm-flash');
     }
-    view.querySelector('#px-map').addEventListener('click', function(e){ var c = e.target.closest('.hm-seg [data-goal]'); if(c) setGoal(c.getAttribute('data-goal')); });
+    view.querySelector('#px-map').addEventListener('click', function(e){
+      var c = e.target.closest('.hm-seg [data-goal]'); if(c) setGoal(c.getAttribute('data-goal'));
+      /* A locked room opens the same way as the main button: a credit when there is one, else checkout */
+      var t = e.target.closest('.tz-more'); if(t && (credit || !A.hasCheckout)){ e.preventDefault(); var b = view.querySelector('#credit-open'); if(b) b.click(); }
+    });
     RI.syncSeg(view.querySelector('.hm-seg'));
     view.querySelector('.pk-cards').addEventListener('click', function(e){ var c = e.target.closest('[data-goal]'); if(c) setGoal(c.getAttribute('data-goal')); });
     view.querySelector('.pk-seg-m').addEventListener('click', function(e){ var c = e.target.closest('[data-goal]'); if(c) setGoal(c.getAttribute('data-goal')); });

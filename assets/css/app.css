@@ -1490,3 +1490,33 @@ dialog.dlg .dlg-body{overscroll-behavior:contain}
   .wb-all .rc{break-inside:auto}
   .rc-picker{display:none!important}
 }
+
+/* ===================================================================
+   Price page teaser (tz-). Sam's meeting, Nov 2026: each locked room shows
+   a few real items, no prices, grey lines for the rest. The card opens
+   checkout. No blur (DESIGN.md), no hover lift.
+   =================================================================== */
+.hm-room.tz-lock{position:relative;cursor:pointer}
+.hm-room.tz-lock:hover{transform:none;box-shadow:none;border-color:var(--deep-forest)}
+.hm-room.tz-lock:focus-within{outline:2px solid var(--deep-forest);outline-offset:2px}
+.tz-list{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.tz-list li{display:grid;grid-template-columns:30px minmax(0,1fr);gap:8px;align-items:center}
+.tz-th{width:30px;height:30px;border-radius:var(--r-sm);overflow:hidden;background:var(--sunken);display:grid;place-items:center;color:var(--muted)}
+.tz-th img{width:100%;height:100%;object-fit:cover;display:block}
+.tz-t{display:grid;min-width:0;line-height:1.3}
+.tz-t b{font-size:.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tz-t span{font-size:.74rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tz-bars{display:grid;gap:6px;padding:2px 0 2px 38px}
+.tz-bars i{display:block;height:7px;border-radius:var(--r-sm);background:var(--border-soft)}
+.tz-bars i:nth-child(2){width:74%}
+.tz-bars i:nth-child(3){width:52%}
+.tz-more{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--deep-forest);text-decoration:none}
+.tz-more::after{content:"";position:absolute;inset:0}
+.tz-more:focus-visible{outline:none}
+.hm-room.tz-lock .hm-foot{font-size:.74rem}
+@media (max-width:640px){
+  .tz-list li{grid-template-columns:26px minmax(0,1fr);gap:6px}
+  .tz-th{width:26px;height:26px}
+  .tz-bars{padding-left:32px}
+}
+@media (prefers-reduced-motion:reduce){ .hm-room.tz-lock{transition:none} }
