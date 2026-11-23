@@ -59,7 +59,7 @@
     A.every(function(){ if(A.mine().some(function(h){ return groupOf(h) === 'work'; })) draw(); }, 2000);
   }
   function empty(){
-    return '<div class="empty"><div class="empty-art">' + RI.Drawing.svg('brick-ranch', false) + '</div><h2>Add your first house</h2><p class="muted">You will need the address, a few facts from the listing, and a photo of each room. It takes about 10 minutes and saves as you go.</p>' +
+    return '<div class="empty"><div class="empty-art">' + RI.Drawing.svg('brick-ranch', false) + '</div><h2>Add your first house</h2><p class="muted">You will need the address, a few facts about your house, and a photo of each room. It takes about 10 minutes and saves as you go.</p>' +
       '<ul class="ticks empty-list"><li>' + RI.icon('check') + '<span>The price by package is free</span></li><li>' + RI.icon('check') + '<span>Room sizes are optional</span></li><li>' + RI.icon('check') + '<span>Finish on any device</span></li></ul>' +
       '<a class="btn btn-primary" href="#/houses/new">Add your first house</a></div>';
   }

@@ -28,7 +28,7 @@
   RI.EVIDENCE = {
     recorded:{label:'Recorded', fill:4, meaning:'From a public record, such as year built'},
     observed:{label:'Observed', fill:3, meaning:'Seen in one of your photos'},
-    reported:{label:'Reported', fill:2, meaning:'Typed by you or stated in the listing'},
+    reported:{label:'Reported', fill:2, meaning:'Typed in by you'},
     inferred:{label:'Inferred', fill:1, meaning:'Worked out from a pattern or a typical size'},
     unknown: {label:'Unknown',  fill:0, meaning:'Not seen and not stated. Never zero'}
   };
@@ -135,9 +135,9 @@
       ]}
     ],
     mechanicals:[
-      {name:'Roof', src:'From the listing: replaced 2009', ev:'reported', life:'20 to 25 years for asphalt shingles', range:[9000,16000], text:'Look for curled or missing shingles and stains on the ceiling below. Asphalt roofs in Michigan often last 20 to 25 years. Have a roofer look before you buy.'},
-      {name:'Heating and cooling', src:'From the listing: furnace 2004', ev:'reported', life:'15 to 20 years for a gas furnace', range:[4500,9500], text:'A furnace of this age is worth a service visit. Ask for the last service record and look at the filter and the flue.'},
-      {name:'Water heater', src:'Not in the photos or the listing', ev:'unknown', life:'8 to 12 years for a tank', range:[1300,2800], text:'Read the label on the tank for the year. Look for rust at the base and around the fittings.'},
+      {name:'Roof', src:'You told us: replaced 2009', ev:'reported', life:'20 to 25 years for asphalt shingles', range:[9000,16000], text:'Look for curled or missing shingles and stains on the ceiling below. Asphalt roofs in Michigan often last 20 to 25 years. Have a roofer look before you buy.'},
+      {name:'Heating and cooling', src:'You told us: furnace 2004', ev:'reported', life:'15 to 20 years for a gas furnace', range:[4500,9500], text:'A furnace of this age is worth a service visit. Ask for the last service record and look at the filter and the flue.'},
+      {name:'Water heater', src:'Not in your photos or your answers', ev:'unknown', life:'8 to 12 years for a tank', range:[1300,2800], text:'Read the label on the tank for the year. Look for rust at the base and around the fittings.'},
       {name:'Electrical panel', src:'Seen in one photo', ev:'observed', life:'Varies; only an electrician can judge it', range:[1800,4200], text:'We do not judge panels. An electrician can confirm its capacity and condition, especially before adding lighting or appliances.'}
     ]
   };
