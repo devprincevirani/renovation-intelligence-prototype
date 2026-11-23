@@ -8,10 +8,15 @@
   var STEPS = [['house','Tell us about the home'],['rooms','Rooms and photos']];
   var OLD = {remarks:'rooms', consent:'rooms', photos:'rooms', measurements:'rooms', review:'rooms'}; /* older drafts and links */
   var LAST = STEPS.length - 1;
-  /* Team only: a mixed set of photos for the bulk upload demo, named the way a phone names them; each carries the room
-     it shows, so the pretend reading sorts them the same way every time ('?' = not sure on purpose) */
-  var SAMPLE_BULK = [['kitchen-dated.jpg','kitchen'],['cabinet-run.jpg','kitchen'],['kitchen-dated-wide.jpg','kitchen'],['wood-floor.jpg','living'],['finishes/pr-carpet.jpg','bedrooms'],['finishes/pr-lvp.jpg','bedrooms'],
-    ['finishes/pr-vanity.jpg','hallbath'],['finishes/fx-black.jpg','hallbath'],['finishes/fx-single.jpg','halfbath'],['finishes/lt-old.jpg','basement'],['finishes/pr-stairs.jpg','basement'],['brick-ranch.jpg','exterior'],['livonia-street.jpg','exterior'],['finishes/lt-pendant.jpg','?']];
+  /* Team only: a mixed set of real room photos for the bulk upload demo, named the way a phone names them. Most come from
+     one dated house (the Coolidge Street house, like the kitchen photos), so the set reads as one home; credits in CREDITS.md.
+     Each carries the room it shows, so the pretend reading sorts them the same way every time ('?' = not sure on purpose). */
+  var SAMPLE_BULK = [['kitchen-dated.jpg','kitchen'],['cabinet-run.jpg','kitchen'],['kitchen-dated-wide.jpg','kitchen'],
+    ['rooms/living-arches.jpg','living'],['rooms/living-stair-wall.jpg','living'],
+    ['rooms/bedroom-front.jpg','bedrooms'],['rooms/bedroom-closet.jpg','bedrooms'],['rooms/bedroom-back.jpg','bedrooms'],
+    ['rooms/bath-pedestal.jpg','hallbath'],['rooms/bath-tub.jpg','hallbath'],
+    ['rooms/basement-finished.jpg','basement'],['rooms/basement-utility.jpg','basement'],
+    ['rooms/exterior-front.jpg','exterior'],['rooms/stairs.jpg','?']];
   var MAX_MB = 25, MAX_PHOTOS = 150, MAX_PLAN_KEEP = 1.5;            /* SECURITY 7; plan size kept in this demo */
   var TYPES_OK = /\.(jpe?g|png|webp|heic|heif)$/i;
   var RIGHTS = {version:'Draft 1, November 2026', text:'I took these photos or have the right to use them.'};
@@ -749,7 +754,7 @@
         var added = 0, types = {}; rooms.forEach(function(r){ if(!A.photoCount(h, r[0])) types[r[2] || r[0]] = true; });
         SAMPLE_BULK.forEach(function(x, i){
           var fp = 'sample|' + x[0]; if(x[1] !== '?' && !types[x[1]]) return; if(h.fps.indexOf(fp) > -1) return;
-          upload({id:A.uid('p'), name:'IMG_' + (4101 + i) + '.jpg', src:RI.img(x[0]), fp:fp, retried:true, demo:x[1], demoAlts:x[1] === '?' ? ['kitchen','living','dining'] : null}, 'unsorted'); added++;
+          upload({id:A.uid('p'), name:'IMG_' + (4101 + i) + '.jpg', src:RI.img(x[0]), fp:fp, retried:true, demo:x[1], demoAlts:x[1] === '?' ? ['living','basement','bedrooms'] : null}, 'unsorted'); added++;
         });
         RI.toast(added ? added + ' sample photos added. Watch them sort themselves.' : 'The sample photos are already in.');
       }
