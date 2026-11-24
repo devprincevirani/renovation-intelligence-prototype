@@ -89,22 +89,22 @@
   var RT_NOTE = ['Back-test clean on 12 houses', 'Checked against two supplier quotes', 'Back-test clean; no double charges', 'Matches the lab house invoices', 'Back-test clean on the lab houses'];
   var RT_WHY = ['Supplier list for the quarter', 'Two installers raised their prices', 'The lab house back-test showed High too low', 'Matched to Sam\'s price book', 'Measured jobs ran larger than the guide'];
   /* Rates seeded before this screen lacked a code and a trade; add them, and the extra lines, once */
-  var RT_REGIONS = [['Southeast Michigan', 1], ['West Michigan', 0.94], ['Northern Ohio', 0.97], ['Greater Chicago', 1.12]];
+  /* Regions (Sam's meeting, Nov 2026): a rate belongs to one of a few big US regions (RI.regions, data.js), never a city.
+     The four local areas used before all sat inside the Midwest: Southeast Michigan's lines become the Midwest's, and the
+     other three scaled copies are set aside (kept, so drafts that point at a rate by its position stay right, shown nowhere). */
+  var RT_HOME = 'Midwest';
+  var RT_OLD = {'Sample region':RT_HOME, 'Southeast Michigan':RT_HOME, 'West Michigan':'', 'Northern Ohio':'', 'Greater Chicago':''};
+  var rtRegionNames = function(){ return RI.regions().map(function(g){ return g.name; }); };
+  var rtRegion = function(name){ return RI.regions().filter(function(g){ return g.name === name; })[0] || null; };
   var rtRound = function(v){ return v == null ? null : v >= 100 ? Math.round(v / 5) * 5 : Math.round(v * 20) / 20; };
   var rtISO = function(t){ var d = new Date(t); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
   var rtParse = function(v){ return v ? new Date(v + 'T00:00:00').getTime() : null; };
   function rtList(){
     var list = C.get('rates', []), changed = false;
-    list.forEach(function(r){ if(r.region === 'Sample region'){ r.region = RT_REGIONS[0][0]; changed = true; } });
+    list.forEach(function(r){ if(Object.prototype.hasOwnProperty.call(RT_OLD, r.region)){ r.region = RT_OLD[r.region] || 'Set aside: ' + r.region; changed = true; } });
     list.forEach(function(r){ if(!r.code){ var m = RT_META[r.name] || ['R-' + r.name.slice(0, 3).toUpperCase(), 'Carpentry']; r.code = m[0]; r.trade = m[1]; changed = true; } });
     RT_EXTRA.forEach(function(x, i){ if(list.some(function(r){ return r.code === x[5]; })) return;
-      list.push({name:x[0], desc:x[1], unit:x[2], lo:x[3], hi:x[4], code:x[5], trade:x[6], region:RT_REGIONS[0][0], src:x[3] == null ? '' : i % 2 ? 'Sam\'s price book' : 'Supplier list, Nov 2026', v:x[3] == null ? 0 : 1 + (i * 3) % 5, at:now - (3 + i * 3) * DAY}); changed = true; });
-    /* Each other region gets its own copy of every line, priced by its own factor */
-    var base = list.filter(function(r){ return r.region === RT_REGIONS[0][0]; });
-    RT_REGIONS.slice(1).forEach(function(g, k){ if(list.some(function(r){ return r.region === g[0]; })) return;
-      base.forEach(function(r, j){ list.push({name:r.name, desc:r.desc, unit:r.unit, code:r.code, trade:r.trade, region:g[0], lo:rtRound(r.lo == null ? null : r.lo * g[1]), hi:rtRound(r.hi == null ? null : r.hi * g[1]),
-        src:r.lo == null ? '' : (j + k) % 2 ? 'Sam\'s price book' : 'Supplier list, Nov 2026', v:r.lo == null ? 0 : 1 + (j + k) % 4, at:now - (5 + j * 2 + k * 3) * DAY}); });
-      changed = true; });
+      list.push({name:x[0], desc:x[1], unit:x[2], lo:x[3], hi:x[4], code:x[5], trade:x[6], region:RT_HOME, src:x[3] == null ? '' : i % 2 ? 'Sam\'s price book' : 'Supplier list, Nov 2026', v:x[3] == null ? 0 : 1 + (i * 3) % 5, at:now - (3 + i * 3) * DAY}); changed = true; });
     if(changed) C.set('rates', list);
     return list;
   }
@@ -115,7 +115,7 @@
   /* Versions: the ones published in this browser come from the publish queue (with their before values);
      older ones are sample history so the timeline shows its shape */
   function rtHistory(r, i){
-    if(r.lo == null) return [];
+    if(r.lo == null || r.chk === false) return [];
     var pubs = C.drafts().filter(function(d){ return d.area === 'rates' && d.ref === String(i) && d.status === 'published'; }).sort(function(a, b){ return b.doneAt - a.doneAt; });
     var top = pubs[0] && pubs[0].toV === r.v ? pubs[0] : null;
     var out = [{v:r.v, lo:r.lo, hi:r.hi, src:r.src, at:r.at, by:top ? top.by : (r.v % 2 ? 'Marcus Hill' : 'Dana Reyes'), pub:top ? top.doneBy : 'Sam', why:top ? top.why : RT_WHY[r.v % RT_WHY.length], note:top ? top.note : RT_NOTE[r.v % RT_NOTE.length], cur:true}];
@@ -128,8 +128,49 @@
     return out;
   }
 
+  /* Start a region from another region's rate list (from = its name), or empty (from = ''): the same activities and units,
+     every line marked not checked. Each copy remembers its source, so the screens can say where it came from. */
+  function rtStart(name, from){
+    var all = rtList(), n = 0, tpl = from || RT_HOME;
+    if(!all.some(function(r){ return r.region === tpl; })) tpl = RT_HOME;
+    all.filter(function(r){ return r.region === tpl; }).forEach(function(r){
+      if(all.some(function(x){ return x.region === name && x.code === r.code && x.unit === r.unit; })) return;
+      var lo = from ? r.lo : null, hi = from ? r.hi : null;
+      all.push({name:r.name, desc:r.desc, unit:r.unit, code:r.code, trade:r.trade, region:name, lo:lo, hi:hi, src:lo == null ? '' : 'Copied from the ' + from + ', not checked', from:from || '', v:0, at:Date.now(), chk:false}); n++;
+    });
+    C.set('rates', all); C.log('Region started', name + ': ' + n + (from ? ' rates copied from the ' + from + ' to check' : ' activities, empty, to fill in'), '', 'rates');
+    return n;
+  }
+  /* Which region to start from: every region that has rates, with where it stands; or an empty list */
+  function rtStartDialog(name, done){
+    var all = rtList(), src = RI.regions().filter(function(g){ return g.name !== name && all.some(function(r){ return r.region === g.name; }); });
+    var pick = (src.filter(function(g){ return g.live && g.name === RT_HOME; })[0] || src.filter(function(g){ return g.live; })[0] || src[0] || {}).name || '';
+    var opt = function(g){
+      var rows = all.filter(function(r){ return r.region === g.name; }), unchk = rows.filter(function(r){ return r.chk === false; }).length, priced = rows.filter(function(r){ return r.lo != null; }).length;
+      var st = g.live ? '<span class="lb lb-pub">Live</span>' : unchk ? '<span class="lb lb-draft">Checking rates</span>' : '<span class="lb rgn-lb-ready">Ready to go live</span>';
+      return '<label class="rgn-src"><input type="radio" name="rgn-src" value="' + RI.esc(g.name) + '"' + (g.name === pick ? ' checked' : '') + '><span class="rgn-src-t"><b>' + RI.esc(g.name) + '</b><small>' + priced + ' of ' + rows.length + ' rates with a Low and High' + (unchk ? ', ' + unchk + ' not checked yet' : '') + '</small></span>' + st + '</label>';
+    };
+    var d = C.dialog('Start the rates for the ' + name,
+      '<p class="rgn-src-intro">Pick a rate list to start from. Every line comes over marked not checked, for you to check against ' + RI.esc(name) + ' prices one by one.</p>' +
+      '<div class="rgn-srcs" role="radiogroup" aria-label="Start from">' + src.map(opt).join('') +
+        '<label class="rgn-src"><input type="radio" name="rgn-src" value=""' + (pick ? '' : ' checked') + '><span class="rgn-src-t"><b>Start empty</b><small>The same activities and units with no Low or High. You fill in every rate.</small></span></label></div>' +
+      '<div class="cta-row" style="justify-content:flex-end;margin-top:14px"><button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="button" class="btn btn-primary" id="rgn-go">' + RI.icon('check', 'i-sm') + '<span id="rgn-go-t"></span></button></div>', {wide:true});
+    function label(){ var v = (d.querySelector('input[name=rgn-src]:checked') || {}).value; d.querySelector('#rgn-go-t').textContent = v ? 'Copy the ' + v + ' rates' : 'Start empty'; }
+    d.addEventListener('change', label); label(); RI.fillIcons(d);
+    d.querySelector('#rgn-go').addEventListener('click', function(){
+      var v = (d.querySelector('input[name=rgn-src]:checked') || {}).value || '', n = rtStart(name, v); d.close();
+      RI.toast(v ? n + ' rates copied from the ' + v + ' to the ' + name + '. Check each one.' : n + ' activities added to the ' + name + '. Fill in each Low and High.', 'check');
+      if(done) done();
+    });
+  }
+  function rtChecked(name){
+    var all = rtList(), n = 0; all.forEach(function(r){ if(r.region === name && r.chk === false){ r.chk = true; if(r.lo != null) r.src = 'Checked against the ' + (r.from || RT_HOME) + ' copy'; n++; } });
+    C.set('rates', all); if(n) C.log('Rates checked', name + ': ' + n + ' copied rates marked checked', '', 'rates');
+    return n;
+  }
+
   C.route('/rates', function(view){
-    var list = rtList(), canEdit = C.can('pricing.edit'), st = {q:'', trade:'all', s:'all', page:0, per:10, region:RT_REGIONS[0][0], unit:'all'}, open = null;
+    var list = rtList(), canEdit = C.can('pricing.edit'), st = {q:'', trade:'all', s:'all', page:0, per:10, region:rtRegion(C.query().region) ? C.query().region : RT_HOME, unit:'all'}, open = null;
     var units = list.map(function(r){ return r.unit; }).filter(function(u, k, a){ return a.indexOf(u) === k; });
     var inView = function(r){ return r.region === st.region && (st.unit === 'all' || r.unit === st.unit); };
     var stateOf = function(r, i){ return C.draftFor('rates', String(i)) ? 'queued' : r.lo == null ? 'none' : 'pub'; };
@@ -139,11 +180,13 @@
       body:'<div class="rlb-tools">' + C.search('rlb-q', 'Search by activity or code', '') +
         '<label class="c-select rlb-sel"><span class="sr">Trade</span><select id="rlb-trade"><option value="all">All trades</option>' + RT_TRADES.map(function(t){ return '<option>' + t + '</option>'; }).join('') + '</select></label>' +
         '<label class="c-select rlb-sel"><span class="sr">Unit</span><select id="rlb-unit"><option value="all">All units</option>' + units.map(function(u){ return '<option value="' + RI.esc(u) + '">' + RI.esc(u === 'each' ? 'Each' : 'Per ' + u) + '</option>'; }).join('') + '</select></label>' +
-        '<label class="rlb-regsel">' + RI.icon('pin', 'i-sm') + '<span class="sr">Region</span><span class="c-select"><select id="rlb-region">' + RT_REGIONS.map(function(g){ return '<option' + (g[0] === st.region ? ' selected' : '') + '>' + g[0] + '</option>'; }).join('') + '</select></span></label></div>' +
+        '<label class="rlb-regsel">' + RI.icon('pin', 'i-sm') + '<span class="sr">Region</span><span class="c-select"><select id="rlb-region">' + RI.regions().map(function(g){ return '<option value="' + RI.esc(g.name) + '"' + (g.name === st.region ? ' selected' : '') + '>' + RI.esc(g.name) + (g.live ? '' : ', not live') + '</option>'; }).join('') + '</select></span></label></div>' +
         '<div class="rlb-status" id="rlb-s" role="radiogroup" aria-label="Status"></div><p class="rlb-reg-n" id="rlb-reg-n"></p><div id="rlb-body"></div>' +
         '<div class="c-mt">' + C.note('Sample rates. Low and High only, never one number. Sam\'s rate library replaces them.') + '</div>'});
 
     function statusLbl(r, i){
+      if(r.chk === false) return r.lo == null ? '<span class="lb lb-off">To fill in</span>' : '<span class="lb lb-draft">Copied, not checked</span>';
+      if(r.lo != null && !r.v) return '<span class="lb lb-queued">Checked</span>';
       if(r.lo == null) return '<span class="lb lb-off">No rate yet</span>';
       return '<span class="lb lb-pub">Published <span class="lb-v">v' + r.v + '</span></span>';
     }
@@ -156,8 +199,14 @@
       doc.getElementById('rlb-s').innerHTML = [['all', 'All'], ['pub', 'Published'], ['queued', 'In the queue'], ['none', 'No rate yet']].map(function(o){
         return '<button type="button" role="radio" data-s="' + o[0] + '" aria-checked="' + (st.s === o[0]) + '">' + o[1] + '<span class="n">' + count(o[0]) + '</span></button>'; }).join('');
       var none = count('none');
-      doc.getElementById('rlb-reg-n').textContent = list.filter(function(r){ return r.region === st.region; }).length + ' rates in ' + st.region;
-      var html = (none && st.s !== 'none' ? '<button type="button" class="rlb-alert" data-s="none">' + RI.icon('warn', 'i-sm') + '<span><b>' + none + (none === 1 ? ' activity has' : ' activities have') + ' no rate yet.</b> Lines that use ' + (none === 1 ? 'it' : 'them') + ' show &ldquo;Not priced yet&rdquo; until Sam publishes a Low and a High.</span>' + RI.icon('arrow', 'i-sm') + '</button>' : '');
+      var inReg = list.filter(function(r){ return r.region === st.region; }), unchk = inReg.filter(function(r){ return r.chk === false; }).length, g = rtRegion(st.region);
+      doc.getElementById('rlb-reg-n').innerHTML = inReg.length + ' rates in the ' + RI.esc(st.region) + (g ? ' &middot; ' + (g.live ? '<span class="lb lb-pub">Live</span>' : '<span class="lb lb-off">Not live</span>') + ' &middot; <a href="#/regions?r=' + encodeURIComponent(g.key) + '">' + g.states.length + ' states</a>' : '');
+      if(!inReg.length){
+        doc.getElementById('rlb-body').innerHTML = '<div class="rgn-empty">' + RI.icon('pin') + '<div><b>No rates in the ' + RI.esc(st.region) + ' yet.</b><p>Start it from another region\'s rate list, or empty: every line comes over marked not checked, for you to check one by one. The region goes live when Sam turns it on.</p>' +
+          (canEdit ? '<button type="button" class="btn btn-primary btn-sm" id="rgn-start">' + RI.icon('plus', 'i-sm') + 'Start the rates</button>' : '<p class="small muted">Starting a region needs the pricing.edit permission.</p>') + '</div></div>';
+        RI.fillIcons(doc.getElementById('rlb-body')); return;
+      }
+      var html = (unchk ? '<div class="rgn-unchk">' + RI.icon('info', 'i-sm') + '<span><b>' + unchk + ' rate' + (unchk === 1 ? ' is' : 's are') + ' ' + (function(){ var fs = inReg.filter(function(r){ return r.chk === false; }).map(function(r){ return r.from; }).filter(function(f, k, a){ return a.indexOf(f) === k; }); return fs.length === 1 && !fs[0] ? 'empty, to fill in' : 'copied from the ' + fs.map(function(f){ return f || 'empty list'; }).join(' and ') + ' and not checked'; })() + '.</b> Open each one to check or change it, or mark them all checked once you have.</span>' + (canEdit ? '<button type="button" class="btn btn-secondary btn-sm" id="rgn-chkall">' + RI.icon('check', 'i-sm') + 'Mark all checked</button>' : '') + '</div>' : '') + (none && st.s !== 'none' ? '<button type="button" class="rlb-alert" data-s="none">' + RI.icon('warn', 'i-sm') + '<span><b>' + none + (none === 1 ? ' activity has' : ' activities have') + ' no rate yet.</b> Lines that use ' + (none === 1 ? 'it' : 'them') + ' show &ldquo;Not priced yet&rdquo; until Sam publishes a Low and a High.</span>' + RI.icon('arrow', 'i-sm') + '</button>' : '');
       /* Pages follow the trade order, so the groups stay together */
       rows.sort(function(a, b){ return RT_TRADES.indexOf(a.r.trade) - RT_TRADES.indexOf(b.r.trade); });
       var total = rows.length, pages = Math.max(1, Math.ceil(total / st.per)); if(st.page >= pages) st.page = pages - 1;
@@ -198,6 +247,7 @@
         '<header class="rlb-sh-h"><button type="button" class="rlb-x" data-close aria-label="Close">' + RI.icon('x') + '</button><div><p class="rlb-code"><code>' + r.code + '</code> &middot; ' + r.trade + '</p><h2 id="rlb-h">' + RI.esc(r.name) + '</h2><p class="muted">' + RI.esc(r.desc) + '</p></div><span id="rlb-stl">' + statusLbl(r, i) + queueLine(r, i) + '</span></header>' +
         '<div class="rlb-sh-b">' +
           '<section class="rlb-now"><div class="rlb-big">' + rtRange(r.lo, r.hi, r.unit) + '</div>' + (r.lo == null ? '<p class="rlb-why">Lines that use this activity show &ldquo;Not priced yet&rdquo; (check 4) until Sam publishes a Low and a High. Nothing is shown as zero.</p>' : '') +
+            (r.chk === false ? '<p class="rgn-copied">' + RI.icon('info', 'i-sm') + '<span>' + (r.lo == null ? 'Added empty. Give it a Low and High for the ' + RI.esc(r.region) + '.' : 'Copied from the ' + RI.esc(r.from || RT_HOME) + '. Check it for the ' + RI.esc(r.region) + ', change it if it is off, or mark it checked.') + '</span>' + (canEdit ? '<button type="button" class="btn btn-secondary btn-sm" id="rgn-chk1">' + RI.icon('check', 'i-sm') + 'Mark checked</button>' : '') + '</p>' : '') +
             '<div id="rlb-bars">' + bars(r, ed.lo, ed.hi) + '</div>' +
             '<dl class="rlb-facts"><div><dt>Effective</dt><dd>' + (r.lo == null ? '&ndash;' : C.date(r.at)) + '</dd></div><div><dt>Source</dt><dd>' + (r.src ? RI.esc(r.src) : '&ndash;') + '</dd></div><div><dt>Region</dt><dd class="rlb-lockd">' + RI.icon('lock', 'i-sm') + RI.esc(r.region) + '</dd></div><div><dt>Unit</dt><dd class="rlb-lockd">' + RI.icon('lock', 'i-sm') + RI.esc(r.unit === 'each' ? 'Each' : 'Per ' + r.unit) + '</dd></div><div><dt>Version</dt><dd>' + (r.v ? 'v' + r.v : 'None yet') + '</dd></div></dl></section>' +
           (d ? '<section class="rlb-queue">' + RI.icon('clock', 'i-sm') + '<div><b>In the publish queue: ' + rtMoney(d.after.lo) + ' to ' + rtMoney(d.after.hi) + '</b><span>Saved by ' + RI.esc(d.by) + ' ' + C.ago(d.at) + (d.why ? ': &ldquo;' + RI.esc(d.why) + '&rdquo;' : '') + '</span>' +
@@ -245,7 +295,7 @@
         var sum = r.lo == null ? 'New Low and High ' + rtPer(r.unit) + ': ' + rtMoney(a) + ' to ' + rtMoney(b) : 'Low and High ' + rtPer(r.unit) + ': ' + rtMoney(r.lo) + ' to ' + rtMoney(r.hi) + ' becomes ' + rtMoney(a) + ' to ' + rtMoney(b);
         sum += ', effective ' + C.date(e);
         sheet.close();
-        C.askWhy('Rate: ' + r.name, sum, function(why){ C.addDraft({area:'rates', ref:String(i), title:'Rate: ' + r.name + ', ' + r.region, summary:sum, after:{lo:a, hi:b, src:s, eff:e}, why:why}); RI.toast('Saved as a draft. It waits in the publish queue.', 'check'); C.render(); });
+        C.askWhy('Rate: ' + r.name, sum, function(why){ if(r.chk === false){ r.chk = true; C.set('rates', list); } C.addDraft({area:'rates', ref:String(i), title:'Rate: ' + r.name + ', ' + r.region, summary:sum, after:{lo:a, hi:b, src:s, eff:e}, why:why}); RI.toast('Saved as a draft. It waits in the publish queue.', 'check'); C.render(); });
       });
       sheet.querySelectorAll('.rlb-restore').forEach(function(b){ b.addEventListener('click', function(){
         var h = hist.filter(function(x){ return x.v === +b.getAttribute('data-v'); })[0]; if(!h) return;
@@ -253,6 +303,7 @@
         sheet.close();
         C.askWhy('Rate: ' + r.name, sum, function(why){ C.addDraft({area:'rates', ref:String(i), title:'Rate: ' + r.name + ', ' + r.region + ' (restore v' + h.v + ')', summary:sum, after:{lo:h.lo, hi:h.hi, src:h.src, eff:Date.now()}, why:why}); RI.toast('Saved as a draft to restore v' + h.v + '.', 'check'); C.render(); });
       }); });
+      var c1 = sheet.querySelector('#rgn-chk1'); if(c1) c1.addEventListener('click', function(){ r.chk = true; if(r.lo != null) r.src = 'Checked against the ' + (r.from || RT_HOME) + ' copy'; C.set('rates', list); C.log('Rate checked', r.name + ', ' + r.region, '', 'rates'); RI.toast(r.name + ' checked for the ' + r.region + '.', 'check'); openSheet(i); });
       sheet.querySelectorAll('[data-close]').forEach(function(b){ b.addEventListener('click', function(){ sheet.close(); }); });
     }
 
@@ -277,7 +328,7 @@
             '<label><span>Trade</span><span class="c-select"><select id="ra-trade">' + opt(RT_TRADES, st.trade === 'all' ? 'Flooring' : st.trade) + '</select></span></label>' +
             '<label><span>Code</span><input class="input" type="text" id="ra-code" autocomplete="off" spellcheck="false"><small class="err" id="ra-code-e"></small></label>' +
             '<label><span>Unit</span><span class="c-select"><select id="ra-unit">' + opt(RT_UNITS, st.unit === 'all' ? 'sq ft' : st.unit, function(u){ return u === 'each' ? 'Each' : 'Per ' + u; }) + '</select></span></label>' +
-            '<label><span>Region</span><span class="c-select"><select id="ra-region">' + opt(RT_REGIONS.map(function(g){ return g[0]; }), st.region) + '</select></span></label>' +
+            '<label><span>Region</span><span class="c-select"><select id="ra-region">' + opt(rtRegionNames(), st.region) + '</select></span></label>' +
           '</div><p class="rlb-fixed">' + RI.icon('lock', 'i-sm') + '<span>Unit and region cannot change once the rate is saved.</span></p></section>' +
           '<section class="rlb-edit"><h3>First Low and High</h3><div class="rlb-fields">' +
             '<label><span>Low</span><span class="rlb-in"><i>$</i><input class="input" type="number" inputmode="decimal" step="0.05" min="0" id="ra-lo"></span></label>' +
@@ -332,11 +383,131 @@
     view.addEventListener('click', function(e){
       var s = e.target.closest('[data-s]'); if(s && view.contains(s) && !sheet.contains(s)){ st.s = s.getAttribute('data-s'); st.page = 0; draw(); return; }
       var pg = e.target.closest('#rlb-body [data-pg]'); if(pg && !pg.disabled){ st.page = +pg.getAttribute('data-pg'); draw(); doc.getElementById('rlb-s').scrollIntoView({block:'nearest'}); return; }
-      var h = e.target.closest('.rlb-hit'); if(h){ openSheet(+h.getAttribute('data-i')); }
+      var h = e.target.closest('.rlb-hit'); if(h){ openSheet(+h.getAttribute('data-i')); return; }
+      if(e.target.closest('#rgn-start')){ rtStartDialog(st.region, function(){ list = rtList(); draw(); }); return; }
+      if(e.target.closest('#rgn-chkall')){ var m = rtChecked(st.region); list = rtList(); RI.toast(m + ' rates marked checked in the ' + st.region + '.', 'check'); draw(); return; }
     });
     var want = C.query().code; draw();
     if(want){ var wi = list.map(function(r){ return r.code; }).indexOf(want); if(wi > -1) openSheet(wi); }
   }, {nav:'rates', perm:'rulebook.view'});
+
+  /* ---------- Regions (Sam's meeting, Nov 2026) ----------
+     The US in a few big regions, each a set of states, so opening a new area is filling in its rates, not new work.
+     A US tile map shows which state belongs where; each region card says whether it is live, how far its rates are,
+     and what to do next: start it from the Midwest's rate list, check the copied rates, go live (Sam only).
+     Add a region or Change states moves states between regions; every state is in exactly one. */
+  function rgnStats(g){
+    var rows = rtList().filter(function(r){ return r.region === g.name; });
+    var unchk = rows.filter(function(r){ return r.chk === false; }).length, none = rows.filter(function(r){ return r.lo == null; }).length;
+    return {n:rows.length, unchk:unchk, none:none, priced:rows.length - none, state:g.live ? 'live' : !rows.length ? 'new' : (unchk || rows.length === none) ? 'check' : 'ready'};
+  }
+  C.route('/regions', function(view){
+    var regs = RI.regions(), isSam = C.can('publish'), canEdit = C.can('pricing.edit'), want = C.query().r;
+    var sel = (regs.filter(function(g){ return g.key === want; })[0] || regs.filter(function(g){ return g.name === RT_HOME; })[0] || regs[0]).key;
+    var home = rtList().filter(function(r){ return r.region === RT_HOME; }).length;
+    function save(){ C.set('regions', regs); }
+    view.innerHTML = C.page({kicker:'Pricing', title:'Regions', sub:'The US in a few big regions. A house is priced with the rates of the region its state is in. Opening a new area means filling in its rates, then Sam turns it on.',
+      actions:isSam ? '<button type="button" class="btn btn-primary" id="rgn-add">' + RI.icon('plus', 'i-sm') + 'Add a region</button>' : '',
+      body:'<div class="rgn-layout"><section class="rgn-mapc" aria-label="Map of the regions"><header class="rgn-mh"><b>United States</b><span id="rgn-sum"></span></header><div class="rgn-map" id="rgn-map"></div><div class="rgn-legend" id="rgn-key"></div></section><div class="rgn-cards" id="rgn-cards"></div></div>' +
+        '<div class="c-mt">' + C.note('A sample setup. Houses in a region that is not live can be saved but are not priced; the homeowner sees that we do not price their area yet. Every state belongs to exactly one region.') + '</div>'});
+    function stLbl(x, g){
+      return x.state === 'live' ? '<span class="lb lb-pub">Live</span>' : x.state === 'new' ? '<span class="lb lb-off">Not started</span>' : x.state === 'check' ? '<span class="lb lb-draft">Checking rates</span>' : '<span class="lb rgn-lb-ready">Ready to go live</span>';
+    }
+    function card(g){
+      var x = rgnStats(g), on = g.key === sel, names = g.states.map(function(c){ return RI.STATES[c] || c; });
+      var done = x.n - x.unchk, pct = x.n ? Math.round(done / x.n * 100) : 0;
+      var next = x.state === 'live' ? '<a class="btn btn-secondary btn-sm" href="#/rates?region=' + encodeURIComponent(g.name) + '">' + RI.icon('file', 'i-sm') + 'Open its rates</a>'
+        : x.state === 'new' ? (canEdit ? '<button type="button" class="btn btn-primary btn-sm" data-start="' + g.key + '">' + RI.icon('plus', 'i-sm') + 'Start this region</button>' : '')
+        : '<a class="btn btn-secondary btn-sm" href="#/rates?region=' + encodeURIComponent(g.name) + '">' + RI.icon('file', 'i-sm') + (x.unchk ? 'Check its rates' : 'Open its rates') + '</a>' +
+          (isSam ? '<button type="button" class="btn btn-primary btn-sm" data-live="' + g.key + '"' + (x.state === 'check' ? ' disabled' : '') + '>' + RI.icon('check', 'i-sm') + 'Go live</button>' : '');
+      return '<article class="rgn-card' + (on ? ' is-on' : '') + '" data-sel="' + g.key + '">' +
+        '<header><button type="button" class="rgn-pick" data-sel="' + g.key + '" aria-pressed="' + on + '"><b>' + RI.esc(g.name) + '</b><small>' + g.states.length + ' state' + (g.states.length === 1 ? '' : 's') + '</small></button>' + stLbl(x, g) + '</header>' +
+        '<p class="rgn-states" title="' + RI.esc(names.join(', ')) + '">' + (names.length ? RI.esc(names.slice(0, 4).join(', ')) + (names.length > 4 ? ' and ' + (names.length - 4) + ' more' : '') : 'No states') + '</p>' +
+        (x.state === 'live' ? '<p class="rgn-line">' + x.n + ' rates' + (x.none ? ', ' + x.none + ' with no rate yet (shown as not priced)' : '') + '. Houses in its states are priced.</p>'
+          : x.state === 'new' ? '<p class="rgn-line">No rates yet. Houses here are saved but not priced.</p>'
+          : '<div class="rgn-prog"><span class="rgn-bar" aria-hidden="true"><i style="width:' + pct + '%"></i></span><span>' + done + ' of ' + x.n + ' rates checked' + (x.unchk ? '' : x.priced ? ' &middot; Sam can turn it on' : ' &middot; no Low and High yet') + '</span></div>') +
+        '<footer>' + next + (isSam ? '<button type="button" class="linkbtn small" data-edit="' + g.key + '">Change states</button>' : '') + '</footer></article>';
+    }
+    /* The map: every state in its real shape (RI.USMAP, usmap.js). The colour says where a region stands: green live,
+       sage ready to go live, bronze while its rates are checked, hatched not started. Thick white lines part the regions,
+       thin ones the states. Each region carries a name tag with a status dot; the chosen region is outlined in Deep
+       Forest, filled in the deep shade of its status and shows its state codes. Alaska and Hawaii sit as insets. */
+    var RGN_ST = {live:'Live', ready:'Ready to go live', check:'Checking rates', 'new':'Not started'};
+    function map(){
+      var M = RI.USMAP, host = doc.getElementById('rgn-map'); if(!M){ host.innerHTML = ''; return; }
+      var stat = {}, cnt = {live:0, ready:0, check:0, 'new':0}, chosen = null;
+      regs.forEach(function(g){ var x = rgnStats(g).state; stat[g.key] = x; cnt[x]++; if(g.key === sel) chosen = g; });
+      /* the chosen region last, so its outline sits on top */
+      var order = regs.filter(function(g){ return g.key !== sel; }).concat(chosen ? [chosen] : []), shapes = '', pins = '';
+      order.forEach(function(g){
+        var cs = g.states.filter(function(c){ return M.s[c]; }), st = stat[g.key], on = g.key === sel;
+        shapes += '<g class="rgn-g st-' + st + (on ? ' is-on' : '') + '" data-g="' + g.key + '">' +
+          cs.map(function(c){ return '<path class="rgn-e" d="' + M.s[c].d + '"/>'; }).join('') +
+          cs.map(function(c){ return '<path class="rgn-s" d="' + M.s[c].d + '" data-sel="' + g.key + '"><title>' + RI.esc((RI.STATES[c] || c) + ', ' + g.name + ': ' + RGN_ST[st].toLowerCase()) + '</title></path>'; }).join('') +
+          (on ? cs.filter(function(c){ return M.s[c].a > 900; }).map(function(c){ return '<text class="rgn-code" x="' + M.s[c].c[0] + '" y="' + M.s[c].c[1] + '">' + c + '</text>'; }).join('') : '') + '</g>';
+        /* the name tag sits at the middle of the region's mainland states, weighted by size */
+        var pts = cs.filter(function(c){ return c !== 'AK' && c !== 'HI'; }); if(!pts.length) pts = cs; if(!pts.length) return;
+        var w = 0, x = 0, y = 0; pts.forEach(function(c){ var t = M.s[c], a = Math.sqrt(t.a); w += a; x += t.c[0] * a; y += t.c[1] * a; });
+        x /= w; y /= w; if(on) y = Math.max(16, Math.min.apply(null, pts.map(function(c){ return M.s[c].c[1]; })) - 34); /* above the codes */
+        pins += '<button type="button" class="rgn-pin st-' + st + (on ? ' is-on' : '') + '" style="left:' + (x / M.w * 100).toFixed(2) + '%;top:' + (y / M.h * 100).toFixed(2) + '%" data-sel="' + g.key + '" aria-label="' + RI.esc(g.name + ', ' + RGN_ST[st]) + '"><span class="d" aria-hidden="true"></span>' + RI.esc(g.name) + '</button>';
+      });
+      host.innerHTML = '<svg viewBox="0 0 ' + M.w + ' ' + M.h + '" role="img" aria-label="Map of the US regions' + (chosen ? ', ' + RI.esc(chosen.name) + ' chosen' : '') + '">' +
+        '<defs><pattern id="rgn-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#F3EEE5"/><rect width="3" height="9" fill="#DED2BF"/></pattern>' +
+        '<pattern id="rgn-hatch-on" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#E6DBC9"/><rect width="3" height="9" fill="#C3AF92"/></pattern></defs>' + shapes + '</svg>' + pins;
+      var regsN = regs.filter(function(g){ return g.states.length; }).length, statesN = regs.reduce(function(n, g){ return n + g.states.length; }, 0);
+      doc.getElementById('rgn-sum').textContent = statesN + ' states in ' + regsN + ' regions';
+      doc.getElementById('rgn-key').innerHTML = '<ul>' + ['live', 'ready', 'check', 'new'].filter(function(k){ return cnt[k] || k === 'live' || k === 'new'; }).map(function(k){
+          return '<li><svg class="rgn-sw" viewBox="0 0 16 16" aria-hidden="true"><rect class="sw-' + k + '" width="16" height="16" rx="3"/></svg>' + RGN_ST[k] + '<b>' + cnt[k] + '</b></li>'; }).join('') + '</ul>' +
+        '<p>' + (chosen ? '<span class="rgn-ol" aria-hidden="true"></span><b>' + RI.esc(chosen.name) + '</b> chosen &middot; ' + chosen.states.length + ' states' : '') + '<span class="rgn-tip">Tap a region on the map or a card</span></p>';
+    }
+    function draw(){ doc.getElementById('rgn-cards').innerHTML = regs.map(card).join(''); map(); RI.fillIcons(view); }
+    /* Add a region, or change a region's states: one dialog. A state moves out of the region it was in. */
+    function editRegion(key){
+      var g = key ? regs.filter(function(x){ return x.key === key; })[0] : null, pick = {};
+      (g ? g.states : []).forEach(function(c){ pick[c] = true; });
+      var d = C.dialog(g ? 'Change the states of the ' + g.name : 'Add a region',
+        '<label class="rgn-f"><span>Name</span><input class="input" id="rgn-name" value="' + RI.esc(g ? g.name : '') + '" placeholder="For example: Pacific Northwest" autocomplete="off"><small class="err" id="rgn-name-e"></small></label>' +
+        '<p class="rgn-f-h">States <span class="muted" id="rgn-n"></span></p><div class="rgn-chips" id="rgn-chips">' +
+          regs.map(function(r){ return '<fieldset><legend>' + RI.esc(r.name) + (r.live ? ' <span class="lb lb-pub">Live</span>' : '') + '</legend>' + r.states.slice().sort().map(function(c){ return '<label class="rgn-chip"><input type="checkbox" value="' + c + '"' + (pick[c] ? ' checked' : '') + '><span>' + c + '</span></label>'; }).join('') + '</fieldset>'; }).join('') +
+        '</div><p class="rgn-warn" id="rgn-warn" aria-live="polite"></p>' +
+        '<div class="cta-row" style="justify-content:flex-end;margin-top:12px"><button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="button" class="btn btn-primary" id="rgn-save">' + RI.icon('check', 'i-sm') + (g ? 'Save the states' : 'Add the region') + '</button></div>', {wide:true});
+      function chosen(){ return [].slice.call(d.querySelectorAll('#rgn-chips input:checked')).map(function(x){ return x.value; }); }
+      function warn(){
+        var cs = chosen(), moved = {}, w = [];
+        cs.forEach(function(c){ var o = RI.regions().filter(function(r){ return r.states.indexOf(c) > -1; })[0]; if(o && (!g || o.key !== g.key)) (moved[o.name] = moved[o.name] || {live:o.live, s:[]}).s.push(c); });
+        Object.keys(moved).forEach(function(n){ var m = moved[n]; w.push(m.s.join(', ') + ' move' + (m.s.length === 1 ? 's' : '') + ' out of the ' + n + (m.live ? ', which is live. Houses there are priced with this region\'s rates once it goes live; until then they are not priced.' : '.')); });
+        d.querySelector('#rgn-n').textContent = cs.length + ' chosen'; d.querySelector('#rgn-warn').textContent = w.join(' ');
+      }
+      d.addEventListener('change', warn); warn();
+      d.querySelector('#rgn-save').addEventListener('click', function(){
+        var name = d.querySelector('#rgn-name').value.trim().replace(/\s+/g, ' '), cs = chosen(), e = d.querySelector('#rgn-name-e');
+        var clash = regs.some(function(r){ return r.name.toLowerCase() === name.toLowerCase() && (!g || r.key !== g.key); });
+        e.textContent = !name ? 'Name the region.' : clash ? 'There is already a region with this name.' : !cs.length ? 'Choose at least one state.' : '';
+        if(e.textContent){ d.querySelector('#rgn-name').focus(); return; }
+        regs.forEach(function(r){ if(!g || r.key !== g.key) r.states = r.states.filter(function(c){ return cs.indexOf(c) < 0; }); });
+        if(g){
+          if(g.name !== name){ var all = rtList(); all.forEach(function(r){ if(r.region === g.name) r.region = name; }); C.set('rates', all); }
+          C.log('Region changed', name + ': ' + cs.length + ' states' + (g.name !== name ? ' (was ' + g.name + ')' : ''), '', 'rates');
+          g.name = name; g.states = cs; sel = g.key;
+        } else {
+          var k = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'region'; while(regs.some(function(r){ return r.key === k; })) k += '-2';
+          regs.push({key:k, name:name, states:cs}); sel = k; C.log('Region added', name + ': ' + cs.length + ' states, not live', '', 'rates');
+        }
+        save(); d.close(); RI.toast(g ? name + ' saved.' : name + ' added. Start it with the ' + RT_HOME + ' rates.', 'check'); draw();
+      });
+    }
+    view.addEventListener('mouseover', function(e){ var x = e.target.closest('.rgn-s'); view.querySelectorAll('.rgn-g.is-hov').forEach(function(g){ if(!x || g !== x.parentNode) g.classList.remove('is-hov'); }); if(x) x.parentNode.classList.add('is-hov'); });
+    view.addEventListener('mouseleave', function(){ view.querySelectorAll('.rgn-g.is-hov').forEach(function(g){ g.classList.remove('is-hov'); }); });
+    view.addEventListener('click', function(e){
+      var st = e.target.closest('[data-start]'); if(st){ var g1 = regs.filter(function(x){ return x.key === st.getAttribute('data-start'); })[0]; rtStartDialog(g1.name, function(){ sel = g1.key; draw(); }); return; }
+      var lv = e.target.closest('[data-live]'); if(lv && !lv.disabled){ var g2 = regs.filter(function(x){ return x.key === lv.getAttribute('data-live'); })[0];
+        C.confirm('Turn on the ' + g2.name + '?', 'Houses in its ' + g2.states.length + ' states are priced with its rates from now on. You can change any rate later through the publish queue.', 'Go live', function(){ g2.live = true; save(); var all = rtList(); all.forEach(function(r){ if(r.region === g2.name && r.lo != null && !r.v){ r.v = 1; r.at = Date.now(); } }); C.set('rates', all); C.log('Region live', g2.name + ': ' + g2.states.length + ' states priced from now on', '', 'rates'); RI.toast(g2.name + ' is live.', 'check'); draw(); }); return; }
+      var ed = e.target.closest('[data-edit]'); if(ed){ editRegion(ed.getAttribute('data-edit')); return; }
+      if(e.target.closest('#rgn-add')){ editRegion(null); return; }
+      var s2 = e.target.closest('[data-sel]'); if(s2 && s2.getAttribute('data-sel')){ sel = s2.getAttribute('data-sel'); draw(); }
+    });
+    draw();
+  }, {nav:'regions', perm:'rulebook.view'});
 
   /* ---------- Check results ---------- */
   C.route('/checks', function(view){

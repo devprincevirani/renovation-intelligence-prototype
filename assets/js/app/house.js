@@ -267,7 +267,7 @@
     }
     var pf = A.priceFor(h), price = '$' + pf.amount;
     view.innerHTML = '<div class="app-wrap px-page">' + A.houseHead(h) +
-      '<section class="price-s"><header class="ps-head"><div><p class="label">Your price by package' + (h.version > 1 ? ' · version ' + h.version : '') + '</p><h2>Three goals, one house</h2><p class="muted small">' + (zip ? 'Priced for ZIP ' + RI.esc(zip) + '. ' : '') + 'From ' + photoN + ' photos' + (Object.keys(h.sizes || {}).length ? ' and your room sizes' : '') + '.</p></div>' +
+      '<section class="price-s"><header class="ps-head"><div><p class="label">Your price by package' + (h.version > 1 ? ' · version ' + h.version : '') + '</p><h2>Three goals, one house</h2><p class="muted small">' + (function(){ var g = RI.regionOf(RI.stateOfHouse(h)); return g ? 'Priced with ' + RI.esc(g.name) + ' rates' + (zip ? ', ZIP ' + RI.esc(zip) : '') + '. ' : zip ? 'Priced for ZIP ' + RI.esc(zip) + '. ' : ''; })() + 'From ' + photoN + ' photos' + (Object.keys(h.sizes || {}).length ? ' and your room sizes' : '') + '.</p></div>' +
         (held.u + held.m ? '<span class="state state-partial">Partial: ' + (held.u + held.m) + ' line' + (held.u + held.m > 1 ? 's' : '') + ' not priced yet</span>' : '<span class="state state-priced">Every line priced</span>') + '</header>' +
         '<div class="seg pk-seg-m" role="group" aria-label="Goal"><span class="seg-thumb"></span>' + RI.PACKAGES.map(function(p){ return '<button type="button" data-goal="' + p.key + '" aria-pressed="' + (p.key === sel) + '">' + p.name + '</button>'; }).join('') + '</div>' +
         '<div class="pk-cards" data-scale="0,' + max + '" role="tablist" aria-label="Goal">' + RI.PACKAGES.map(function(p, i){

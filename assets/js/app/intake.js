@@ -187,7 +187,7 @@
           '<div class="field a-city"><label for="city">City</label><input class="input" id="city" list="cities" autocomplete="address-level2" value="' + RI.esc(a.city || '') + '"><datalist id="cities">' + Object.keys(RI.AREAS).map(function(k){ return '<option value="' + RI.AREAS[k].name + '">'; }).join('') + '</datalist><span class="err"></span></div>' +
           '<div class="field a-state"><label for="state">State</label><input class="input" id="state" maxlength="2" autocomplete="address-level1" value="' + RI.esc(a.state) + '"><span class="err"></span></div>' +
           '<div class="field a-zip"><label for="zip">ZIP</label><input class="input" id="zip" inputmode="numeric" maxlength="5" autocomplete="postal-code" value="' + RI.esc(a.zip || '') + '"><span class="err"></span></div>' +
-        '</div><div id="dup"></div>' +
+        '</div><div id="dup"></div><div id="rgn-note" aria-live="polite"></div>' +
         '<div class="ptype"><label class="pt-on"><input type="radio" name="ptype" value="single-family" checked>' + RI.icon('house','i-sm') + '<span><b>Single-family detached</b><span class="xsmall muted">The only property type in this version</span></span></label>' +
         '<span class="pt-later">' + RI.icon('lock','i-sm') + 'Condos, townhouses and multi-family come later</span></div>') +
       /* 2 Size and age */
@@ -271,7 +271,7 @@
       list.innerHTML = sugg.map(function(x, i){ return '<li role="option" id="as-' + i + '" data-i="' + i + '"><b>' + RI.esc(x[0]) + '</b><span>' + RI.esc(x[1]) + ', MI ' + x[2] + '</span></li>'; }).join('');
       list.hidden = !sugg.length; street.setAttribute('aria-expanded', !!sugg.length);
     }
-    function pick(i){ var x = sugg[i]; if(!x) return; street.value = x[0]; $('city').value = x[1]; $('zip').value = x[2]; $('state').value = 'MI'; list.hidden = true; street.setAttribute('aria-expanded', 'false'); ['street','city','zip'].forEach(function(id){ RI.form.setInvalid($(id), null); }); collect(); dupCheck(); }
+    function pick(i){ var x = sugg[i]; if(!x) return; street.value = x[0]; $('city').value = x[1]; $('zip').value = x[2]; $('state').value = 'MI'; regionNote(); list.hidden = true; street.setAttribute('aria-expanded', 'false'); ['street','city','zip'].forEach(function(id){ RI.form.setInvalid($(id), null); }); collect(); dupCheck(); }
     street.addEventListener('input', showSugg);
     street.addEventListener('keydown', function(e){
       if(list.hidden) return;
@@ -303,12 +303,20 @@
     }
     $('unit').addEventListener('input', dupCheck); $('zip').addEventListener('blur', dupCheck);
     dupCheck();
+    /* Regions (Sam's meeting, Nov 2026): a state whose region is not live yet gets a calm note. The house can be saved, not priced */
+    function regionNote(){
+      var el = $('rgn-note'), v = $('state').value.trim().toUpperCase(), g = RI.STATES[v] ? RI.regionOf(v) : null; if(!el) return;
+      var live = RI.regions().filter(function(r){ return r.live; }).map(function(r){ return r.name; });
+      el.innerHTML = g && !g.live ? '<p class="rgn-note">' + RI.icon('pin','i-sm') + '<span><b>We do not price houses in ' + RI.esc(RI.STATES[v]) + ' yet.</b> We start in the ' + RI.esc(live.join(' and ') || 'Midwest') + '. You can save this house now, and we will let you know when we price the ' + RI.esc(g.name) + '.</span></p>' : '';
+      RI.fillIcons(el);
+    }
+    $('state').addEventListener('input', regionNote); regionNote();
     function check(only){
       var ok = true, F = RI.form;
       function req(id, test, msg){ if(only && id !== only) return; var el = $(id), bad = !test(el.value.trim()); F.setInvalid(el, bad ? msg : null); if(bad && ok){ ok = false; if(!only) el.focus(); } }
       req('street', function(v){ return v.length > 3; }, 'Enter the street address.');
       req('city', function(v){ return v.length > 1; }, 'Enter the city.');
-      req('state', function(v){ return /^[A-Za-z]{2}$/.test(v); }, 'Use the two-letter state, for example MI.');
+      req('state', function(v){ return !!RI.STATES[v.toUpperCase()]; }, 'Use the two-letter state, for example MI.');
       req('zip', function(v){ return /^\d{5}$/.test(v); }, 'A ZIP code has 5 digits.');
       req('year', function(v){ return /^\d{4}$/.test(v) && +v >= 1800 && +v <= new Date().getFullYear(); }, 'Enter a year between 1800 and this year.');
       req('sqft', function(v){ v = +v.replace(/\D/g, ''); return v >= 300 && v <= 9000; }, 'Enter the size in square feet, for example 1686.');
@@ -841,6 +849,7 @@
       });
     }
     return function(){
+      if(A.regionBlocked(h)) return false;
       var up = Object.keys(pending).some(function(k){ return pending[k].some(function(p){ return p.state === 'up'; }); });
       if(up){ RI.toast('A few photos are still uploading. One moment.', 'clock'); return false; }
       if(Object.keys(reading).length){ RI.toast('A few photos are still being read. One moment.', 'clock'); return false; }
@@ -869,7 +878,15 @@
         '<a class="lo" href="' + RI.url('contact/') + '"><b>Ask us for more</b><span>Tell us about your houses and we will get back to you.</span></a>' +
       '</div><p class="xsmall muted">Sample numbers. Sam sets them.</p>');
   };
+  /* A house in a region that is not live yet stays a draft; it is never priced with another region's rates */
+  A.regionBlocked = function(h){
+    var st = RI.stateOfHouse(h), g = RI.regionOf(st); if(!g || g.live) return false;
+    A.dialog('We do not price the ' + g.name + ' yet', '<div class="mark bronze">' + RI.icon('pin') + '</div><p>Your house in ' + RI.esc(RI.STATES[st] || st) + ' is saved as a draft. We price houses with the rates of their region, and the ' + RI.esc(g.name) + ' is not open yet. We will let you know when it is.</p>' +
+      '<div class="cta-row" style="justify-content:flex-end"><button type="button" class="btn btn-primary" data-dlg-close>Keep my draft</button></div>');
+    return true;
+  };
   function canSubmit(h, again){
+    if(A.regionBlocked(h)) return false;
     var s = A.me();
     if(!s.demo){
       var u = RI.users.get(s.email) || {};
