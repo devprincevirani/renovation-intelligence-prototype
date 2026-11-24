@@ -629,14 +629,8 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:.78rem}
 .ac-t i{display:block;height:100%;background:var(--deep-forest);border-radius:4px}
 .ac-bar b{font-weight:600;font-size:.8rem;color:var(--muted)}
 @media (min-width:900px){ .ac-top{grid-template-columns:160px 260px minmax(0,1fr);gap:28px} }
-.ac-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.ac-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
 .ac-ph{margin:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:var(--raised)}
-.ac-ph.miss{border-color:#E9C4BA}
-.ac-ph img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
-.ac-ph figcaption{display:grid;gap:4px;padding:10px 12px;font-size:.82rem}
-.ac-ph figcaption span{display:grid}
-.ac-ph small{font-size:.64rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.ac-ph em{font-style:normal;justify-self:start;margin-top:2px}
 .c-list>.c-seg,.c-list>.c-search{min-height:min-content;flex-shrink:0}
 @media (max-width:899px){ .tr-nav{max-height:none;overflow:visible} }
 
@@ -3454,3 +3448,101 @@ button.bim-c:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2
   .rgn-card footer .linkbtn{margin-left:0}
 }
 @media (prefers-reduced-motion:reduce){ .rgn-s{transition:none} }
+
+/* ===================================================================
+   Photo accuracy: disagree and give the right label (user, Nov 2026).
+   Every card ends with its result and Disagree or Edit label; the panel
+   shows the photo and the model's reading beside "What is right?".
+   =================================================================== */
+.ac-ph{display:flex;flex-direction:column}
+.ac-ph figcaption{flex:1;display:flex;flex-direction:column;gap:8px;padding:12px 12px 10px;font-size:.86rem}
+/* the photo is a button: it opens the panel to look closer */
+.acl-photo{position:relative;display:block;width:100%;padding:0;border:0;background:var(--sunken);cursor:zoom-in}
+.acl-photo img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+.acl-photo:focus-visible{outline:2px solid var(--deep-forest);outline-offset:-4px}
+.acl-tag{position:absolute;left:8px;top:8px;padding:3px 8px;border-radius:var(--r-sm);background:var(--deep-forest);color:#fff;font-size:12px;font-weight:600}
+.acl-look{position:absolute;inset:0;display:grid;place-items:center;opacity:0;transition:opacity var(--fast)}
+.acl-look span{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--r-md);background:rgba(32,59,56,.88);color:#fff;font-size:.84rem;font-weight:600}
+.acl-photo:focus-visible .acl-look{opacity:1}
+@media (hover:hover){ .acl-photo:hover .acl-look{opacity:1} }
+/* what Sam said and what the model read */
+.acl-t{font-size:.95rem;font-weight:600}
+.acl-cmp{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;align-items:baseline}
+.acl-k{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.acl-v{line-height:1.35;overflow-wrap:anywhere}
+.acl-v b{font-weight:600}
+.acl-v s{color:var(--hl-text);text-decoration-color:var(--bronze);text-decoration-thickness:2px}
+.acl-pc{display:block;font-size:12px;color:var(--muted)}
+.acl-nt{padding:6px 8px;border-left:2px solid var(--warm-stone);background:var(--page);font-size:.8rem;line-height:1.4}
+.acl-nt q{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.acl-who{display:block;margin-top:2px;font-size:12px;color:var(--muted)}
+.acl-bd{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:var(--r-sm);font-style:normal;font-size:12px;font-weight:600}
+.acl-bd .i{width:13px;height:13px}
+.acl-bd.ok{background:var(--ok-bg);color:var(--ok)}
+.acl-bd.no{background:rgba(161,125,88,.16);color:var(--hl-text)}
+.acl-bd.wait{background:var(--sunken);color:var(--muted)}
+.acl-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px}
+.acl-add{position:relative;cursor:pointer}
+.acl-add input{position:absolute;inset:0;opacity:0;width:100%;cursor:pointer}
+.acl-add:focus-within{outline:2px solid var(--deep-forest);outline-offset:2px}
+.acl-ft{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding-top:8px;border-top:1px solid var(--border-soft)}
+.acl-btn{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border-radius:var(--r-md);border:1px solid var(--border-strong);background:var(--raised);color:var(--text);font:inherit;font-size:.8rem;font-weight:600;cursor:pointer;white-space:nowrap}
+.acl-btn:hover{border-color:var(--deep-forest);background:var(--sunken)}
+.acl-btn:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2px}
+.acl-empty{margin:0;padding:28px 16px;text-align:center;border:1px dashed var(--border-strong);border-radius:var(--r-lg);color:var(--muted)}
+/* the panel */
+dialog.dlg.acl-dlg{width:min(900px,calc(100vw - 32px))}
+.acl-g{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:22px;align-items:start}
+.acl-ph{display:grid;gap:8px}
+.acl-ph img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:var(--r-lg);display:block;background:var(--sunken)}
+.acl-ph p{margin:0;font-size:.78rem;color:var(--muted);overflow-wrap:anywhere}
+.acl-read{display:grid;gap:4px;padding:10px 12px;border-radius:var(--r-lg);background:var(--sunken);font-size:.88rem}
+.acl-read small,.acl-f>label,.acl-f>span.l{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.acl-read b{font-weight:600}
+.acl-read .conf{font-size:.78rem;color:var(--muted)}
+.acl-form{display:grid;gap:14px;min-width:0}
+.acl-form h3{margin:2px 0 0;font-size:1.05rem}
+#acl-cm{display:grid;gap:14px}
+.acl-f{display:grid;gap:6px}
+.acl-f select,.acl-f textarea{font:inherit;font-size:.9rem;padding:9px 10px;border:1px solid var(--border-strong);border-radius:var(--r-md);background:var(--raised);color:var(--text);width:100%}
+.acl-f textarea{min-height:76px;resize:vertical;line-height:1.45}
+.acl-f select:focus-visible,.acl-f textarea:focus-visible{outline:2px solid var(--deep-forest);outline-offset:1px}
+.acl-help{margin:0;font-size:12px;color:var(--muted)}
+.acl-err{margin:0;font-size:.82rem;font-weight:600;color:var(--bad)}
+.acl-chips{display:flex;flex-wrap:wrap;gap:6px}
+.acl-chips.has-model{padding-bottom:14px;row-gap:20px} /* room for the Model tag when the buttons wrap */
+.acl-chips button{position:relative;min-height:36px;padding:0 12px;border-radius:var(--r-md);border:1px solid var(--border-strong);background:var(--raised);color:var(--text);font:inherit;font-size:.84rem;cursor:pointer;transition:background var(--fast),color var(--fast)}
+.acl-chips button:hover:not([aria-pressed="true"]){background:var(--sunken)}
+.acl-chips button[aria-pressed="true"]{background:var(--deep-forest);border-color:var(--deep-forest);color:#fff;font-weight:600}
+.acl-chips button:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2px}
+.acl-chips button.model::after{content:"Model";position:absolute;left:50%;top:100%;transform:translate(-50%,3px);font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.acl-mech{display:flex;gap:8px;align-items:center;margin:0;padding:10px 12px;border:1px dashed var(--border-strong);border-radius:var(--r-md);font-size:.86rem;color:var(--muted)}
+.acl-hist{font-size:.84rem}
+.acl-hist summary{cursor:pointer;font-weight:600;color:var(--deep-forest)}
+.acl-hist ol{margin:8px 0 0;padding:0;list-style:none;display:grid;gap:8px}
+.acl-hist li{display:grid;gap:1px;padding-left:10px;border-left:2px solid var(--border-soft)}
+.acl-hist li span{font-size:12px;color:var(--muted)}
+.acl-hist q{font-size:.8rem;color:var(--text)}
+.acl-foot{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding-top:14px;border-top:1px solid var(--border-soft)}
+.acl-foot p{margin:0;font-size:12px;color:var(--muted);max-width:44ch}
+.acl-foot .btns{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto}
+@media (max-width:700px){
+  .acl-g{grid-template-columns:1fr;gap:14px}
+  .acl-ph img{aspect-ratio:16/10}
+  dialog.dlg.acl-dlg{width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;border-radius:0;margin:0}
+  .acl-foot{position:sticky;bottom:-18px;background:var(--raised);padding-bottom:12px;z-index:1}
+  .acl-foot p{display:none}
+  .acl-form::after{content:"The model\2019s reading stays next to your label. Nothing is overwritten.";font-size:12px;color:var(--muted)}
+  .acl-foot .btns{width:100%}
+  .acl-foot .btns .btn{flex:1}
+  .acl-bar .acl-add{width:100%;justify-content:center}
+  .ac-grid{grid-template-columns:1fr;gap:10px}
+  .ac-ph{display:grid;grid-template-columns:106px minmax(0,1fr);align-items:start}
+  .acl-photo{width:auto;margin:10px 0 10px 10px;border-radius:var(--r-md);overflow:hidden}
+  .acl-look{display:none}
+  .acl-photo img{aspect-ratio:1}
+  .acl-tag{left:4px;top:4px;padding:2px 6px}
+  .ac-ph figcaption{padding:10px 12px;gap:6px}
+}
+@media (prefers-reduced-motion:reduce){ .acl-chips button,.acl-look{transition:none} }
+
