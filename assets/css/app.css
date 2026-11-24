@@ -597,6 +597,8 @@ img.plan-view{min-height:0}
 .pr-side .seg button{padding:0 8px}
 .pr-side .pr-total{justify-items:start;text-align:left;border-top:1px solid var(--border-soft);padding-top:12px}
 .pr-side .pr-total .rl{width:100%}
+/* The range bar's wrapper stretches to the panel's width; without it the bar had 0 px to draw in and showed as a single tick */
+.pr-side .pr-total [data-scale]{justify-self:stretch;width:100%}
 .pr-side .pr-total .range-txt{font-size:1.5rem}
 .pr-reset{justify-self:start;min-height:32px}
 .pr-main .tabs-s{margin-top:0}
@@ -1558,8 +1560,10 @@ button.tz-more{background:none;border:0;padding:0;font:inherit;cursor:pointer}
 .px-pick .rc-chip{display:inline-flex;align-items:center;gap:6px;position:relative}
 .px-pick .rc-chip .i{color:var(--muted)}
 .px-pick .rc-chip[aria-pressed="true"] .i{color:inherit}
-.px-free{font-size:.7rem;font-weight:600;letter-spacing:.02em;padding:1px 6px;border-radius:var(--r-sm);background:var(--sunken);color:var(--deep-forest)}
-.rc-chip[aria-pressed="true"] .px-free{background:rgba(255,255,255,.16);color:#fff}
+/* The Free tag sits inside its chip as a small pill (user, Nov 2026): ivory on the chosen dark chip, sand on a plain one */
+.px-pick .px-fr{padding-right:8px;gap:8px}
+.px-free{display:inline-flex;align-items:center;min-height:24px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:600;line-height:1;letter-spacing:.02em;background:var(--sunken);color:var(--deep-forest)}
+.rc-chip[aria-pressed="true"] .px-free{background:var(--soft-ivory);color:var(--deep-forest)}
 .px-lockp{display:inline-flex;align-items:center;gap:6px;color:var(--muted)}
 /* What this buys on the price page: the presentation's lines; a locked room blurs its prices and the lines after the first few */
 .wb-r .px-lockp .rc-blur{font-size:.88rem}
@@ -1623,3 +1627,169 @@ button.tz-more{background:none;border:0;padding:0;font:inherit;cursor:pointer}
 .rgn-note{display:flex;gap:8px;align-items:flex-start;margin:10px 0 0;padding:10px 12px;border:1px dashed var(--border-strong);border-radius:var(--r-md);background:var(--raised);font-size:.85rem;line-height:1.45;color:var(--state-ink)}
 .rgn-note .i{flex:none;margin-top:2px;color:var(--deep-forest)}
 .rgn-note b{color:var(--text)}
+
+/* What this buys: the product row pieces */
+.wb-pp{display:flex;flex-wrap:wrap;align-items:baseline;gap:1px 8px;margin-top:3px;font-size:.8rem;line-height:1.4}
+.wb-pn{font-weight:600;color:var(--text)}
+.wb-pq{color:var(--muted);white-space:nowrap}
+.wb-pq b{color:var(--text);font-weight:600}
+.wb-endv{font-size:1rem;font-weight:600;white-space:nowrap;line-height:1.3}
+.wb-line.off .wb-endv{text-decoration:line-through;text-decoration-color:var(--muted)}
+
+/* ===================================================================
+   What this buys, layout C (the user's choice, Nov 2026): each line shows the
+   part and its installed price, what you get, and "How this price is made",
+   which opens the product with its maths, the work with what it covers, and
+   the installed total. A switch turns the line on or off.
+   Phone first; from 641 px the photo grows to 72 px.
+   =================================================================== */
+.wb-hd{justify-content:flex-start;gap:8px 12px}
+.wb-note{margin:0;font-size:12px;color:var(--muted)}
+.wb-k{font-size:12px}
+.wb-c{grid-template-columns:56px minmax(0,1fr);gap:12px;padding:14px 0}
+.wb-main{display:grid;gap:3px;min-width:0}
+.wb-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.wb-top>b{font-size:1rem;font-weight:600;line-height:1.3}
+.wb-endv{font-size:1.05rem;font-weight:600;white-space:nowrap;line-height:1.3}
+.wb-nx{font-size:.9rem;line-height:1.45}
+.wb-nx b{font-weight:600}
+.wb-was{color:var(--muted);font-size:.84rem}
+/* The switch sits at the row's top right, so an open breakdown uses the full width */
+.wb-row{position:relative;margin-top:2px}
+.wb-row.has-inc .wb-how>summary{margin-right:3.5rem}
+/* Phones say Price breakdown, so the link stays on one line beside the switch */
+.wb-how-l{display:none}
+@media (min-width:641px){ .wb-how-l{display:inline} .wb-how-s{display:none} }
+.wb-how>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;min-height:36px;font-size:.84rem;font-weight:600;color:var(--deep-forest)}
+.wb-how>summary::-webkit-details-marker{display:none}
+.wb-how>summary::after{content:"";width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform var(--fast)}
+.wb-how[open]>summary::after{transform:translateY(2px) rotate(-135deg)}
+.wb-how>summary:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2px;border-radius:2px}
+.wb-inc{position:absolute;top:0;right:0;display:inline-flex;align-items:center;gap:7px;min-height:36px;cursor:pointer;font-size:12px;font-weight:600}
+.wb-line.off .wb-endv{text-decoration:line-through;text-decoration-color:var(--muted)}
+.wb-c .px-lockp{flex:none}
+@media (min-width:641px){
+  .wb-c{grid-template-columns:72px minmax(0,1fr);gap:14px}
+  .wb-c .wb-th{width:72px;height:72px}
+}
+@media (prefers-reduced-motion:reduce){ .wb-how>summary::after{transition:none} }
+@media print{ .wb-inc{display:none} .wb-how>summary::after{display:none} }
+
+/* ===================================================================
+   The room's range as the switch (the user's choice A, Nov 2026): under the
+   room's name, Low end and High end as two large buttons with their totals;
+   the list below shows what that end buys.
+   =================================================================== */
+.rc-sub{margin:2px 0 0;font-size:.84rem;color:var(--muted)}
+.rc-ends{display:grid;gap:6px}
+.rc-ends-g{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--border-strong);border-radius:var(--r-lg);overflow:hidden}
+.rc-ends-g button{display:grid;gap:2px;justify-items:start;text-align:left;padding:10px 14px;min-height:64px;border:0;background:var(--raised);color:var(--text);font:inherit;cursor:pointer;transition:background var(--fast),color var(--fast)}
+.rc-ends-g button+button{border-left:1px solid var(--border-strong)}
+.rc-ends-g small{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.rc-ends-g b{font-size:1.25rem;font-weight:600;font-variant-numeric:tabular-nums}
+.rc-ends-g button[aria-pressed="true"]{background:var(--deep-forest);color:#fff}
+.rc-ends-g button[aria-pressed="true"] small{color:var(--on-inverse-muted)}
+.rc-ends-g button:hover:not([aria-pressed="true"]){background:var(--sunken)}
+.rc-ends-g button:focus-visible{outline:2px solid var(--deep-forest);outline-offset:-4px}
+.rc-ends-h{margin:0;font-size:.82rem;color:var(--muted)}
+.wb-hd .state-partial{margin-left:2px}
+@media (prefers-reduced-motion:reduce){ .rc-ends-g button{transition:none} }
+@media print{ .rc-ends-h{display:none} }
+
+/* ===================================================================
+   Smooth changes (user, Nov 2026): no blink when a tab, a room, a package
+   or an end changes. A skeleton holds the place while another room or view
+   comes in; new numbers fade in softly; a photo still loading waits on a
+   calm placeholder. Flat shapes with a slow breathe, no gradient.
+   =================================================================== */
+.sw-in>*,.sw-self{animation:sw-in var(--base) var(--ease-out)}
+@keyframes sw-in{from{opacity:.4;transform:translateY(4px)}}
+.sk-b,.sk-rc .sk-l,.sk-view .sk-l{display:block;background:var(--sunken);border-radius:var(--r-md);animation:breathe 1.4s ease-in-out infinite}
+.sk-rc .sk-l,.sk-view .sk-l{height:12px;margin:0}
+.sk-rc .sk-h,.sk-view .sk-h{height:20px}
+.sk-rc .rc-photo{border-radius:0}
+.sk-ends{height:64px;border-radius:var(--r-lg)}
+.sk-row{display:grid;grid-template-columns:56px minmax(0,1fr);gap:12px;align-items:start;padding:12px 0;border-top:1px solid var(--border-soft)}
+.sk-th{width:56px;height:56px}
+.sk-lines{display:grid;gap:8px;padding-top:4px}
+.sk-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.sk-chips .sk-b{width:92px;height:40px;border-radius:999px}
+.sk-view{display:grid;gap:6px;padding:clamp(16px,2.2vw,24px);background:var(--raised);border:1px solid var(--border);border-radius:var(--r-lg)}
+.img-wait{animation:breathe 1.4s ease-in-out infinite}
+.img-wait img{opacity:0}
+.rc-photo img,.wb-th img{transition:opacity var(--base) var(--ease-out)}
+@media (min-width:641px){ .sk-row{grid-template-columns:72px minmax(0,1fr);gap:14px} .sk-th{width:72px;height:72px} }
+@media (prefers-reduced-motion:reduce){ .sw-in>*,.sw-self,.sk-b,.sk-rc .sk-l,.sk-view .sk-l,.img-wait{animation:none} .rc-photo img,.wb-th img{transition:none} }
+
+/* ===================================================================
+   The price breakdown card (user, Nov 2026): a bar with the split between
+   product and work, the product with its photo and maths, the work, the
+   installed total. Phones and tablets open it inside the line, full width;
+   on a computer it floats on hover (.bt-float, one for the page).
+   =================================================================== */
+.bt{display:grid;gap:10px;margin:4px 0 6px calc(-56px - 12px);padding:14px 16px 12px;background:var(--page);border:1px solid var(--border-soft);border-radius:var(--r-lg);font-size:.88rem;text-align:left}
+.bt-h{margin:0;font-size:.95rem;font-weight:600;line-height:1.3}
+.bt-bar{display:flex;gap:2px;height:8px;border-radius:var(--r-sm);overflow:hidden}
+.bt-bar i{display:block;min-width:2px}
+.bt-p{background:var(--deep-forest)}
+.bt-w{background:var(--warm-stone)}
+.bt-key{display:flex;flex-wrap:wrap;gap:4px 16px;margin:-2px 0 0;font-size:12px;color:var(--muted)}
+.bt-key span{display:inline-flex;align-items:center;gap:6px}
+.bt-key i{display:inline-block;width:8px;height:8px;border-radius:var(--r-sm)}
+.bt-row{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:10px;align-items:start;padding-top:10px;border-top:1px solid var(--border-soft)}
+.bt-ic{width:40px;height:40px;border-radius:var(--r-md);overflow:hidden;background:var(--sunken);display:grid;place-items:center;color:var(--deep-forest)}
+.bt-ic img{width:100%;height:100%;object-fit:cover;display:block}
+.bt-row b{display:block;font-weight:600;line-height:1.35}
+.bt-row small{display:block;margin-top:1px;font-size:12px;color:var(--muted);line-height:1.4}
+.bt-v{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bt-t{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-top:10px;border-top:1px solid var(--border-strong);font-weight:700}
+.bt-t .bt-v{font-size:1rem}
+@media (min-width:641px){ .bt{margin-left:calc(-72px - 14px)} }
+/* the floating card on a computer */
+.bt-float{position:absolute;z-index:45;width:min(340px,calc(100vw - 24px))} /* under the top bar (50), over the side panel */
+.bt-float[hidden]{display:none}
+.bt-float .bt{position:relative;margin:0;background:var(--raised);border-color:var(--border);box-shadow:var(--shadow-float)}
+.bt-float .bt::before{content:"";position:absolute;top:-7px;left:calc(var(--cx,28px) - 6px);width:12px;height:12px;background:var(--raised);border-left:1px solid var(--border);border-top:1px solid var(--border);transform:rotate(45deg)}
+.bt-float.up .bt::before{top:auto;bottom:-7px;transform:rotate(225deg)}
+.bt-float.in{animation:bt-in var(--fast) var(--ease-out)}
+.bt-float.up.in{animation-name:bt-in-up}
+@keyframes bt-in{from{opacity:0;transform:translateY(-4px)}}
+@keyframes bt-in-up{from{opacity:0;transform:translateY(4px)}}
+@media (hover:hover) and (pointer:fine){
+  .wb-how>summary{padding:0 6px;margin-left:-6px;border-radius:var(--r-md);transition:background var(--fast)}
+  .wb-how>summary::after{display:none}
+  .wb-how>summary>span{text-decoration:underline dotted 1.5px;text-underline-offset:4px}
+  .wb-how>summary.is-on,.wb-how>summary:hover{background:var(--sunken)}
+  .wb-endv.has-bt{text-decoration:underline dotted 1.5px;text-decoration-color:var(--border-strong);text-underline-offset:5px}
+}
+@media (prefers-reduced-motion:reduce){ .bt-float.in{animation:none} .wb-how>summary{transition:none} }
+@media print{ .bt-float{display:none!important} .bt{break-inside:avoid} }
+
+/* ===================================================================
+   One room card size (user, Nov 2026: "put scroll for this within card").
+   On a computer the open room card has one height in every room: the
+   photo fills the left side, the room's name and its two ends stay in
+   place, and the list scrolls inside the card under its heading, with the
+   scrollbar always showing. Phones and tablets keep one long card that
+   scrolls with the page; the PDF (.wb-all) prints every line.
+   =================================================================== */
+@media (min-width:821px){
+  #pv-card .rc,#px-open .rc{height:clamp(560px,calc(100vh - var(--head-h) - 48px),720px)}
+  #pv-card .rc-photo,#px-open .rc-photo{min-height:0;height:100%}
+  #pv-card .rc-body,#px-open .rc-body{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  #pv-card .rc-body>*,#px-open .rc-body>*{flex:none}
+  #pv-card .rc-body>.wb,#px-open .rc-body>.wb{--sp:clamp(16px,2.2vw,24px);flex:1 1 auto;min-height:0;overflow-y:auto;align-content:start;margin:0 calc(4px - var(--sp)) calc(0px - var(--sp)) 0;padding:14px calc(var(--sp) - 4px) var(--sp) 0;scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent}
+  #pv-card .wb::-webkit-scrollbar,#px-open .wb::-webkit-scrollbar{width:8px}
+  #pv-card .wb::-webkit-scrollbar-thumb,#px-open .wb::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:var(--r-md);border:2px solid var(--raised)}
+  #pv-card .wb::-webkit-scrollbar-track,#px-open .wb::-webkit-scrollbar-track{background:transparent}
+  #pv-card .rc-body>.wb,#px-open .rc-body>.wb{border-top:0}
+  #pv-card .wb-hd,#px-open .wb-hd{position:sticky;top:-14px;z-index:2;margin-top:-14px;padding:14px 0 8px;background:var(--raised);border-top:1px solid var(--border-soft);border-bottom:1px solid transparent;transition:border-color var(--fast)}
+  #pv-card .wb.is-scrolled .wb-hd,#px-open .wb.is-scrolled .wb-hd{border-bottom-color:var(--border-soft)}
+  .wb-all .rc{align-items:start}
+  .wb-all .rc-photo{min-height:0;aspect-ratio:4/5}
+}
+@media print{
+  #pv-card .rc,#px-open .rc{height:auto}
+  #pv-card .rc-body>.wb,#px-open .rc-body>.wb{overflow:visible;margin:0;padding:14px 0 0}
+  #pv-card .wb-hd,#px-open .wb-hd{position:static;margin:0;padding:0}
+}

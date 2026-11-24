@@ -171,6 +171,50 @@
     w3:{S:'finishes/lt-flush.jpg', P:'finishes/lt-recessed.jpg'},
     x1:{S:'finishes/pr-door-steel.jpg', P:'finishes/pr-door-glass.jpg'}
   };
+
+  /* ---------- The product at each end of a line's range (user, Nov 2026) ----------
+     A line's Low and High come from the kind of product as much as from the work. Low shows the lower-priced product,
+     High the higher-priced one, each at one exact price per unit from the product library, times its quantity.
+     [low name, low price, high name, high price, per, quantity when the line's own quantity is in another unit].
+     Sample products and prices until Sam's product list arrives. */
+  RI.PRODUCT_ENDS = {
+    k1:{S:['Satin nickel pull, 4 in', 4.5, 'Satin brass pull, 5 in', 9, 'each', 18], P:['Painted shaker, stock', 240, 'Painted shaker, soft close', 310, 'linear ft']},
+    k2:{S:['Laminate, standard edge', 18, 'Stone-look laminate, square edge', 28, 'sq ft'], P:['Quartz, builder grade', 52, 'Quartz, eased edge', 68, 'sq ft']},
+    k3:{E:['Single-handle faucet, basic', 95, 'Single-handle faucet', 145, 'each', 1], S:['Stainless sink, drop-in, pull-down faucet', 310, 'Stainless sink, pull-down faucet', 420, 'each', 1], P:['Undermount sink, chrome faucet', 560, 'Undermount sink, matte faucet', 780, 'each', 1]},
+    k4:{S:['3 by 6 in ceramic, white', 2.8, '3 by 6 in ceramic', 4.5, 'sq ft'], P:['Glazed tile, machine-made', 9, 'Handmade-look glazed tile', 14, 'sq ft']},
+    k5:{E:['Sheet vinyl, basic', 1.4, 'Sheet vinyl', 2.2, 'sq ft', 150], S:['Oak-look LVP, 6 in plank', 2.6, 'Oak-look LVP, 7 in plank', 3.8, 'sq ft', 150], P:['12 by 24 in porcelain, matte', 4.8, '12 by 24 in porcelain', 6.5, 'sq ft', 150]},
+    k6:{S:['LED flush mount, basic', 38, 'LED flush mount', 65, 'each', 2], P:['4 in LED recessed', 32, '4 in LED recessed, dimmer', 48, 'each', 6]},
+    l1:{S:['Oak-look LVP, 6 in plank', 2.6, 'Oak-look LVP, 7 in plank', 3.8, 'sq ft'], P:['Engineered oak, 5 in', 5.4, 'White oak engineered, 7 in', 7.8, 'sq ft']},
+    l2:{S:['Primed MDF, 3.25 in', 0.9, 'Primed pine, 3.25 in', 1.4, 'linear ft'], P:['Primed MDF, 5.25 in', 1.7, 'Primed pine, 5.25 in', 2.6, 'linear ft']},
+    b1:{S:['Oak-look LVP, 6 in plank', 2.6, 'Oak-look LVP, 7 in plank', 3.8, 'sq ft', 412], P:['Engineered oak, 5 in', 5.4, 'White oak engineered, 7 in', 7.8, 'sq ft', 412]},
+    b2:{S:['Hollow bifold, flat panel', 95, 'Shaker bifold', 160, 'each'], P:['Solid-core flat panel', 210, 'Solid-core shaker', 290, 'each']},
+    h1:{S:['Steel tub, 4 by 12 in tile', 360, 'Steel tub, 3 by 6 in tile', 480, 'each'], P:['Soaking tub, ceramic tile', 1100, 'Soaking tub, large-format tile', 1450, 'each']},
+    h2:{S:['30 in vanity, cultured marble top', 390, '30 in vanity with top', 520, 'each', 1], P:['30 in furniture vanity, laminate top', 820, '30 in furniture vanity, quartz top', 1150, 'each', 1]},
+    h3:{S:['1.28 gpf round', 190, '1.28 gpf elongated', 260, 'each'], P:['Comfort height', 300, 'Comfort height, soft close', 380, 'each']},
+    f1:{E:['Single-handle faucet, basic', 95, 'Single-handle faucet', 145, 'each', 1], S:['24 in vanity, cultured marble top', 290, '24 in vanity with top', 380, 'each', 1], P:['24 in wall-hung vanity, laminate', 560, '24 in wall-hung vanity', 760, 'each', 1]},
+    s1:{S:['Waterproof LVP, 6 in', 2.4, 'Waterproof LVP', 3.2, 'sq ft'], P:['Waterproof LVP, foam underlay', 3.6, 'Waterproof LVP, acoustic underlay', 4.6, 'sq ft']},
+    s2:{S:['1/2 in drywall, flat paint', 13, '1/2 in drywall, eggshell paint', 16, 'sheet', 24], P:['Insulated drywall, flat paint', 20, 'Insulated drywall, eggshell paint', 24, 'sheet', 24]},
+    w1:{S:['Eggshell paint, contractor grade', 32, 'Low-VOC eggshell', 48, 'gallon', 28], P:['Low-VOC eggshell, standard ceilings', 40, 'Low-VOC eggshell, flat ceilings', 52, 'gallon', 40]},
+    w2:{S:['Hollow-core flat slab', 70, 'Hollow-core shaker slab', 95, 'each'], P:['Solid-core flat slab', 170, 'Solid-core shaker slab', 210, 'each']},
+    w3:{S:['LED flush mount, basic', 38, 'LED flush mount and pendants', 140, 'each'], P:['LED fixtures, standard', 160, 'Designer LED fixtures, dimmers', 260, 'each']},
+    x1:{S:['Steel six-panel, slab', 300, 'Steel six-panel, prehung', 420, 'each'], P:['Fiberglass, no sidelight', 900, 'Fiberglass, one sidelight', 1280, 'each']}
+  };
+  /* The product at one end ('lo' or 'hi') of a line under a package: name, photo, unit price, quantity and their total.
+     The low end shows the next tier down's photo when there is one, so Low and High look different. */
+  RI.productEnd = function(it, pk, end){
+    var e = RI.PRODUCT_ENDS[it.id] && RI.PRODUCT_ENDS[it.id][pk]; if(!e) return null;
+    var lo = end !== 'hi', per = e[4], qty = e[5] || 1, m = /([\d,]+(?:\.\d+)?)\s*(sq ft|linear ft|each)/.exec(it.qty || '');
+    if(m && m[2] === per) qty = +m[1].replace(/,/g, '');
+    var imgs = RI.PRODUCT_IMG[it.id] || {}, down = {P:'S', S:'E'}[pk];
+    var img = lo && down && imgs[down] ? imgs[down] : imgs[pk];
+    return {name:lo ? e[0] : e[2], price:lo ? e[1] : e[3], per:per, qty:qty, total:Math.round((lo ? e[1] : e[3]) * qty), img:img ? RI.img(img) : null};
+  };
+  /* What this buys names the part a line is about, and shows what is there today when a new product replaces it */
+  RI.ITEM_PART = {k1:'Cabinets', k2:'Countertop', k3:'Sink and faucet', k4:'Backsplash', k5:'Floor', k6:'Ceiling light', l1:'Floor', l2:'Baseboard',
+    b1:'Floor', b2:'Closet doors', h1:'Tub and surround', h2:'Vanity', h3:'Toilet', f1:'Vanity and faucet', s1:'Floor', s2:'Walls',
+    w1:'Wall paint', w2:'Interior doors', w3:'Light fixtures', x1:'Front door', x2:'Trim paint'};
+  RI.ITEM_FROM = {k2:'Plastic laminate', k5:'Sheet vinyl', l1:'Carpet', b1:'Carpet', s1:'Carpet', s2:'Wood paneling'};
+  RI.unitPrice = function(n){ return '$' + (n < 100 && n % 1 ? n.toFixed(2) : Math.round(n).toLocaleString('en-US')); };
   /* Room types to offer at intake (Sam's Volume 2, guide p24) */
   RI.ROOM_TYPES = {
     inside:[['kitchen','Kitchen'],['primary-bath','Primary bathroom'],['secondary-bath','Secondary bathroom'],['half-bath','Half bathroom'],['living','Living room'],['family','Family room'],['dining','Dining room'],['bedroom','Bedroom'],['office','Office'],['hallway','Hallway'],['laundry','Laundry'],['mudroom','Mudroom'],['basement','Basement'],['attic','Attic'],['mechanical','Mechanical room'],['entry','Entry'],['sunroom','Sunroom or bonus room'],['other','Other']],

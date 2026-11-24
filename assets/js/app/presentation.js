@@ -94,34 +94,35 @@
     }
     /* What this buys (Sam, meeting of Nov 2026): the room's range broken into the things it pays for, each with
        its product, the kind of work and its own range, biggest first. Kept parts fold away; held lines stay out of the sum. */
+    var end = h.end === 'hi' ? 'hi' : 'lo'; /* Low or High: the end of each line shown, with its own product */
     function buyLine(it){
-      var a = it.pk[h.pk], off = !!h.off[it.id], img = productImg(it), k = RI.RoomCard.kind(a[0]);
-      return '<li class="wb-line' + (off ? ' off' : '') + '" data-item="' + it.id + '">' +
-        '<span class="wb-th">' + (img ? '<img src="' + img + '" alt="" loading="lazy">' : RI.icon('dot','i-lg')) + '</span>' +
-        '<span class="wb-t"><b>' + RI.esc(it.name) + '</b><span class="wb-act"><span class="wb-k' + (k === 'New' ? ' wb-k-new' : '') + '">' + k + '</span>' + RI.esc(a[0]) + '</span>' +
-          (a[3] ? '<span class="wb-prod">' + RI.esc(a[3]) + '</span>' : '') + '</span>' +
-        '<span class="wb-r"><span class="range-txt">' + RI.range(a[1], a[2]) + '</span><label class="switch sw"><input type="checkbox" data-id="' + it.id + '"' + (off ? '' : ' checked') + '><span class="track"></span><span class="sr">Include ' + RI.esc(it.name) + '</span></label></span></li>';
+      return RI.RoomCard.buyRow(it, h.pk, end, {sw:true, off:!!h.off[it.id], img:RI.RoomCard.endImg(it, h.pk, end) || productImg(it)});
     }
     function heldLine(it){
-      return '<li class="wb-line wb-hold"><span class="wb-th">' + RI.icon(it.state === 'measure' ? 'ruler' : 'camera','i-lg') + '</span>' +
-        '<span class="wb-t"><b>' + RI.esc(it.name) + '</b><span class="wb-act">' + RI.esc(it.fix) + ' would settle it.</span></span>' +
-        '<span class="wb-r">' + heldTag(it) + '<span class="xsmall muted">Not in the total</span></span></li>';
+      return RI.RoomCard.heldRow(it, '#/houses/' + h.id + '/intake/rooms');
     }
     function buysSum(r){
       var on = 0, offN = 0, held = 0;
       r.items.forEach(function(it){ if(RI.isHeld(it)){ held++; return; } var a = it.pk[h.pk]; if(!a || a[1] == null) return; if(h.off[it.id]) offN++; else on++; });
-      var s = on === 0 ? 'Nothing is priced in this room right now.' : on === 1 ? 'This one item is the whole range above.' : 'These ' + on + ' items add up to the range above.';
+      var t = RI.totals(h.pk, h.off, r.key), v = RI.money(end === 'hi' ? t.high : t.low), w = end === 'hi' ? 'high' : 'low';
+      var s = on === 0 ? 'Nothing is priced in this room right now.' : on === 1 ? 'At the ' + w + ' end, this one item comes to ' + v + '.' : 'At the ' + w + ' end, these ' + on + ' items come to ' + v + '.';
       return s + (offN ? ' ' + offN + ' turned off.' : '') + (held ? ' ' + held + ' not priced yet, left out.' : '');
+    }
+    /* The room's two ends as the switch at the top of the card (only when something in it is priced) */
+    function endsFor(r){
+      if(!r.items.some(function(it){ return !RI.isHeld(it) && it.pk[h.pk] && it.pk[h.pk][1] != null; })) return '';
+      var t = RI.totals(h.pk, h.off, r.key); return RI.RoomCard.endsSwitch(end, t.low, t.high);
     }
     function buysHtml(r){
       var priced = [], kept = [], held = [];
       r.items.forEach(function(it){ if(RI.isHeld(it)) held.push(it); else if(!it.pk[h.pk] || it.pk[h.pk][1] == null) kept.push(it); else priced.push(it); });
       priced.sort(function(a, b){ return b.pk[h.pk][2] - a.pk[h.pk][2]; });
-      return '<section class="wb" aria-label="What this buys"><div class="wb-hd"><h4>What this buys</h4><span class="state state-sample">Representative photos</span></div>' +
+      return '<section class="wb" aria-label="What this buys">' + RI.RoomCard.buysHead(end, priced.length > 0, held.length) +
         (priced.length ? '<ul class="wb-list">' + priced.map(buyLine).join('') + '</ul>' : '<p class="small muted">Nothing to buy here under this goal.</p>') +
         '<p class="wb-sum">' + buysSum(r) + '</p>' +
         (held.length ? '<ul class="wb-list wb-held">' + held.map(heldLine).join('') + '</ul>' : '') +
         (kept.length ? '<details class="wb-kept"><summary>Kept as is, no cost · ' + kept.length + ' item' + (kept.length === 1 ? '' : 's') + '</summary><ul>' + kept.map(function(it){ var a = it.pk[h.pk]; return '<li><b>' + RI.esc(it.name) + '</b>' + (a && a[0] ? '<span class="xsmall muted">' + RI.esc(a[0]) + '</span>' : '') + '</li>'; }).join('') + '</ul></details>' : '') +
+        RI.RoomCard.sampleNote() +
         '</section>';
     }
     function roomHead(r){
@@ -135,17 +136,33 @@
     function viewRooms(){
       var r = est.rooms.filter(function(x){ return x.key === selRoom; })[0] || est.rooms[0];
       pv.innerHTML = '<div class="rc-picker" role="group" aria-label="Rooms">' + est.rooms.map(function(x){ return '<button type="button" class="rc-chip" data-pick="' + x.key + '" aria-pressed="' + (x.key === r.key) + '">' + x.name + '</button>'; }).join('') + '</div>' +
-        RI.RoomCard.html(r, h.pk, {photo:roomPhoto(r.key), range:roomRange(r), buysHtml:buysHtml(r)}) +
+        '<div id="pv-card">' + RI.RoomCard.html(r, h.pk, {photo:roomPhoto(r.key), range:roomRange(r), buysHtml:buysHtml(r), ends:endsFor(r)}) + '</div>' +
         '<div class="pr-rooms" style="margin-top:20px"><div class="pr-plan card" id="pr-plan"></div></div>';
       RI.RoomCard.wire(pv);
-      plan = RI.Plan.mount(pv.querySelector('#pr-plan'), {onSelect:function(k){ selRoom = k; viewRooms(); plan.update(h.pk, h.off, k); }});
+      plan = RI.Plan.mount(pv.querySelector('#pr-plan'), {onSelect:function(k){ if(k !== selRoom){ selRoom = k; drawCard('room'); } }});
       plan.update(h.pk, h.off, r.key);
-      RI.initRanges(pv); pv.querySelectorAll('.rl').forEach(function(x){ x.classList.add('drawn'); });
+      RI.initRanges(pv); pv.querySelectorAll('.rl').forEach(function(x){ x.classList.add('drawn'); }); RI.RoomCard.settle(pv);
+    }
+    /* Another room, or new numbers for this one, without a blink (user, Nov 2026): only the room card changes, a
+       skeleton holds its place when the room changes, and the photo stays when it is the same picture */
+    function drawCard(how){
+      var r = est.rooms.filter(function(x){ return x.key === selRoom; })[0] || est.rooms[0], box = pv.querySelector('#pv-card');
+      if(!box){ viewRooms(); return; }
+      pv.querySelectorAll('.rc-picker [data-pick]').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-pick') === r.key); });
+      if(plan) plan.update(h.pk, h.off, r.key);
+      RI.RoomCard.swap(box, function(){ var o = box.querySelector('.wb'), y = o && how !== 'room' ? o.scrollTop : 0; box.innerHTML = RI.RoomCard.html(r, h.pk, {photo:roomPhoto(r.key), range:roomRange(r), buysHtml:buysHtml(r), ends:endsFor(r)}); RI.fillIcons(box); var n = box.querySelector('.wb'); if(n && y) n.scrollTop = y; }, {sk:how === 'room' ? 'room' : null, keep:'.rc-photo img'});
+    }
+    /* Low end or High end: the two buttons switch at once, the list under them fades in with that end's products */
+    function drawEnd(){
+      var r = est.rooms.filter(function(x){ return x.key === selRoom; })[0] || est.rooms[0], wb = pv.querySelector('#pv-card .wb');
+      pv.querySelectorAll('.rc-ends [data-end]').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-end') === end); });
+      if(wb) RI.RoomCard.swapEl(wb, buysHtml(r));
     }
     function refreshRooms(){
       if(tab !== 'rooms') return;
       var r = est.rooms.filter(function(x){ return x.key === selRoom; })[0], el = pv.querySelector('.rc-range'); if(el && r) el.innerHTML = roomRange(r);
       var sm = pv.querySelector('.wb-sum'); if(sm && r) sm.textContent = buysSum(r);
+      var eb = pv.querySelectorAll('.rc-ends [data-end] b'); if(eb.length === 2 && r){ var tt = RI.totals(h.pk, h.off, r.key); eb[0].textContent = RI.money(tt.low); eb[1].textContent = RI.money(tt.high); }
       if(plan) plan.update(h.pk, h.off, selRoom);
     }
     function viewTrades(){
@@ -205,16 +222,25 @@
         RI.toast('Task list downloaded.', 'file');
       });
     }
-    function show(v){ tab = v; view.querySelectorAll('#views [data-v]').forEach(function(b){ b.setAttribute('aria-selected', b.getAttribute('data-v') === v); }); ({rooms:viewRooms, trades:viewTrades, products:viewProducts, unk:viewUnk, extras:viewExtras, notinc:viewNotInc, sys:viewSys, tasks:viewTasks})[v](); RI.fillIcons(pv); pv.classList.remove('fade'); void pv.offsetWidth; pv.classList.add('fade'); }
-    view.querySelector('#views').addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if(b) show(b.getAttribute('data-v')); });
+    /* how: 'sk' another tab (a skeleton for a beat, then the view fades in), 'fade' new numbers on the same view,
+       nothing for the first draw */
+    function show(v, how){
+      tab = v; view.querySelectorAll('#views [data-v]').forEach(function(b){ b.setAttribute('aria-selected', b.getAttribute('data-v') === v); });
+      var fill = function(){ ({rooms:viewRooms, trades:viewTrades, products:viewProducts, unk:viewUnk, extras:viewExtras, notinc:viewNotInc, sys:viewSys, tasks:viewTasks})[v](); RI.fillIcons(pv); };
+      if(!how) return fill();
+      if(how === 'fade' && v === 'rooms' && pv.querySelector('#pv-card')) return drawCard();
+      RI.RoomCard.swap(pv, fill, {sk:how === 'sk' ? (v === 'rooms' ? 'rooms' : 'list') : null});
+    }
+    view.querySelector('#views').addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if(b && b.getAttribute('data-v') !== tab) show(b.getAttribute('data-v'), 'sk'); });
 
-    function setPk(k){ h.pk = k; save(); seg.querySelectorAll('[data-pk]').forEach(function(b){ b.setAttribute('aria-selected', b.getAttribute('data-pk') === k); }); RI.syncSeg(seg); totals(true); show(tab); }
+    function setPk(k){ h.pk = k; save(); seg.querySelectorAll('[data-pk]').forEach(function(b){ b.setAttribute('aria-selected', b.getAttribute('data-pk') === k); }); RI.syncSeg(seg); totals(true); show(tab, 'fade'); }
     seg.addEventListener('click', function(e){ var b = e.target.closest('[data-pk]'); if(b) setPk(b.getAttribute('data-pk')); });
     seg.addEventListener('keydown', function(e){ if(e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return; var ks = ['E','S','P'], n = ks[(ks.indexOf(h.pk) + (e.key === 'ArrowRight' ? 1 : 2)) % 3]; setPk(n); seg.querySelector('[data-pk="' + n + '"]').focus(); });
 
     pv.addEventListener('click', function(e){
       var ph = e.target.closest('[data-ph]'); if(ph){ var kk = ph.getAttribute('data-ph').split('|'), pp = (h.photos[kk[0]] || []).filter(function(x){ return x.state === 'done'; })[+kk[1]]; if(pp) A.dialog(RI.esc(est.rooms.filter(function(r){ return r.key === kk[0]; })[0].name), '<img class="plan-view" src="' + pp.src + '" alt="' + RI.esc(pp.name) + '">', {wide:true}); return; }
-      var pick = e.target.closest('[data-pick]'); if(pick){ selRoom = pick.getAttribute('data-pick'); viewRooms(); }
+      var pick = e.target.closest('[data-pick]'); if(pick){ if(pick.getAttribute('data-pick') !== selRoom){ selRoom = pick.getAttribute('data-pick'); drawCard('room'); } return; }
+      var en = e.target.closest('[data-end]'); if(en){ if(en.getAttribute('data-end') !== end){ end = en.getAttribute('data-end'); h.end = end; save(); drawEnd(); } }
     });
     pv.addEventListener('change', function(e){
       var id = e.target.getAttribute('data-id'); if(!id) return;
@@ -247,8 +273,8 @@
        The screen goes back to the one-room view once the dialog closes. */
     view.querySelector('#pdf').addEventListener('click', function(){
       if(tab !== 'rooms') show('rooms');
-      pv.innerHTML = '<div class="wb-all">' + est.rooms.map(function(r){ return RI.RoomCard.html(r, h.pk, {photo:roomPhoto(r.key), range:roomRange(r), buysHtml:buysHtml(r)}); }).join('') + '</div>';
-      pv.querySelectorAll('details.wb-kept').forEach(function(d){ d.open = true; }); RI.fillIcons(pv);
+      pv.innerHTML = '<div class="wb-all">' + est.rooms.map(function(r){ return RI.RoomCard.html(r, h.pk, {photo:roomPhoto(r.key), range:roomRange(r), buysHtml:buysHtml(r), ends:endsFor(r)}); }).join('') + '</div>';
+      pv.querySelectorAll('details.wb-kept, details.wb-how').forEach(function(d){ d.open = true; }); /* the PDF shows how every price is made */ RI.fillIcons(pv);
       window.addEventListener('afterprint', function(){ if(tab === 'rooms') viewRooms(); RI.fillIcons(pv); }, {once:true});
       RI.toast('Choose "Save as PDF" in the print dialog.', 'file');
       RI.track('pdf_downloaded', {house:h.id}); setTimeout(function(){ window.print(); }, 400);
@@ -267,7 +293,7 @@
     view.querySelector('#fb').addEventListener('click', function(){ fbDialog(); });
     view.querySelector('#fb-inline').addEventListener('click', function(e){ var b = e.target.closest('[data-fbv]'); if(b) fbDialog(b.getAttribute('data-fbv')); if(e.target.closest('#fb-edit')) fbDialog(); });
 
-    view.querySelector('#pr-reset').addEventListener('click', function(){ h.off = {}; save(); totals(true); show(tab); RI.toast('All items are back on.'); });
+    view.querySelector('#pr-reset').addEventListener('click', function(){ h.off = {}; save(); totals(true); show(tab, 'fade'); RI.toast('All items are back on.'); });
     totals(false); show('rooms'); fbInline();
     requestAnimationFrame(function(){ RI.syncSeg(seg); });
   }, {nav:'houses'});
