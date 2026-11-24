@@ -189,7 +189,7 @@
     function pickerHtml(){
       return est.rooms.map(function(r){
         var lk = !paid && r !== open;
-        return '<button type="button" class="rc-chip' + (lk ? ' px-lk' : '') + '" data-pick="' + r.key + '" aria-pressed="' + (r.key === pick) + '">' + (lk ? RI.icon('lock','i-sm') : '') + RI.esc(r.name) + (lk ? '<span class="sr">, locked</span>' : paid ? '' : '<span class="px-free">Free</span>') + '</button>';
+        return '<button type="button" class="rc-chip' + (lk ? ' px-lk' : paid ? '' : ' px-fr') + '" data-pick="' + r.key + '" aria-pressed="' + (r.key === pick) + '">' + (lk ? RI.icon('lock','i-sm') : '') + RI.esc(r.name) + (lk ? '<span class="sr">, locked</span>' : paid ? '' : '<span class="px-free">Free</span>') + '</button>';
       }).join('');
     }
     function cost(it){ return it.pk[sel][2] || 0; }
@@ -198,21 +198,15 @@
        work, the product and its range. No switches here: turning items on or off is part of the paid presentation.
        lock 'clear': the line shows, its price is hidden. lock 'hid': the whole line is blurred. */
     var LOCKP = '<span class="px-lockp"><span class="rc-blur" aria-hidden="true">$•,••• to $•,•••</span>' + RI.icon('lock','i-sm') + '<span class="sr">Price locked</span></span>';
+    var end = 'lo'; /* Low or High (user, Nov 2026): the end of each line shown in the open room, with its own product */
     function buyLine(it, lock){
-      var a = it.pk[sel], img = lockImg(it), k = RI.RoomCard.kind(a[0]);
+      var img = (!lock && RI.RoomCard.endImg(it, sel, end)) || lockImg(it);
       if(lock === 'hid') return '<li class="wb-line px-hidl" aria-hidden="true"><span class="wb-th">' + (img ? '<img src="' + img + '" alt="" loading="lazy">' : '') + '<span class="px-hid-lk">' + RI.icon('lock','i-sm') + '</span></span>' +
         '<span class="wb-t px-bars"><i></i><i></i><i></i></span><span class="wb-r"><span class="rc-blur">$•,••• to $•,•••</span></span></li>';
-      return '<li class="wb-line">' +
-        '<span class="wb-th">' + (img ? '<img src="' + img + '" alt="" loading="lazy">' : RI.icon('dot','i-lg')) + '</span>' +
-        '<span class="wb-t"><b>' + RI.esc(it.name) + '</b><span class="wb-act"><span class="wb-k' + (k === 'New' ? ' wb-k-new' : '') + '">' + k + '</span>' + RI.esc(a[0]) + '</span>' +
-          (a[3] ? '<span class="wb-prod">' + RI.esc(a[3]) + '</span>' : '') + '</span>' +
-        '<span class="wb-r">' + (lock ? LOCKP : '<span class="range-txt">' + RI.range(a[1], a[2]) + '</span>') + '</span></li>';
+      return RI.RoomCard.buyRow(it, sel, end, {img:img, locked:lock ? LOCKP : null});
     }
     function heldLine(it){
-      var m = it.state === 'measure';
-      return '<li class="wb-line wb-hold"><span class="wb-th">' + RI.icon(m ? 'ruler' : 'camera','i-lg') + '</span>' +
-        '<span class="wb-t"><b>' + RI.esc(it.name) + '</b><span class="wb-act">' + RI.esc(it.fix) + ' would settle it.</span></span>' +
-        '<span class="wb-r"><span class="state ' + (m ? 'state-measure' : 'state-unverified') + '">' + (m ? 'Needs measurement' : 'Unverified') + '</span><span class="xsmall muted">Not in the total</span></span></li>';
+      return RI.RoomCard.heldRow(it, '#/houses/' + h.id + '/intake/rooms');
     }
     function buysParts(r){
       var b = {priced:[], kept:[], held:[]};
@@ -220,16 +214,18 @@
       b.priced.sort(function(x, y){ return cost(y) - cost(x); });
       return b;
     }
-    var BUYS_HD = '<div class="wb-hd"><h4>What this buys</h4><span class="state state-sample">Representative photos</span></div>';
+    var BUYS_HD = RI.RoomCard.buysHead('lo', false, 0);
     function heldList(b){ return b.held.length ? '<ul class="wb-list wb-held">' + b.held.map(heldLine).join('') + '</ul>' : ''; }
     /* The free room: every line open, with its range */
     function freeBuys(r){
       var b = buysParts(r), on = b.priced.length;
-      return '<section class="wb" aria-label="What this buys">' + BUYS_HD +
+      var t = RI.totals(sel, {}, r.key), v = RI.money(end === 'hi' ? t.high : t.low), w = end === 'hi' ? 'high' : 'low';
+      return '<section class="wb" aria-label="What this buys">' + RI.RoomCard.buysHead(end, on > 0, b.held.length) +
         (on ? '<ul class="wb-list">' + b.priced.map(function(it){ return buyLine(it); }).join('') + '</ul>' : '<p class="small muted">Nothing to buy here under this goal.</p>') +
-        '<p class="wb-sum">' + (on === 0 ? 'Nothing is priced in this room right now.' : on === 1 ? 'This one item is the whole range above.' : 'These ' + on + ' items add up to the range above.') + (b.held.length ? ' ' + b.held.length + ' not priced yet, left out.' : '') + '</p>' +
+        '<p class="wb-sum">' + (on === 0 ? 'Nothing is priced in this room right now.' : on === 1 ? 'At the ' + w + ' end, this one item comes to ' + v + '.' : 'At the ' + w + ' end, these ' + on + ' items come to ' + v + '.') + (b.held.length ? ' ' + b.held.length + ' not priced yet, left out.' : '') + '</p>' +
         heldList(b) +
         (b.kept.length ? '<details class="wb-kept"><summary>Kept as is, no cost · ' + b.kept.length + ' item' + (b.kept.length === 1 ? '' : 's') + '</summary><ul>' + b.kept.map(function(it){ var a = it.pk[sel]; return '<li><b>' + RI.esc(it.name) + '</b>' + (a && a[0] ? '<span class="xsmall muted">' + RI.esc(a[0]) + '</span>' : '') + '</li>'; }).join('') + '</ul></details>' : '') +
+        RI.RoomCard.sampleNote() +
         '</section>';
     }
     /* A locked room (Nevil, Nov 2026): two or three lines in the clear when the room has enough, one when it has one
@@ -258,12 +254,21 @@
     }
     function roomView(){
       var r = est.rooms.filter(function(x){ return x.key === pick; })[0] || open, t = RI.totals(sel, {}, r.key);
-      if(paid || r === open) return RI.RoomCard.html(r, sel, {photo:roomPhoto(r), range:t.high ? RI.range(t.low, t.high) : '<span class="muted">No cost</span>', buysHtml:freeBuys(r)});
+      if(paid || r === open) return RI.RoomCard.html(r, sel, {photo:roomPhoto(r), range:t.high ? RI.range(t.low, t.high) : '<span class="muted">No cost</span>', buysHtml:freeBuys(r), ends:t.high ? RI.RoomCard.endsSwitch(end, t.low, t.high) : ''});
       return lockedRoom(r);
     }
-    function drawRoom(){
-      view.querySelector('#px-open').innerHTML = roomView(); /* hotspots stay wired: RoomCard.wire(view) listens above it */
+    /* how: 'room' another room (a skeleton for a beat, then the card fades in); otherwise new numbers fade in and the
+       photo stays (user, Nov 2026: no blink). Hotspots stay wired: RoomCard.wire(view) listens above it. */
+    function drawRoom(how){
+      var box = view.querySelector('#px-open');
       view.querySelectorAll('#px-pick [data-pick]').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-pick') === pick); });
+      RI.RoomCard.swap(box, function(){ var o = box.querySelector('.wb'), y = o && how !== 'room' ? o.scrollTop : 0; box.innerHTML = roomView(); var n = box.querySelector('.wb'); if(n && y) n.scrollTop = y; }, {sk:how === 'room' ? 'room' : null, keep:'.rc-photo img'});
+    }
+    /* Low end or High end in the free room: the buttons switch at once, the list fades in with that end's products */
+    function drawEnd(){
+      var box = view.querySelector('#px-open'), wb = box.querySelector('.wb'), r = est.rooms.filter(function(x){ return x.key === pick; })[0] || open;
+      box.querySelectorAll('.rc-ends [data-end]').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-end') === end); });
+      if(wb) RI.RoomCard.swapEl(wb, freeBuys(r));
     }
     var pf = A.priceFor(h), price = '$' + pf.amount;
     view.innerHTML = '<div class="app-wrap px-page">' + A.houseHead(h) +
@@ -307,7 +312,7 @@
     function setGoal(k){
       sel = k; view.querySelectorAll('.pk-card').forEach(function(c){ var on = c.getAttribute('data-goal') === k; c.classList.toggle('is-default', on); c.setAttribute('aria-selected', on); });
       var ms = view.querySelector('.pk-seg-m'); ms.querySelectorAll('[data-goal]').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-goal') === k); }); RI.syncSeg(ms);
-      drawRoom();
+      drawRoom('fade');
       var map = view.querySelector('#px-map'); map.innerHTML = mapHtml(); RI.fillIcons && RI.fillIcons(map); RI.syncSeg(map.querySelector('.hm-seg'));
       map.classList.remove('hm-flash'); void map.offsetWidth; map.classList.add('hm-flash');
     }
@@ -315,7 +320,7 @@
       var c = e.target.closest('.hm-seg [data-goal]'); if(c) setGoal(c.getAttribute('data-goal'));
       /* A locked room opens the same way as the main button: a credit when there is one, else checkout */
       if(e.target.closest('[data-goopen]')){
-        if(pick !== open.key){ pick = open.key; drawRoom(); }
+        if(pick !== open.key){ pick = open.key; drawRoom('room'); }
         var oh = view.querySelector('.px-open-h'), hh = oh.querySelector('h2');
         oh.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
         hh.setAttribute('tabindex', '-1'); hh.focus({preventScroll:true}); return;
@@ -324,7 +329,8 @@
     });
     RI.syncSeg(view.querySelector('.hm-seg'));
     /* The room buttons; a locked room's button opens with a credit when there is one, as the main button does */
-    view.querySelector('#px-pick').addEventListener('click', function(e){ var b = e.target.closest('[data-pick]'); if(b && b.getAttribute('data-pick') !== pick){ pick = b.getAttribute('data-pick'); drawRoom(); } });
+    view.querySelector('#px-open').addEventListener('click', function(e){ var en = e.target.closest('[data-end]'); if(!en || en.getAttribute('data-end') === end) return; end = en.getAttribute('data-end'); drawEnd(); });
+    view.querySelector('#px-pick').addEventListener('click', function(e){ var b = e.target.closest('[data-pick]'); if(b && b.getAttribute('data-pick') !== pick){ pick = b.getAttribute('data-pick'); drawRoom('room'); } });
     view.querySelector('#px-open').addEventListener('click', function(e){ if(e.target.closest('[data-credit]')){ var b = view.querySelector('#credit-open'); if(b) b.click(); } });
     view.querySelector('.pk-cards').addEventListener('click', function(e){ var c = e.target.closest('[data-goal]'); if(c) setGoal(c.getAttribute('data-goal')); });
     view.querySelector('.pk-seg-m').addEventListener('click', function(e){ var c = e.target.closest('[data-goal]'); if(c) setGoal(c.getAttribute('data-goal')); });

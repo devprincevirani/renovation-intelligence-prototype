@@ -527,17 +527,173 @@
   /* ---------- Accuracy: Sam's labelled photos and the score ---------- */
   /* Sam's labelled photos (sample set): file, component, Sam's label, the model's reading, confidence. The overview reads it too */
   C.ACC_SET = [['kitchen-dated.jpg','Cabinets','Serviceable, dated','Serviceable, dated',88],['kitchen-dated-wide.jpg','Countertop','Worn','Serviceable',61],['cabinet-run.jpg','Cabinets','Good, dated','Good, dated',91],['wood-floor.jpg','Floor','Serviceable','Serviceable',84],['finishes/bs-existing.jpg','Backsplash','Worn, strongly dated','Worn, strongly dated',79],['finishes/lt-old.jpg','Ceiling light','Worn, obsolete','Worn, dated',66],['finishes/fx-single.jpg','Faucet','Good, current','Good, current',93],['finishes/cab-oak.jpg','Cabinets','Good, dated','Good, dated',90],['finishes/ct-laminate.jpg','Countertop','Serviceable, dated','Serviceable, dated',82],['finishes/lt-flush.jpg','Ceiling light','Good, current','Good, acceptable',74]];
+  /* What the model read as the material on each sample photo, and the materials Sam can pick for each component (sample
+     lists until the component library has them). Mechanical items get no condition: the rules never give them one. */
+  C.ACC_MAT = {'kitchen-dated.jpg':'Painted wood', 'kitchen-dated-wide.jpg':'Laminate', 'cabinet-run.jpg':'Oak veneer', 'wood-floor.jpg':'Solid oak', 'finishes/bs-existing.jpg':'Ceramic tile',
+    'finishes/lt-old.jpg':'Fluorescent troffer', 'finishes/fx-single.jpg':'Chrome', 'finishes/cab-oak.jpg':'Solid oak', 'finishes/ct-laminate.jpg':'Laminate', 'finishes/lt-flush.jpg':'LED flush mount'};
+  var ACC_MATS = {Cabinets:['Painted wood','Oak veneer','Solid oak','Thermofoil','Laminate'], Countertop:['Laminate','Quartz','Granite','Ceramic tile','Solid surface'],
+    Floor:['Solid oak','Engineered wood','Laminate','Vinyl plank','Sheet vinyl','Ceramic tile','Carpet'], Backsplash:['Ceramic tile','Glass tile','Stone tile','Laminate','Paint only'],
+    'Ceiling light':['Fluorescent troffer','LED flush mount','Incandescent fixture','Recessed can','Pendant'], Faucet:['Chrome','Brushed nickel','Matte black','Bronze'],
+    Furnace:['Gas','Electric','Oil'], 'Water heater':['Gas tank','Electric tank','Tankless'], Roof:['Asphalt shingle','Metal','Tile'], 'Electrical panel':['Breaker panel','Fuse box']};
+  var ACC_MECH = ['Furnace','Water heater','Roof','Electrical panel'];
+  var ACC_COND = ['Excellent','Good','Serviceable','Worn','Poor','Failed'], ACC_MOD = ['Current','Acceptable','Dated','Strongly dated','Obsolete'];
+  function accSplit(t){ var p = String(t || '').split(', '); return {cond:p[0] || '', mod:p[1] ? p[1].charAt(0).toUpperCase() + p[1].slice(1) : ''}; }
+  function accText(cond, mod){ return (cond || 'No condition') + (mod ? ', ' + mod.toLowerCase() : ''); }
+  /* Every photo in the set as it stands (user, Nov 2026: "what if he disagrees"): the sample set and the photos Sam added,
+     with his corrections on top. A correction keeps the labels before it, with who gave them and when. */
+  C.accRows = function(){
+    var fix = C.get('accFix', {}) || {}, rows = C.ACC_SET.map(function(x){ return {id:x[0], src:RI.img(x[0]), name:x[0], comp:x[1], mat:C.ACC_MAT[x[0]] || '', label:x[2], model:x[3], modelComp:x[1], modelMat:C.ACC_MAT[x[0]] || '', conf:x[4]}; });
+    (C.get('accAdded', []) || []).forEach(function(a){ rows.push({id:a.id, src:a.src, name:a.name, comp:a.comp, mat:a.mat, label:accText(a.cond, a.mod), note:a.note, by:a.by, at:a.at, model:a.model || null, modelComp:a.modelComp || a.comp, modelMat:a.modelMat || '', conf:a.conf || null, added:true}); });
+    return rows.map(function(r){
+      var f = fix[r.id]; if(f){ r.comp = f.comp; r.mat = f.mat; r.label = accText(f.cond, f.mod); r.fix = f; }
+      r.read = r.model != null;
+      r.ok = r.read && r.comp === r.modelComp && r.label.toLowerCase() === String(r.model).toLowerCase() && (!r.mat || !r.modelMat || r.mat === r.modelMat || r.mat === 'Not sure');
+      return r;
+    });
+  };
   C.route('/accuracy', function(view){
-    var SET = C.ACC_SET;
-    var agree = SET.filter(function(x){ return x[2] === x[3]; }).length, score = Math.round(agree / SET.length * 100), last = C.get('evalAt', Date.now() - 2 * DAY);
-    var byComp = {}; SET.forEach(function(x){ var b = byComp[x[1]] = byComp[x[1]] || [0, 0]; b[1]++; if(x[2] === x[3]) b[0]++; });
-    view.innerHTML = C.page({kicker:'Quality', title:'Photo accuracy', sub:'Sam\'s labelled photos, read by the model and compared with his labels. Run before any prompt or model change.',
-      actions:'<button type="button" class="btn btn-primary" id="ac-run">' + RI.icon('refresh','i-sm') + 'Run the photo set</button>',
-      body:'<div class="ac-top"><div class="ac-score" style="--p:' + score + '"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52"/><circle class="v" cx="60" cy="60" r="52" style="stroke-dasharray:326.7;stroke-dashoffset:' + (326.7 * (1 - score / 100)).toFixed(1) + '"/></svg><div><b>' + score + '<small>%</small></b><span>agree with Sam</span></div></div>' +
-        '<dl class="c-kv ac-kv"><dt>Labelled photos</dt><dd>' + SET.length + ' ' + C.lbl('sample') + '</dd><dt>Agree</dt><dd>' + agree + '</dd><dt>Disagree</dt><dd>' + (SET.length - agree) + '</dd><dt>Last run</dt><dd id="ac-last">' + C.time(last) + '</dd><dt>Model</dt><dd>Vision model behind the adapter</dd></dl>' +
-        '<div class="ac-comp"><h2 class="c-h2">By component</h2>' + Object.keys(byComp).map(function(k){ var b = byComp[k], pc = Math.round(b[0] / b[1] * 100); return '<div class="ac-bar"><span>' + k + '</span><span class="ac-t"><i style="width:' + pc + '%"></i></span><b>' + b[0] + ' of ' + b[1] + '</b></div>'; }).join('') + '</div></div>' +
-        '<h2 class="c-h2 c-mt">Every labelled photo</h2><div class="ac-grid">' + SET.map(function(x){ var ok = x[2] === x[3]; return '<figure class="ac-ph' + (ok ? '' : ' miss') + '"><img src="' + RI.img(x[0]) + '" alt="" loading="lazy"><figcaption><b>' + x[1] + '</b><span><small>Sam</small>' + x[2] + '</span><span><small>Model</small>' + x[3] + ' · ' + x[4] + '</span>' + (ok ? '<em class="rel rel-ok">Agrees</em>' : '<em class="rel rel-part">Disagrees</em>') + '</figcaption></figure>'; }).join('') + '</div>' +
-        C.note('Sample set. Sam\'s labelled lab photos replace it; accuracy is reported per component and per condition.')});
-    view.querySelector('#ac-run').addEventListener('click', function(){ var b = this; RI.form.busy(b, true, 'Reading ' + SET.length + ' photos'); C.later(function(){ RI.form.busy(b, false); C.set('evalAt', Date.now()); doc.getElementById('ac-last').textContent = C.time(Date.now()); C.log('Accuracy run', SET.length + ' labelled photos, ' + score + '% agree', ''); RI.toast('Photo set read: ' + score + '% agree with Sam. No change since the last run.', 'check'); }, 1600); });
+    var st = {f:'all'}, queue = [];
+    var FILTERS = [['all','All'], ['ok','Agrees'], ['no','Disagrees'], ['fix','Corrected by Sam'], ['new','Not read yet']];
+    function pass(r, f){ return f === 'all' || (f === 'ok' && r.ok) || (f === 'no' && r.read && !r.ok) || (f === 'fix' && !!r.fix) || (f === 'new' && !r.read); }
+    function when(t){ return new Date(t).toLocaleDateString('en-US', {month:'short', day:'numeric'}); }
+    /* One photo (user, Nov 2026, make-ui): what Sam said and what the model read on two aligned rows, the model's wrong
+       words crossed out, one row when they agree; Agrees or Disagrees with an icon; Corrected as a tag on the photo; the
+       note with who wrote it and when; the photo opens the panel to look closer. Phones show it as a list row. */
+    function parts(t){ var p = String(t || '').split(', '); return [p[0] || '', p[1] || '']; }
+    function card(r){
+      var nm = RI.esc(r.comp || 'this') + ' photo', s = parts(r.label), m = parts(r.model), cmp;
+      var matS = r.mat && r.mat !== 'Not sure' ? r.mat : '', matM = r.modelMat || '';
+      if(!r.read) cmp = '<div class="acl-k">Sam</div><div class="acl-v">' + RI.esc(r.label) + (matS ? ' · ' + RI.esc(matS) : '') + '</div><div class="acl-k">Model</div><div class="acl-v muted">Not read yet</div>';
+      else if(r.ok) cmp = '<div class="acl-k">Both</div><div class="acl-v">' + RI.esc(r.label) + '<span class="acl-pc">' + r.conf + '% sure</span></div>';
+      else {
+        var dc = r.comp !== r.modelComp, d0 = s[0] !== m[0], d1 = s[1] !== m[1], dm = matS && matM && matS !== matM;
+        var sam = (dc ? '<b>' + RI.esc(r.comp) + '</b> · ' : '') + (d0 ? '<b>' + RI.esc(s[0]) + '</b>' : RI.esc(s[0])) + (s[1] ? ', ' + (d1 ? '<b>' + RI.esc(s[1]) + '</b>' : RI.esc(s[1])) : '') + (dm ? ' · <b>' + RI.esc(matS) + '</b>' : '');
+        var mod = (dc ? '<s>' + RI.esc(r.modelComp) + '</s> · ' : '') + (d0 ? '<s>' + RI.esc(m[0]) + '</s>' : RI.esc(m[0])) + (m[1] ? ', ' + (d1 ? '<s>' + RI.esc(m[1]) + '</s>' : RI.esc(m[1])) : '') + (dm ? ' · <s>' + RI.esc(matM) + '</s>' : '');
+        cmp = '<div class="acl-k">Sam</div><div class="acl-v">' + sam + '</div><div class="acl-k">Model</div><div class="acl-v">' + mod + '<span class="acl-pc">' + r.conf + '% sure</span></div>';
+      }
+      var who = r.fix ? [r.fix.note, r.fix.by, r.fix.at] : [r.note, r.by, r.at];
+      var note = who[0] ? '<div class="acl-nt"><q>' + RI.esc(who[0]) + '</q><span class="acl-who">' + RI.esc(who[1] || 'Sam') + (who[2] ? ', ' + when(who[2]) : '') + '</span></div>' : '';
+      var badge = !r.read ? '<em class="acl-bd wait">Not read yet</em>' : r.ok ? '<em class="acl-bd ok">' + RI.icon('check') + 'Agrees</em>' : '<em class="acl-bd no">' + RI.icon('x') + 'Disagrees</em>';
+      var btn = r.read && r.ok && !r.fix ? '<button type="button" class="acl-btn" data-acl="disagree" aria-label="Disagree with the model on the ' + nm + '">' + RI.icon('x','i-sm') + 'Disagree</button>'
+        : '<button type="button" class="acl-btn" data-acl="edit" aria-label="Edit the label of the ' + nm + '">' + RI.icon('pencil','i-sm') + 'Edit label</button>';
+      return '<figure class="ac-ph" data-id="' + RI.esc(r.id) + '"><button type="button" class="acl-photo" data-acl="look" aria-label="Look closer at the ' + nm + '"><img src="' + r.src + '" alt="" loading="lazy">' +
+          (r.fix ? '<span class="acl-tag">Corrected</span>' : r.added ? '<span class="acl-tag">Added</span>' : '') + '<span class="acl-look" aria-hidden="true"><span>' + RI.icon('eye','i-sm') + 'Look closer</span></span></button>' +
+        '<figcaption><b class="acl-t">' + RI.esc(r.comp) + '</b><div class="acl-cmp">' + cmp + '</div>' + note + '<div class="acl-ft">' + badge + btn + '</div></figcaption></figure>';
+    }
+    function draw(keep){
+      var y = window.scrollY, rows = C.accRows(), read = rows.filter(function(r){ return r.read; }), agree = read.filter(function(r){ return r.ok; }).length;
+      var score = read.length ? Math.round(agree / read.length * 100) : 0, last = C.get('evalAt', Date.now() - 2 * DAY), unread = rows.length - read.length;
+      var byComp = {}; read.forEach(function(r){ var b = byComp[r.comp] = byComp[r.comp] || [0, 0]; b[1]++; if(r.ok) b[0]++; });
+      var counts = {}; FILTERS.forEach(function(f){ counts[f[0]] = rows.filter(function(r){ return pass(r, f[0]); }).length; });
+      if(!counts[st.f] && st.f !== 'all') st.f = 'all';
+      var shown = rows.filter(function(r){ return pass(r, st.f); });
+      var EMPTY = {fix:'No label is corrected yet. Use Disagree on a photo to give the right answer.', ok:'No photo agrees with the model yet.', no:'Every photo agrees with the model.'};
+      view.innerHTML = C.page({kicker:'Quality', title:'Photo accuracy', sub:'Sam\'s labelled photos, read by the model and compared with his labels. Run before any prompt or model change. When the model is wrong, Disagree and give the right answer.',
+        actions:'<button type="button" class="btn btn-primary" id="ac-run">' + RI.icon('refresh','i-sm') + 'Run the photo set</button>',
+        body:'<div class="ac-top"><div class="ac-score" style="--p:' + score + '"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52"/><circle class="v" cx="60" cy="60" r="52" style="stroke-dasharray:326.7;stroke-dashoffset:' + (326.7 * (1 - score / 100)).toFixed(1) + '"/></svg><div><b>' + score + '<small>%</small></b><span>agree with Sam</span></div></div>' +
+          '<dl class="c-kv ac-kv"><dt>Labelled photos</dt><dd>' + rows.length + ' ' + C.lbl('sample') + '</dd><dt>Agree</dt><dd>' + agree + '</dd><dt>Disagree</dt><dd>' + (read.length - agree) + '</dd>' + (unread ? '<dt>Not read yet</dt><dd>' + unread + '</dd>' : '') + '<dt>Last run</dt><dd id="ac-last">' + C.time(last) + '</dd><dt>Model</dt><dd>Vision model behind the adapter</dd></dl>' +
+          '<div class="ac-comp"><h2 class="c-h2">By component</h2>' + Object.keys(byComp).map(function(k){ var b = byComp[k], pc = Math.round(b[0] / b[1] * 100); return '<div class="ac-bar"><span>' + RI.esc(k) + '</span><span class="ac-t"><i style="width:' + pc + '%"></i></span><b>' + b[0] + ' of ' + b[1] + '</b></div>'; }).join('') + '</div></div>' +
+          '<h2 class="c-h2 c-mt">Every labelled photo</h2>' +
+          '<div class="acl-bar"><div class="c-seg" role="tablist" aria-label="Show" id="acl-f">' + FILTERS.filter(function(f){ return f[0] !== 'new' || counts.new; }).map(function(f){ return '<button type="button" role="tab" data-f="' + f[0] + '" aria-selected="' + (st.f === f[0]) + '">' + f[1] + '<span class="n">' + counts[f[0]] + '</span></button>'; }).join('') + '</div>' +
+            '<label class="btn btn-secondary btn-sm acl-add">' + RI.icon('plus','i-sm') + 'Add photos to the set<input type="file" accept="image/*" multiple id="acl-file" class="sr"></label></div>' +
+          (shown.length ? '<div class="ac-grid" id="acl-grid">' + shown.map(card).join('') + '</div>' : '<p class="acl-empty">' + (EMPTY[st.f] || 'No photo here.') + '</p>') +
+          C.note('Sample set. Sam\'s labelled lab photos replace it; accuracy is reported per component and per condition. Every correction is kept with the labels before it.')});
+      RI.fillIcons(view);
+      if(keep) window.scrollTo(0, y);
+    }
+    /* The label panel: the photo and what the model read on the left, what is right on the right */
+    function openLabel(r, mode, done){
+      var look = mode === 'look'; if(look) mode = r.read && r.ok && !r.fix ? 'disagree' : 'edit';
+      var cur = {comp:r.comp || '', mat:r.mat || '', cond:'', mod:''}, sp = accSplit(r.label), msp = accSplit(r.model);
+      if(mode !== 'new'){ cur.cond = r.fix ? r.fix.cond : sp.cond; cur.mod = r.fix ? r.fix.mod : sp.mod; }
+      var comps = Object.keys(ACC_MATS), mech = function(){ return ACC_MECH.indexOf(cur.comp) >= 0; };
+      var chips = function(key, name, opts, on, model){ return '<div class="acl-f" data-k="' + key + '"><span class="l" id="acl-' + key + '">' + name + '</span><div class="acl-chips' + (model ? ' has-model' : '') + '" role="group" aria-labelledby="acl-' + key + '">' + opts.map(function(o){ var v = o === 'Not judged' ? '' : o; return '<button type="button" data-v="' + v + '" aria-pressed="' + (v === on) + '"' + (model && o === model ? ' class="model" title="What the model picked"' : '') + '>' + o + '</button>'; }).join('') + '</div></div>'; };
+      var hist = r.fix && r.fix.hist ? r.fix.hist.slice().reverse() : [];
+      var title = look ? 'The ' + (r.comp || 'new') + ' photo' : mode === 'new' ? 'Label this photo' + (done && done.of > 1 ? ' (' + done.n + ' of ' + done.of + ')' : '') : mode === 'disagree' ? 'Disagree with the model' : 'Edit the label';
+      var body = '<form class="acl-g" id="acl-form" novalidate><div class="acl-ph"><img src="' + r.src + '" alt="The ' + RI.esc(r.comp || 'new') + ' photo"><p>Lab photo · ' + RI.esc(r.name || '') + '</p>' +
+          (r.read ? '<div class="acl-read"><small>The model read</small><span><b>' + RI.esc(r.modelComp) + '</b>' + (r.modelMat ? ' · ' + RI.esc(r.modelMat) : '') + ' · ' + RI.esc(r.model) + '</span><span class="conf">' + r.conf + '% sure</span></div>'
+            : '<div class="acl-read"><small>The model</small><span>Not read yet. It reads this photo the next time the set is run.</span></div>') + '</div>' +
+        '<div class="acl-form"><h3>What is right?</h3>' +
+          '<div class="acl-f"><label for="acl-c">Component</label><select id="acl-c">' + (cur.comp ? '' : '<option value="">Pick the part in the photo</option>') + comps.map(function(c){ return '<option' + (c === cur.comp ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select>' + (mode === 'new' ? '' : '<p class="acl-help">Change it if the model named the wrong part.</p>') + '<p class="acl-err" id="acl-c-err" hidden>Pick the part in the photo.</p></div>' +
+          '<div class="acl-f"><label for="acl-m">Material</label><select id="acl-m"></select></div>' +
+          '<div id="acl-cm"></div>' +
+          '<div class="acl-f"><label for="acl-n">Note: ' + (mode === 'new' ? 'anything to know about this photo?' : 'why is it wrong?') + '</label><textarea id="acl-n" placeholder="' + (mode === 'new' ? 'For example: taken in morning light, the left cabinet door is new' : 'For example: cupping by the back door, finish worn through in the walkway') + '">' + RI.esc(r.fix ? r.fix.note || '' : '') + '</textarea><p class="acl-help">The team reads every note when they tune the prompt and the thresholds.</p></div>' +
+          (hist.length ? '<details class="acl-hist"><summary>Earlier labels · ' + hist.length + '</summary><ol>' + hist.map(function(h){ return '<li><b>' + RI.esc(h.label) + (h.mat ? ' · ' + RI.esc(h.mat) : '') + '</b><span>' + RI.esc(h.by) + (h.at ? ', ' + when(h.at) : '') + '</span>' + (h.note ? '<q>' + RI.esc(h.note) + '</q>' : '') + '</li>'; }).join('') + '</ol></details>' : '') +
+          '<p class="acl-err" id="acl-same" hidden>This is what the model read. Change at least one answer, or press Cancel.</p>' +
+        '</div>' +
+        '<div class="acl-foot"><p>The model\'s reading stays next to your label. Nothing is overwritten: every change is kept with your name and the date.</p><div class="btns">' + (r.added && mode !== 'new' ? '<button type="button" class="btn btn-text acl-rm">Remove this photo</button>' : '') + '<button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="submit" class="btn btn-primary">Save my label</button></div></div></form>';
+      var d = C.dialog(title, body, {wide:true, onClose:function(){ if(done && done.next) done.next(); }}); d.classList.add('acl-dlg');
+      function paint(){
+        var mats = (ACC_MATS[cur.comp] || []).concat(['Not sure']); if(cur.mat && mats.indexOf(cur.mat) < 0) cur.mat = '';
+        d.querySelector('#acl-m').innerHTML = (cur.comp ? '' : '<option value="">Pick the part first</option>') + mats.map(function(m){ return '<option' + (m === cur.mat ? ' selected' : '') + '>' + m + '</option>'; }).join('');
+        if(!cur.mat && cur.comp){ cur.mat = 'Not sure'; d.querySelector('#acl-m').value = 'Not sure'; } /* a new part starts unsure, never a guessed material */
+        var sameComp = r.read && r.modelComp === cur.comp;
+        d.querySelector('#acl-cm').innerHTML = mech() ? '<p class="acl-mech">' + RI.icon('shield','i-sm') + 'Mechanical items get no condition. The rules give them guidance only.</p>'
+          : chips('cond', 'Condition', ACC_COND, cur.cond, sameComp ? msp.cond : '') + '<p class="acl-err" id="acl-cond-err" hidden>Pick a condition.</p>' + chips('mod', 'Modernisation', ACC_MOD.concat(['Not judged']), cur.mod, sameComp ? (msp.mod || 'Not judged') : '');
+        RI.fillIcons(d);
+      }
+      paint();
+      d.querySelector('#acl-c').addEventListener('change', function(){ cur.comp = this.value; d.querySelector('#acl-c-err').hidden = true; paint(); });
+      d.querySelector('#acl-m').addEventListener('change', function(){ cur.mat = this.value; });
+      d.addEventListener('click', function(e){
+        var b = e.target.closest('.acl-chips [data-v]'); if(b){ var k = b.closest('[data-k]').getAttribute('data-k'); cur[k] = b.getAttribute('data-v'); b.parentNode.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); }); var er = d.querySelector('#acl-cond-err'); if(er && k === 'cond') er.hidden = true; d.querySelector('#acl-same').hidden = true; return; }
+        if(e.target.closest('.acl-rm')) C.confirm('Remove this photo?', 'It leaves the accuracy set and the score. Its labels stay in the audit log.', 'Remove', function(){ C.set('accAdded', (C.get('accAdded', []) || []).filter(function(a){ return a.id !== r.id; })); var fx = C.get('accFix', {}) || {}; delete fx[r.id]; C.set('accFix', fx); C.log('Photo labelled', 'Removed ' + (r.comp || 'a') + ' photo from the accuracy set', '', 'accuracy'); d.close(); draw(true); RI.toast('Photo removed from the set.', 'check'); }, true);
+      });
+      d.querySelector('#acl-form').addEventListener('submit', function(e){
+        e.preventDefault();
+        var note = d.querySelector('#acl-n').value.trim(), m = mech();
+        if(!cur.comp){ d.querySelector('#acl-c-err').hidden = false; d.querySelector('#acl-c').focus(); return; }
+        if(!m && !cur.cond){ d.querySelector('#acl-cond-err').hidden = false; return; }
+        var lab = {comp:cur.comp, mat:cur.mat, cond:m ? '' : cur.cond, mod:m ? '' : cur.mod, note:note, by:(C.me() || {}).name || 'Sam', at:Date.now()};
+        if(mode === 'disagree' && r.read && lab.comp === r.modelComp && accText(lab.cond, lab.mod).toLowerCase() === String(r.model).toLowerCase() && (lab.mat === r.modelMat || lab.mat === 'Not sure')){ d.querySelector('#acl-same').hidden = false; return; }
+        var text = accText(lab.cond, lab.mod) + (lab.mat ? ' · ' + lab.mat : '');
+        try {
+          if(mode === 'new'){
+            var added = C.get('accAdded', []) || []; lab.id = 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); lab.src = r.src; lab.name = r.name; added.push(lab); C.set('accAdded', added);
+            C.log('Photo labelled', 'Added a ' + lab.comp + ' photo to the accuracy set: ' + text, note, 'accuracy');
+            d.close(); draw(true); RI.toast('Photo added to the set. The model reads it on the next run.', 'check');
+          } else {
+            var fx = C.get('accFix', {}) || {}, prev = fx[r.id], before = prev ? JSON.parse(JSON.stringify(prev)) : null;
+            var was = prev ? {label:accText(prev.cond, prev.mod), mat:prev.mat, note:prev.note, by:prev.by, at:prev.at} : {label:r.label, mat:r.added ? r.mat : '', note:r.note || '', by:r.added ? (r.by || 'Sam') : 'Original label', at:r.added ? r.at : null};
+            lab.hist = (prev && prev.hist || []).concat([was]); fx[r.id] = lab; C.set('accFix', fx);
+            C.log('Photo labelled', lab.comp + ' photo: ' + was.label + ' changed to ' + text, note, 'accuracy');
+            d.close(); draw(true);
+            RI.toast('Label saved. The score now counts your label.', 'check');
+            undoable(function(){ var a2 = C.get('accFix', {}) || {}; if(before) a2[r.id] = before; else delete a2[r.id]; C.set('accFix', a2); draw(true); });
+          }
+        } catch(err){ RI.toast('This demo browser has no room left for more photos. Remove one and try again.', 'warn'); }
+      });
+      var first = d.querySelector(mode === 'new' ? '#acl-c' : '.acl-chips [aria-pressed="true"]') || d.querySelector('#acl-c'); if(first) first.focus();
+    }
+    function undoable(fn){ setTimeout(function(){ var el = doc.querySelector('.toasts .toast:last-child, .toasts > *:last-child'); if(!el || el.querySelector('.tr-undo')) return; var b = doc.createElement('button'); b.type = 'button'; b.className = 'tr-undo'; b.textContent = 'Undo'; b.addEventListener('click', function(){ fn(); el.remove(); }); el.appendChild(b); }, 20); }
+    /* New photos: made smaller in the browser, then labelled one after another */
+    function shrink(file, cb){
+      var fr = new FileReader(); fr.onload = function(){ var im = new Image(); im.onload = function(){ var k = Math.min(1, 960 / Math.max(im.width, im.height)), c = doc.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); cb(c.toDataURL('image/jpeg', 0.8)); }; im.onerror = function(){ cb(null); }; im.src = fr.result; }; fr.readAsDataURL(file);
+    }
+    function nextNew(n, of){
+      var f = queue.shift(); if(!f) return;
+      shrink(f, function(src){
+        if(!src){ RI.toast('That file is not a photo we can read.', 'warn'); nextNew(n + 1, of); return; }
+        openLabel({src:src, name:f.name, comp:'', mat:'', label:'', read:false}, 'new', {n:n, of:of, next:function(){ nextNew(n + 1, of); }});
+      });
+    }
+    view.addEventListener('change', function(e){ if(e.target.id !== 'acl-file') return; queue = [].slice.call(e.target.files || []).filter(function(f){ return /^image\//.test(f.type); }); e.target.value = ''; nextNew(1, queue.length); });
+    view.addEventListener('click', function(e){
+      var f = e.target.closest('#acl-f [data-f]'); if(f){ st.f = f.getAttribute('data-f'); draw(true); var nb = view.querySelector('#acl-f [data-f="' + st.f + '"]'); if(nb) nb.focus(); return; }
+      var b = e.target.closest('[data-acl]'); if(b){ var id = b.closest('[data-id]').getAttribute('data-id'), r = C.accRows().filter(function(x){ return x.id === id; })[0]; if(r) openLabel(r, b.getAttribute('data-acl')); return; }
+      if(e.target.closest('#ac-run')){
+        var btn = e.target.closest('#ac-run'), n = C.accRows().length; RI.form.busy(btn, true, 'Reading ' + n + ' photos');
+        C.later(function(){
+          /* Photos Sam added are read now: in the prototype the model mostly agrees, and reads every third one a step better than it is */
+          var added = C.get('accAdded', []) || [], k = 0;
+          added.forEach(function(a){ if(a.model) return; var better = k++ % 3 === 2 && ACC_COND.indexOf(a.cond) > 0; a.model = accText(better ? ACC_COND[ACC_COND.indexOf(a.cond) - 1] : a.cond, a.mod); a.modelComp = a.comp; a.modelMat = a.mat === 'Not sure' ? '' : a.mat; a.conf = better ? 68 : 84 + (k % 3) * 4; });
+          try { C.set('accAdded', added); } catch(err){}
+          C.set('evalAt', Date.now()); draw(true);
+          var rows = C.accRows(), read = rows.filter(function(r){ return r.read; }), sc = read.length ? Math.round(read.filter(function(r){ return r.ok; }).length / read.length * 100) : 0;
+          C.log('Accuracy run', rows.length + ' labelled photos, ' + sc + '% agree', ''); RI.toast('Photo set read: ' + sc + '% agree with Sam.', 'check');
+        }, 1600);
+      }
+    });
+    draw();
   }, {nav:'accuracy', perm:'accuracy.manage'});
 })();

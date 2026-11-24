@@ -363,7 +363,7 @@
      Desktop: a real table, one column per question, rows grouped by day. Tablet: the reason moves under the change.
      Phone: each change is a card. Nothing here can be edited. */
   /* Action tags by meaning: rulebook changes, checks, and people and access */
-  var AU_KIND = {'Published':'pub', 'Draft saved':'draft', 'Discarded':'off', 'Back-test run':'chk', 'Accuracy run':'chk', 'Graded':'chk',
+  var AU_KIND = {'Published':'pub', 'Draft saved':'draft', 'Discarded':'off', 'Back-test run':'chk', 'Accuracy run':'chk', 'Photo labelled':'chk', 'Graded':'chk',
     'Staff invited':'acc', 'Permissions changed':'acc', 'Staff enabled':'acc', 'Contacts exported':'acc', 'Super admin created':'acc', 'Staff disabled':'bad', 'Account disabled':'bad'};
   /* What each area is called, and where it opens */
   var AU_AREA = {rates:['Rates', '#/rates'], rules:['Rules', '#/rules'], sheets:['Condition sheets', '#/condition-sheets'], templates:['Room templates', '#/room-templates'],
