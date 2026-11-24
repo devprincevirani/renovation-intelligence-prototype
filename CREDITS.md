@@ -95,3 +95,7 @@ Generic stand-ins for the sample products in the console library. Each is croppe
 | `assets/img/products/p1134.jpg` | Panelled interior door. Holger.Ellgaard, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). [Source](https://commons.wikimedia.org/wiki/File:Spegeld%C3%B6rr,_ramverksd%C3%B6rr.jpg). |
 | `assets/img/products/p1137.jpg` | Black panel front door, Quebec City. Wilfredor, CC0. [Source](https://commons.wikimedia.org/wiki/File:Black_door_of_a_white_clapboard_house_in_Quebec_City.jpg). |
 | `assets/img/products/p1138.jpg` | Front door with side lights. David Edward Hope, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). [Source](https://commons.wikimedia.org/wiki/File:Side_light_detail.jpg). |
+
+## Map
+
+`assets/js/console/usmap.js` holds the US state outlines for the console Regions map. They are built from [us-atlas](https://github.com/topojson/us-atlas) 3.0.1 by Mike Bostock (ISC license), which is made from the US Census Bureau cartographic boundary files (public domain). Coordinates are rounded to whole pixels.

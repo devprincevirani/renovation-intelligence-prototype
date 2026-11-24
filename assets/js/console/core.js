@@ -275,7 +275,7 @@
     ['Houses', [['houses', 'Houses', '#/houses', 'house', 'houses.view']]],
     ['Quality', [['checks', 'Check results', '#/checks', 'shield', 'houses.view'], ['accuracy', 'Photo accuracy', '#/accuracy', 'eye', 'accuracy.manage']]],
     ['Rulebook', [['rules', 'Rules and families', '#/rules', 'list', 'rulebook.view'], ['sheets', 'Condition sheets', '#/condition-sheets', 'sliders', 'rulebook.view'], ['templates', 'Room templates', '#/room-templates', 'ruler', 'rulebook.view'], ['packages', 'Packages and catalog', '#/packages', 'tag', 'rulebook.view']]],
-    ['Pricing', [['products', 'Products', '#/products', 'tag', 'rulebook.view'], ['rates', 'Rates', '#/rates', 'file', 'rulebook.view']]],
+    ['Pricing', [['regions', 'Regions', '#/regions', 'pin', 'rulebook.view'], ['rates', 'Rates', '#/rates', 'file', 'rulebook.view'], ['products', 'Products', '#/products', 'tag', 'rulebook.view']]],
     ['Content', [['guidance', 'Guidance', '#/guidance', 'info', 'rulebook.view'], ['resources', 'Builder documents', '#/resources', 'file', 'content.edit']]],
     ['Changes', [['publish', 'Publish queue', '#/publish', 'refresh', ['rulebook.edit', 'pricing.edit', 'content.edit']], ['backtests', 'Back-tests', '#/backtests', 'clock', 'backtests.run']]],
     ['Customers', [['feedback', 'Contacts and feedback', '#/feedback', 'mail', 'contacts.export'], ['funnel', 'Funnel', '#/funnel', 'sliders', 'funnel.view']]],

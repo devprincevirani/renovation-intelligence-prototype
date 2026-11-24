@@ -177,6 +177,28 @@
     outside:[['ext-front','Front exterior'],['ext-rear','Rear exterior'],['ext-side','Side exterior'],['roof','Roof'],['garage','Garage'],['driveway','Driveway'],['deck','Deck'],['patio','Patio'],['porch','Porch'],['yard','Yard'],['pool','Pool'],['accessory','Accessory structure']]
   };
 
+  /* ---------- Regions (Sam's meeting, Nov 2026) ----------
+     The US in five big regions, each a set of states. A house is priced with the rates of the region its state is in.
+     Only a live region prices houses; the others wait until their rates are checked and Sam turns them on.
+     The Midwest matches the map Sam shared (the 12 Midwestern states) and is live: his own rates are its rates.
+     The console keeps the working copy (regions added, states moved, regions turned on) under con.regions. */
+  RI.STATES = {AL:'Alabama', AK:'Alaska', AZ:'Arizona', AR:'Arkansas', CA:'California', CO:'Colorado', CT:'Connecticut', DE:'Delaware', DC:'District of Columbia',
+    FL:'Florida', GA:'Georgia', HI:'Hawaii', ID:'Idaho', IL:'Illinois', IN:'Indiana', IA:'Iowa', KS:'Kansas', KY:'Kentucky', LA:'Louisiana', ME:'Maine',
+    MD:'Maryland', MA:'Massachusetts', MI:'Michigan', MN:'Minnesota', MS:'Mississippi', MO:'Missouri', MT:'Montana', NE:'Nebraska', NV:'Nevada',
+    NH:'New Hampshire', NJ:'New Jersey', NM:'New Mexico', NY:'New York', NC:'North Carolina', ND:'North Dakota', OH:'Ohio', OK:'Oklahoma', OR:'Oregon',
+    PA:'Pennsylvania', RI:'Rhode Island', SC:'South Carolina', SD:'South Dakota', TN:'Tennessee', TX:'Texas', UT:'Utah', VT:'Vermont', VA:'Virginia',
+    WA:'Washington', WV:'West Virginia', WI:'Wisconsin', WY:'Wyoming'};
+  RI.REGIONS_BASE = [
+    {key:'northeast', name:'Northeast', states:['ME','NH','VT','MA','RI','CT','NY','NJ','PA','DE','MD','DC']},
+    {key:'southeast', name:'Southeast', states:['WV','VA','KY','TN','NC','SC','GA','FL','AL','MS','AR','LA']},
+    {key:'midwest', name:'Midwest', states:['OH','IN','MI','IL','WI','MN','IA','MO','ND','SD','NE','KS'], live:true},
+    {key:'southwest', name:'Southwest', states:['TX','OK','NM','AZ']},
+    {key:'west', name:'West', states:['CO','WY','MT','ID','WA','OR','UT','NV','CA','AK','HI']}
+  ];
+  RI.regions = function(){ var r = RI.store && RI.store.get('con.regions', null); return r && r.length ? r : JSON.parse(JSON.stringify(RI.REGIONS_BASE)); };
+  RI.stateOfHouse = function(h){ var a = (h && h.addr) || {}, z = a.zip || ((h && h.facts) || {}).zip || ''; return (a.state || '').toUpperCase() || (/^4[89]\d{3}$/.test(z) ? 'MI' : ''); };
+  RI.regionOf = function(st){ st = String(st || '').toUpperCase(); return RI.regions().filter(function(g){ return g.states.indexOf(st) > -1; })[0] || null; };
+
   /* Lines that cannot be priced: shown apart, never as zero */
   RI.isHeld = function(it){ return it.state === 'unverified' || it.state === 'measure'; };
   /* The estimate being shown: the sample house, unless the app sets RI.CURRENT to a user's house */

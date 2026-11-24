@@ -3345,3 +3345,112 @@ button.bim-c:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2
 #cd-savewrap:empty{display:none}
 #cd-savewrap .c-savebar{position:static;box-shadow:0 8px 24px rgba(32,59,56,.24)}
 @media (max-width:599px){#cd-savewrap{bottom:calc(8px + env(safe-area-inset-bottom,0px))}#cd-savewrap .c-savebar .btn{flex:1 1 0;min-height:44px}}
+
+/* ===================================================================
+   Regions (rgn-). Sam's meeting, Nov 2026: the US in a few big regions.
+   A tile map (one square per state, its region in a warm tint, the chosen
+   region in Deep Forest, live regions outlined) beside one card per region.
+   =================================================================== */
+.rgn-layout{display:grid;grid-template-columns:minmax(290px,1fr) minmax(0,1.6fr);gap:20px;align-items:start}
+.rgn-cards{grid-column:1;grid-row:1}
+/* The map card sits on the right and stays in view while the cards scroll */
+.rgn-mapc{grid-column:2;grid-row:1;background:var(--raised);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px 14px;display:grid;gap:12px;position:sticky;top:76px}
+.rgn-mh{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.rgn-mh b{font:600 1.02rem var(--display)}
+.rgn-mh span{font-size:.8rem;color:var(--muted)}
+.rgn-map{position:relative}
+.rgn-map svg{display:block;width:100%;height:auto}
+/* Region edges: a thick white line under each region's states, so regions part more clearly than states */
+.rgn-e{fill:none;stroke:#fff;stroke-width:7;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.rgn-g.is-on .rgn-e{stroke:var(--deep-forest);stroke-width:6}
+.rgn-s{stroke:#fff;stroke-width:1;stroke-linejoin:round;vector-effect:non-scaling-stroke;cursor:pointer;transition:fill-opacity var(--fast)}
+.rgn-g.is-hov .rgn-s{fill-opacity:.8}
+/* Status colours: live in Forest green (#3E7B5A, chosen by the user over a dull sage), ready in light sage, bronze while rates are checked, hatched when not started */
+.rgn-g.st-live .rgn-s{fill:#3E7B5A}.rgn-g.st-live.is-on .rgn-s{fill:var(--deep-forest)}
+.rgn-g.st-ready .rgn-s{fill:#C9D6D2}.rgn-g.st-ready.is-on .rgn-s{fill:#4F6F6A}
+.rgn-g.st-check .rgn-s{fill:#E6D4B8}.rgn-g.st-check.is-on .rgn-s{fill:var(--bronze)}
+.rgn-g.st-new .rgn-s{fill:url(#rgn-hatch)}.rgn-g.st-new.is-on .rgn-s{fill:url(#rgn-hatch-on)}
+.rgn-code{fill:#fff;font:600 17px var(--body);text-anchor:middle;dominant-baseline:middle;pointer-events:none}
+.rgn-g.st-new .rgn-code{fill:var(--charcoal)}
+/* Name tags: the region and a status dot, never the words Not live */
+.rgn-pin{position:absolute;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 7px;min-height:26px;border:1px solid var(--border);border-radius:var(--r-md);background:#fff;font:600 .76rem var(--body);color:var(--text);white-space:nowrap;cursor:pointer;box-shadow:0 1px 3px rgba(32,59,56,.12)}
+.rgn-pin:hover{border-color:var(--deep-forest)}
+.rgn-pin:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2px}
+.rgn-pin.is-on{background:var(--deep-forest);border-color:var(--deep-forest);color:#fff}
+.rgn-pin .d,.rgn-legend .d{width:8px;height:8px;border-radius:50%;flex:none}
+.rgn-pin.st-live .d{background:#3E7B5A}
+.rgn-pin.st-ready .d{background:#4F6F6A}
+.rgn-pin.st-check .d{background:var(--bronze)}
+.rgn-pin.st-new .d{box-shadow:inset 0 0 0 1.5px var(--state-line)}
+.rgn-pin.is-on .d{box-shadow:0 0 0 1.5px #fff}
+.rgn-pin.is-on.st-new .d{box-shadow:inset 0 0 0 1.5px #fff}
+/* Legend: the four states with how many regions are in each, then the chosen region */
+.rgn-legend{display:grid;gap:8px;border-top:1px solid var(--border-soft);padding-top:10px}
+.rgn-legend ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 16px}
+.rgn-legend li{display:inline-flex;align-items:center;gap:7px;font-size:.8rem;color:var(--muted)}
+.rgn-legend li b{color:var(--text);font-weight:600}
+.rgn-sw{width:16px;height:16px;flex:none}
+.sw-live{fill:#3E7B5A}.sw-ready{fill:#C9D6D2}.sw-check{fill:#E6D4B8}.sw-new{fill:url(#rgn-hatch);stroke:#DED2BF}
+.rgn-legend p{margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:.82rem;color:var(--muted)}
+.rgn-legend p b{color:var(--text)}
+.rgn-ol{width:14px;height:10px;border:2px solid var(--deep-forest);border-radius:2px}
+.rgn-tip{margin-left:auto;font-size:.78rem}
+/* Start a region: pick the rate list to copy, or start empty */
+.rgn-src-intro{margin:0 0 12px;font-size:.88rem;color:var(--muted)}
+.rgn-srcs{display:grid;gap:8px}
+.rgn-src{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--raised);cursor:pointer}
+.rgn-src:hover{border-color:var(--border-strong)}
+.rgn-src:has(input:checked){border-color:var(--deep-forest);box-shadow:inset 0 0 0 1px var(--deep-forest)}
+.rgn-src input{flex:none;width:18px;height:18px;margin:0;accent-color:var(--deep-forest)}
+.rgn-src-t{flex:1;display:grid;gap:2px;min-width:0}
+.rgn-src-t b{font-weight:600}
+.rgn-src-t small{font-size:.8rem;color:var(--muted)}
+/* The card label matches the map: sage for ready to go live */
+.rgn-lb-ready{color:#2E4B48;background:#E1EAE7}
+.rgn-cards{display:grid;gap:10px}
+.rgn-card{background:var(--raised);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;display:grid;gap:8px}
+.rgn-card.is-on{border-color:var(--deep-forest);box-shadow:inset 0 0 0 1px var(--deep-forest)}
+.rgn-card header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rgn-pick{background:none;border:0;padding:0;font:inherit;color:inherit;text-align:left;cursor:pointer;display:grid;gap:1px;min-height:40px;align-content:center}
+.rgn-pick b{font-size:1.02rem;font-weight:600}
+.rgn-pick small{font-size:.76rem;color:var(--muted)}
+.rgn-states{margin:0;font-size:.84rem;color:var(--muted)}
+.rgn-line{margin:0;font-size:.84rem}
+.rgn-prog{display:grid;gap:5px;font-size:.82rem;color:var(--muted)}
+.rgn-bar{display:block;height:6px;border-radius:var(--r-sm);background:var(--sunken);overflow:hidden}
+.rgn-bar i{display:block;height:100%;background:var(--deep-forest)}
+.rgn-card footer{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.rgn-card footer .linkbtn{margin-left:auto;min-height:36px}
+.rgn-card footer .btn[disabled]{opacity:.45;cursor:not-allowed}
+/* Add a region / Change states */
+.rgn-f{display:grid;gap:4px;margin-bottom:12px}
+.rgn-f>span{font-weight:600;font-size:.88rem}
+.rgn-f-h{margin:0 0 6px;font-weight:600;font-size:.88rem}
+.rgn-chips{display:grid;gap:10px;max-height:46vh;overflow:auto;padding-right:4px}
+.rgn-chips fieldset{border:1px solid var(--border-soft);border-radius:var(--r-md);padding:8px 10px;margin:0;display:flex;flex-wrap:wrap;gap:6px}
+.rgn-chips legend{font-size:.8rem;font-weight:600;padding:0 4px;display:flex;align-items:center;gap:6px}
+.rgn-chip{position:relative;display:inline-flex}
+.rgn-chip input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.rgn-chip span{display:inline-grid;place-items:center;min-width:40px;min-height:32px;padding:0 6px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.78rem;font-weight:600;background:var(--raised)}
+.rgn-chip input:checked+span{background:var(--deep-forest);border-color:var(--deep-forest);color:#fff}
+.rgn-chip input:focus-visible+span{outline:2px solid var(--deep-forest);outline-offset:2px}
+.rgn-warn{margin:10px 0 0;font-size:.84rem;color:var(--warn)}
+.rgn-warn:empty{display:none}
+/* On the Rates page */
+.rgn-empty{display:flex;gap:12px;align-items:flex-start;background:var(--raised);border:1px dashed var(--border-strong);border-radius:var(--r-lg);padding:18px}
+.rgn-empty>.i{flex:none;color:var(--deep-forest);margin-top:2px}
+.rgn-empty p{margin:4px 0 12px;font-size:.88rem;color:var(--muted)}
+.rgn-unchk{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 12px;padding:10px 12px;border:1px dashed rgba(161,125,88,.6);border-radius:var(--r-md);background:rgba(161,125,88,.08);font-size:.86rem}
+.rgn-unchk>.i{flex:none}
+.rgn-unchk>span{flex:1 1 260px}
+.rgn-copied{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0;padding:8px 10px;border:1px dashed rgba(161,125,88,.6);border-radius:var(--r-md);font-size:.84rem}
+.rgn-copied>span{flex:1 1 220px}
+@media (max-width:759px){
+  .rgn-layout{grid-template-columns:1fr}
+  .rgn-cards,.rgn-mapc{grid-column:auto;grid-row:auto}
+  .rgn-mapc{position:static;padding:12px}
+  .rgn-pin{font-size:.66rem;padding:2px 6px 2px 5px;min-height:22px;gap:4px}
+  .rgn-tip{display:none}
+  .rgn-card footer .linkbtn{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){ .rgn-s{transition:none} }
