@@ -292,7 +292,7 @@
             : credit ? '<button type="button" class="btn btn-primary btn-block px-btn" id="credit-open">Open with a credit</button><p class="small muted">You have ' + A.creditsLeft() + ' credit' + (A.creditsLeft() === 1 ? '' : 's') + ' left.</p>'
             : '<a class="btn btn-primary btn-block px-btn" href="#/houses/' + h.id + '/checkout" id="pay">Open the full presentation, ' + price + '</a><p class="px-promise">One payment for this house. Yours to keep. PDF and a private link included.' + (RI.OFFERS.priceIsSample ? ' <span class="state state-sample">Sample price</span>' : '') + '</p>' + (pf.note ? '<p class="small muted">' + RI.esc(pf.note) + '.</p>' : '') + (RI.devTools && RI.OFFERS.reminderEmail.on ? '<p class="xsmall muted">Team: one reminder email ' + RI.OFFERS.reminderEmail.days + ' days after the price is ready, if still locked. Then nothing more.</p>' : '')) +
           '<a class="textlink small" href="' + RI.url('sample/') + '" id="px-sample" target="_blank" rel="noopener">See a sample first ' + RI.icon('arrow','i-sm') + '</a>' +
-          '<p class="xsmall muted">An estimate, never a quote. No subscription.</p></aside></div>' +
+          '<p class="xsmall muted">An estimate for planning. No subscription.</p></aside></div>' +
       '<div class="tabs-s" role="tablist" aria-label="Details">' +
         '<button role="tab" aria-selected="true" data-tab="unk">What we could not confirm <span class="n">' + unk.length + '</span></button>' +
         '<button role="tab" aria-selected="false" data-tab="dec">What each goal does</button>' +

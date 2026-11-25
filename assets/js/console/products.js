@@ -96,7 +96,7 @@
     var list = all(), m = C.me() || {};
     if(d.after && d.after._new){
       var n = list.reduce(function(x, p){ return Math.max(x, +String(p.id).slice(1) || 0); }, 1099) + 1, a = d.after;
-      list.push({id:'p' + n, item:a.item, fam:a.fam, tier:a.tier, name:a.name, price:a.price, per:a.per, src:a.src, link:a.link, img:a.img || '', v:1, at:Date.now(),
+      list.push({id:'p' + n, item:a.item, fam:a.fam, tier:a.tier, name:a.name, maker:a.maker || '', sku:a.sku || '', pdate:a.pdate || '', price:a.price, per:a.per, src:a.src, link:a.link, img:a.img || '', v:1, at:Date.now(),
         hist:[{v:1, at:Date.now(), by:m.name || 'Sam', price:a.price, change:'Added to the library', note:''}]});
       C.set('products', list); return;
     }
@@ -105,6 +105,7 @@
   };
 
   /* ---------- Pieces ---------- */
+  function pdate(v){ var t = new Date(v + 'T00:00:00'); return isNaN(t) ? esc(v) : t.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}); }
   function photo(p, size){ return p && p.img ? '<img src="' + (p.img.indexOf('data:') === 0 ? p.img : RI.img(p.img)) + '" alt="" loading="lazy">' : '<span class="pl-nophoto">' + I('image') + (size === 'big' ? '<b>Photo needed</b>' : '') + '</span>'; }
   function stateOf(p){ var d = C.draftFor('products', p.id); return d ? '<span class="lb lb-draft">Draft waiting</span>' : '<span class="pl-v">v' + (p.v || 1) + '</span>'; }
   function tile(p, t, canEdit){
@@ -226,11 +227,15 @@
           '<div class="pl-hero"><span class="pl-big">' + photo(p, 'big') + '</span><div class="pl-hero-t"><p class="pl-chips"><span class="pl-chip t">' + TN[p.tier] + '</span><span class="pl-chip">' + (C.FAMILY[p.fam] || p.fam) + '</span><span class="pl-chip code">' + p.id + '</span></p>' +
             '<p class="pl-for">For <b>' + esc(p.item) + '</b></p>' + stateOf(p) + '</div></div>' +
           '<section class="pl-box"><p class="pl-k">Price</p><p class="pl-bigp">' + priceOf(p) + '</p><p class="pl-smp">Sample price until Sam\'s product list arrives.</p>' +
-            '<dl class="pl-dl"><div><dt>Source</dt><dd>' + esc(p.src || '') + '</dd></div>' +
+            '<dl class="pl-dl"><div><dt>Maker</dt><dd>' + (p.maker ? esc(p.maker) : '<span class="muted">Not added yet</span>') + '</dd></div>' +
+            '<div><dt>SKU or catalog number</dt><dd>' + (p.sku ? '<code>' + esc(p.sku) + '</code>' : '<span class="muted">Not added yet</span>') + '</dd></div>' +
+            '<div><dt>Price date</dt><dd>' + (p.pdate ? pdate(p.pdate) : '<span class="muted">Not added yet</span>') + '</dd></div>' +
+            '<div><dt>Source</dt><dd>' + esc(p.src || '') + '</dd></div>' +
             '<div><dt>Supplier page</dt><dd>' + (p.link ? '<a href="' + esc(p.link) + '" target="_blank" rel="noopener">' + esc(p.link.replace(/^https?:\/\//, '')) + ' ' + I('arrow') + '</a>' : '<span class="muted">No link</span>') + '</dd></div>' +
             '<div><dt>Prices</dt><dd>' + (n ? n + ' priced ' + (n === 1 ? 'house' : 'houses') + ' use it under ' + TN[p.tier] : '<span class="muted">No priced house uses it yet</span>') + '</dd></div>' +
             (p.line ? '<div><dt>Line in the sample house</dt><dd><b>' + money(p.line[0]) + ' to ' + money(p.line[1]) + '</b>' + (p.qty ? ' for ' + esc(p.qty) : '') + '<br><span class="muted">This product plus the work, from the rates</span></dd></div>' : '') + '</dl></section>' +
           (dr ? '<section class="pl-dr">' + I('clock') + '<div><b>A draft is waiting</b><span>' + esc(dr.summary || '') + ' · ' + esc(dr.by) + ', ' + C.ago(dr.at) + '</span></div><a href="#/publish">Publish queue</a></section>' : '') +
+          (p.maker && p.sku && p.pdate ? '' : '<section class="pl-dr warn">' + I('info') + '<div><b>Maker, SKU or price date missing</b><span>Every price comes from a product anyone can look up, with the date its price was checked (INT70-A01). Add them with Edit.</span></div></section>') +
           (p.img ? '' : '<section class="pl-dr warn">' + I('image') + '<div><b>This product has no photo</b><span>Every product shows a real photo (BACKLOG M3-10). Add one with Edit.</span></div></section>') +
           '<section><h3 class="pl-h3">Versions <span class="bt-cnt">' + (p.hist || []).length + '</span></h3><ol class="pl-hist">' + (p.hist || []).map(function(h, i){
             return '<li' + (i ? '' : ' class="cur"') + '><span class="pl-hv">v' + h.v + '</span><div><b>' + esc(h.change) + '</b><span>' + (h.price != null ? priceOf({price:h.price, per:p.per}) + ' · ' : '') + esc(h.by) + ', ' + C.date(h.at) + (h.note ? ' · ' + esc(h.note) : '') + '</span></div>' + (i ? '' : '<span class="pl-live">Live</span>') + '</li>';
@@ -247,8 +252,9 @@
        picked: one product per item per package), the product (a photo drop area and the name), and the price (price
        with its unit, source and supplier page). Editing shows the item and package as facts, not choices. */
     var SOURCES = ['Sam\'s price book', 'Supplier list, Nov 2026', 'Supplier quote'];
+    function today(){ var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
     function form(p, preset){
-      var isNew = !p, its = items(list), a = p || {name:'', price:'', per:'each', src:'Sam\'s price book', link:'', img:''};
+      var isNew = !p, its = items(list), a = p || {name:'', maker:'', sku:'', pdate:today(), price:'', per:'each', src:'Sam\'s price book', link:'', img:''};
       var img = a.img || '';
       var open = function(it){ return TIERS.filter(function(t){ return !it.slots[t[0]]; }); };
       var withGap = its.filter(function(it){ return open(it).length; });
@@ -275,11 +281,15 @@
           sec(2, 'The product',
             '<div class="field"><span class="flabel">Photo</span><label class="pf-drop' + (img ? ' has' : '') + '" id="pf-drop" for="pl-file"><span class="pf-dv" id="pl-upv">' + photo({img:img}) + '</span><span class="pf-dt"><b id="pf-dtt">' + (img ? 'Replace the photo' : 'Drop a photo here, or choose a file') + '</b><small>A square photo of the real product, as the presentation shows it. Up to 1.5 MB.</small></span></label><input type="file" id="pl-file" accept="image/*" class="sr">' +
               '<button type="button" class="linkbtn small pf-rm" id="pf-rm"' + (img ? '' : ' hidden') + '>Remove the photo</button></div>' +
-            '<div class="field"><label for="pl-n">Product name</label><input class="input" id="pl-n" value="' + esc(a.name) + '" placeholder="For example: Painted shaker, soft close" autocomplete="off"><span class="err"></span></div>') +
+            '<div class="field"><label for="pl-n">Product name</label><input class="input" id="pl-n" value="' + esc(a.name) + '" placeholder="For example: Painted shaker, soft close" autocomplete="off"><span class="err"></span></div>' +
+            '<div class="pl-2"><div class="field"><label for="pl-mk">Maker</label><input class="input" id="pl-mk" value="' + esc(a.maker || '') + '" placeholder="The brand on the box" autocomplete="off"></div>' +
+              '<div class="field"><label for="pl-sku">SKU or catalog number</label><input class="input" id="pl-sku" value="' + esc(a.sku || '') + '" placeholder="From the supplier or the box" autocomplete="off"></div></div>' +
+            '<p class="pl-help">So anyone can look up the exact product.</p>') +
           sec(3, 'Price',
             '<div class="pl-2"><div class="field"><label for="pl-pr">Price</label><div class="pf-money"><span aria-hidden="true">$</span><input class="input" id="pl-pr" inputmode="decimal" value="' + (a.price === '' ? '' : a.price) + '" placeholder="0.00" autocomplete="off"></div><span class="err"></span></div>' +
               '<div class="field"><label for="pl-per">Per</label><span class="c-select"><select id="pl-per">' + PER.map(function(u){ return '<option value="' + u + '"' + (u === (a.per || 'each') ? ' selected' : '') + '>' + (u === 'each' ? 'Each' : u) + '</option>'; }).join('') + '</select></span></div></div>' +
             '<p class="pl-help">One price for the product. A line\'s Low and High comes from this price and the rates together.</p>' +
+            '<div class="field"><label for="pl-pd">Price date</label><input class="input pf-date" id="pl-pd" type="date" value="' + esc(a.pdate || '') + '"><span class="err"></span><span class="help">The day this price was checked. Staff only; homeowners never see it.</span></div>' +
             '<div class="field"><label for="pl-src">Source</label><input class="input" id="pl-src" list="pf-srcs" value="' + esc(a.src || '') + '" autocomplete="off"><datalist id="pf-srcs">' + SOURCES.map(function(x){ return '<option value="' + esc(x) + '">'; }).join('') + '</datalist></div>' +
             '<div class="field"><label for="pl-ln">Supplier page <span class="opt">(optional)</span></label><input class="input" id="pl-ln" type="url" value="' + esc(a.link || '') + '" placeholder="https://" autocomplete="off"></div>') +
         '</form><div class="ax-foot pf-foot"><p class="pf-fn">' + I('info') + '<span>Saves a draft. Only Sam publishes; old runs keep their version.</span></p><div class="ax-btns"><button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="submit" form="pl-form" class="btn btn-primary">' + (isNew ? 'Save the draft' : 'Save changes as draft') + '</button></div></div>');
@@ -318,7 +328,8 @@
         if(isNew){ var tier0 = (d.querySelector('input[name="pl-tier"]:checked') || {}).value; if(!tier0){ var tf0 = d.querySelector('#pl-tf'); tf0.classList.add('invalid'); d.querySelector('#pl-terr').textContent = 'Choose a package.'; tf0.scrollIntoView({block:'center'}); return; } }
         if(!name.value.trim()){ RI.form.setInvalid(name, 'Give the product a name.'); name.focus(); return; }
         if(!(price > 0)){ RI.form.setInvalid(prEl, 'Enter the product\'s price, for example 9 or 68.50.'); prEl.focus(); return; }
-        var after = {name:name.value.trim(), price:price, per:per, src:d.querySelector('#pl-src').value.trim(), link:d.querySelector('#pl-ln').value.trim(), img:img};
+        var pdEl = d.querySelector('#pl-pd'); if(!pdEl.value){ RI.form.setInvalid(pdEl, 'Add the day this price was checked.'); pdEl.focus(); return; }
+        var after = {name:name.value.trim(), maker:d.querySelector('#pl-mk').value.trim(), sku:d.querySelector('#pl-sku').value.trim(), pdate:pdEl.value, price:price, per:per, src:d.querySelector('#pl-src').value.trim(), link:d.querySelector('#pl-ln').value.trim(), img:img};
         if(isNew){
           var tier = d.querySelector('input[name="pl-tier"]:checked').value, item = sel.value, it = itemOf(item);
           after._new = true; after.item = item; after.tier = tier; after.fam = it.fam;
@@ -326,7 +337,7 @@
           C.askWhy('New product: ' + after.name, item + ' · ' + TN[tier] + ' · ' + priceOf(after), function(why){ C.addDraft({area:'products', ref:'new-' + item + '-' + tier, title:'New product: ' + after.name, summary:item + ', ' + TN[tier] + ': ' + priceOf(after), after:after, why:why}); RI.toast('Saved as a draft. It waits in the publish queue.', 'check'); draw(); });
           return;
         }
-        var ch = []; if(after.name !== a.name) ch.push('name'); if(price !== a.price || per !== a.per) ch.push('price ' + priceOf(a) + ' becomes ' + priceOf(after)); if(after.src !== (a.src || '')) ch.push('source'); if(after.link !== (a.link || '')) ch.push('supplier page'); if(after.img !== (a.img || '')) ch.push('photo');
+        var ch = []; if(after.name !== a.name) ch.push('name'); if(price !== a.price || per !== a.per) ch.push('price ' + priceOf(a) + ' becomes ' + priceOf(after)); if(after.maker !== (a.maker || '')) ch.push('maker'); if(after.sku !== (a.sku || '')) ch.push('SKU'); if(after.pdate !== (a.pdate || '')) ch.push('price date'); if(after.src !== (a.src || '')) ch.push('source'); if(after.link !== (a.link || '')) ch.push('supplier page'); if(after.img !== (a.img || '')) ch.push('photo');
         if(!ch.length){ d.close(); return; }
         d.close();
         C.askWhy('Product: ' + a.name, ch.join('; '), function(why){ C.addDraft({area:'products', ref:a.id, title:'Product: ' + a.name, summary:ch.join('; '), after:after, why:why}); RI.toast('Saved as a draft. It waits in the publish queue.', 'check'); draw(); });

@@ -36,12 +36,12 @@
     return '<span class="ev" title="' + RI.esc(e.meaning) + '"><i aria-hidden="true">' + b + '</i>' + e.label + '</span>';
   };
 
-  /* House systems guidance card (guide p49): what to look for, typical lifespan, a typical range from Sam
-     shown as guidance only and never added to any total, and the inspect note */
+  /* House systems guidance card (guide p49): what to look for, the typical lifespan and the inspect note. Never a
+     price (user, Nov 2026, from the client documents: the roof, heating, water heater and panel are advice only) */
   RI.mechCard = function(m){
     return '<div class="mech-card"><h4>' + m.name + '<span class="state state-guidance">Guidance</span></h4><span class="src">' + m.src + '</span><p>' + m.text + '</p>' +
-      '<dl class="mech-kv">' + (m.life ? '<div><dt>Typical lifespan</dt><dd>' + m.life + '</dd></div>' : '') + (m.range ? '<div><dt>Typical range, for planning</dt><dd>' + RI.money(m.range[0]) + ' to ' + RI.money(m.range[1]) + '</dd></div>' : '') + '</dl>' +
-      '<span class="src">Guidance only. Never added to any total. Have it inspected by a professional.</span></div>';
+      '<dl class="mech-kv">' + (m.life ? '<div><dt>Typical lifespan</dt><dd>' + m.life + '</dd></div>' : '') + '</dl>' +
+      '<span class="src">Guidance only, not priced. Have it inspected by a professional.</span></div>';
   };
 
   /* ---------- Icons: one small hand-drawn set, regular weight ---------- */

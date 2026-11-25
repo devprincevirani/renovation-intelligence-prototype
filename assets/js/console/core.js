@@ -36,19 +36,49 @@
   /* The sample staff member Sam invited, and what "Preview as staff" shows */
   C.SAMPLE_STAFF = ['houses.view', 'houses.grade', 'rulebook.view', 'backtests.run', 'audit.view'];
   var OLD = {grade:'houses.grade', backtest:'backtests.run', 'drafts.reasoning':'rulebook.edit', 'drafts.pricing':'pricing.edit', 'drafts.texts':'content.edit', 'feedback.view':'contacts.export'};
+  /* Roles (Sam's meeting, Nov 2026: "the super admin can add other admin staff", roles and capabilities "totally
+     dynamic"). A role is a name and what it can do: the twelve permissions above plus two admin ones, 'staff' (invite
+     and manage staff, give roles) and 'publish'. Each person has one role; changing a role changes everyone with it.
+     Super admin is Sam, fixed. Sub admin is built in. The rest are starter roles Sam can change or add to. */
+  C.ADMIN_CAPS = [['staff', 'Invite and manage staff', 'They invite staff and give them a role. Makes this an admin role'], ['publish', 'Publish changes', 'Sam only, unless he gives it on purpose']];
+  C.ROLES_BASE = [
+    {id:'super', name:'Super admin', about:'Sam. Everything, including publishing and managing everyone.', fixed:true},
+    {id:'sub', name:'Sub admin', about:'Runs the team day to day: invites staff and gives them a role. Does not publish.', built:true, perms:['staff']},
+    {id:'price', name:'Pricing editor', about:'Keeps products and rates up to date as drafts for Sam to publish.', perms:['houses.view', 'rulebook.view', 'pricing.edit', 'backtests.run', 'audit.view']},
+    {id:'rev', name:'Reviewer', about:'Checks houses and grades decisions, runs back-tests and reads the audit log.', perms:['houses.view', 'houses.grade', 'rulebook.view', 'backtests.run', 'audit.view']},
+    {id:'ro', name:'Read only', about:'Can look at houses and the rulebook. Changes nothing.', perms:['houses.view', 'rulebook.view']}
+  ];
+  C.roles = function(){
+    var r = C.get('roles');
+    if(!r || !r.length){
+      var all = C.PERMS.map(function(p){ return p[0]; });
+      r = C.ROLES_BASE.map(function(x){ var o = JSON.parse(JSON.stringify(x)); o.perms = x.id === 'super' ? all.concat(['staff', 'publish']) : x.id === 'sub' ? all.concat(['staff']) : o.perms; return o; });
+      C.set('roles', r);
+    }
+    return r;
+  };
+  C.role = function(id){ return C.roles().filter(function(r){ return r.id === id; })[0] || null; };
+  C.effPerms = function(rec){
+    var r = rec && rec.role ? C.role(rec.role) : null; if(!r) return C.migratePerms(rec && rec.perms);
+    var add = rec.add || [], rem = rec.remove || [];
+    return r.perms.concat(add.filter(function(p){ return r.perms.indexOf(p) < 0; })).filter(function(p){ return rem.indexOf(p) < 0; });
+  };
+  C.isAdminPerson = function(rec){ var p = C.effPerms(rec); return p.indexOf('staff') > -1 || p.indexOf('publish') > -1; };
+  C.isAdminRole = function(r){ return !!r && (r.fixed || r.perms.indexOf('staff') > -1 || r.perms.indexOf('publish') > -1); };
   C.migratePerms = function(list){ var out = []; (list || []).forEach(function(p){ p = OLD[p] || p; if(C.SUPER.indexOf(p) < 0 && out.indexOf(p) < 0 && C.PERMS.some(function(q){ return q[0] === p; })) out.push(p); }); return out; };
   C.me = function(){
     var s = RI.session(); if(!s || (s.role !== 'admin' && s.role !== 'staff')) return s ? {outsider:true, s:s} : null;
     var preview = s.role === 'admin' && C.get('preview') === 'staff';
     var sam = s.role === 'admin' && !preview;
     var rec = (C.get('staff', []) || []).filter(function(x){ return x.email === s.email; })[0];
-    var perms = sam ? C.PERMS.map(function(p){ return p[0]; }) : preview ? C.SAMPLE_STAFF : C.migratePerms(rec && rec.perms);
-    return {s:s, sam:sam, preview:preview, name:preview ? 'Staff preview' : (s.role === 'admin' ? 'Sam' : (rec && rec.name) || s.name), email:s.email, role:sam ? 'Super admin' : 'Staff', perms:perms};
+    var role = !sam && !preview && rec && rec.role ? C.role(rec.role) : null;
+    var perms = sam ? C.PERMS.map(function(p){ return p[0]; }) : preview ? C.SAMPLE_STAFF : role ? C.effPerms(rec) : C.migratePerms(rec && rec.perms);
+    return {s:s, sam:sam, preview:preview, name:preview ? 'Staff preview' : (s.role === 'admin' ? 'Sam' : (rec && rec.name) || s.name), email:s.email, role:sam ? 'Super admin' : role ? role.name : 'Staff', roleId:sam ? 'super' : role ? role.id : '', perms:perms};
   };
   C.can = function(p){
     var m = C.me(); if(!m || m.outsider) return false;
     if(Array.isArray(p)) return p.some(C.can);
-    if(m.sam) return true; if(C.SUPER.indexOf(p) > -1) return false;
+    if(m.sam) return true; if(C.SUPER.indexOf(p) > -1) return m.perms.indexOf(p) > -1; /* a role can carry 'staff' or 'publish' */
     return m.perms.indexOf(p) > -1 || m.perms.some(function(q){ return (C.IMPLIES[q] || []).indexOf(p) > -1; });
   };
 
