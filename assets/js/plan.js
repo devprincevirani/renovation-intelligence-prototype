@@ -11,7 +11,7 @@
     ['hallbath','Bath',12,16,7,12], ['halfbath','Half',19,16,5,6],
     ['kitchen','Kitchen',44,0,16,15], ['basement','Stairs',34,17,10,11]
   ];
-  var OFFPLAN = [['basement','Basement','about 300 sq ft, below grade'],['whole','Whole house','Paint, doors, lighting'],['exterior','Exterior','Front door, trim']];
+  var OFFPLAN = [['basement','Basement','about 300 sq ft, below grade'],['exterior','Exterior','Front door, trim']];
 
   function X(f){ return OX + f * U; } function Y(f){ return OY + f * U; }
   function roomByKey(k){ return RI.src().rooms.filter(function(r){ return r.key === k; })[0]; }
@@ -84,8 +84,8 @@
       return {
         update:function(pk, off, selected){
           var max = 1;
-          /* Scale across the rooms on the plan; whole-house work is spread over every room, so it is left out */
-          RI.src().rooms.forEach(function(r){ if(r.key !== 'whole') max = Math.max(max, RI.totals(pk, {}, r.key).high); });
+          /* Scale across every room (paint, doors and lights now sit in the rooms they belong to) */
+          RI.src().rooms.forEach(function(r){ max = Math.max(max, RI.totals(pk, {}, r.key).high); });
           host.querySelectorAll('[data-room]').forEach(function(el){
             var k = el.getAttribute('data-room'), t = RI.totals(pk, off, k), room = roomByKey(k);
             if(!room) return;

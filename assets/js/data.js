@@ -214,6 +214,61 @@
     b1:'Floor', b2:'Closet doors', h1:'Tub and surround', h2:'Vanity', h3:'Toilet', f1:'Vanity and faucet', s1:'Floor', s2:'Walls',
     w1:'Wall paint', w2:'Interior doors', w3:'Light fixtures', x1:'Front door', x2:'Trim paint'};
   RI.ITEM_FROM = {k2:'Plastic laminate', k5:'Sheet vinyl', l1:'Carpet', b1:'Carpet', s1:'Carpet', s2:'Wood paneling'};
+  /* ---------- Every room priced complete (user, Nov 2026) ----------
+     Wall paint, interior doors and light fixtures were three whole-house lines in a "Whole house" room, so no room
+     showed its full price. Each is now split into the rooms it belongs to: the room's own wall area, doors and fixtures,
+     with a matching share of the price. The shares add up exactly to the house line (the last room takes the rounding),
+     so the house total does not change. Sample shares, inferred like the 4,900 sq ft; the engine works them out per room
+     from photos and sizes. The kitchen keeps its own ceiling light (k6) and has no interior door. */
+  (function(){
+    var S = RI.SAMPLE, whole = S.rooms.filter(function(r){ return r.key === 'whole'; })[0]; if(!whole) return;
+    var SHARE = {
+      w1:{unit:'sq ft wall area', of:4900, rooms:[['kitchen',420], ['living',1500], ['bedrooms',1850], ['hallbath',330], ['halfbath',160], ['basement',640]],
+          act:{E:'Paint the walls that need it', S:'Paint the walls, two coats', P:'Paint walls and ceiling'}},
+      w2:{unit:'each', of:11, rooms:[['living',3], ['bedrooms',3], ['hallbath',1], ['halfbath',1], ['basement',3]]},
+      w3:{unit:'each', of:14, rooms:[['living',5], ['bedrooms',3], ['hallbath',2], ['halfbath',1], ['basement',3]]}
+    };
+    RI.PRODUCT_IMG.w1 = {E:'finishes/pr-paint.jpg', S:'finishes/pr-paint.jpg', P:'finishes/pr-paint.jpg'};
+    whole.items.forEach(function(it){
+      var sh = SHARE[it.id], sum = {};
+      sh.rooms.forEach(function(x, i){
+        var room = S.rooms.filter(function(r){ return r.key === x[0]; })[0], f = x[1] / sh.of, last = i === sh.rooms.length - 1; if(!room) return;
+        var c = JSON.parse(JSON.stringify(it)); c.id = it.id + '-' + x[0]; c.name = RI.ITEM_PART[it.id]; c.qty = x[1].toLocaleString('en-US') + ' ' + sh.unit;
+        ['E','S','P'].forEach(function(p){
+          var a = c.pk[p], o = it.pk[p]; if(!a || o[1] == null) return; sum[p] = sum[p] || [0, 0];
+          a[1] = last ? o[1] - sum[p][0] : Math.round(o[1] * f / 10) * 10; a[2] = last ? o[2] - sum[p][1] : Math.round(o[2] * f / 10) * 10;
+          sum[p][0] += a[1]; sum[p][1] += a[2]; if(sh.act && sh.act[p]) a[0] = sh.act[p];
+        });
+        room.items.push(c);
+        RI.ITEM_PART[c.id] = RI.ITEM_PART[it.id];
+        if(RI.PRODUCT_IMG[it.id]) RI.PRODUCT_IMG[c.id] = RI.PRODUCT_IMG[it.id];
+        if(RI.PRODUCT_ENDS[it.id]){ var pe = JSON.parse(JSON.stringify(RI.PRODUCT_ENDS[it.id])); Object.keys(pe).forEach(function(p){ if(pe[p][5]) pe[p][5] = Math.max(1, Math.round(pe[p][5] * f)); }); RI.PRODUCT_ENDS[c.id] = pe; }
+      });
+    });
+    S.rooms = S.rooms.filter(function(r){ return r !== whole; });
+  })();
+  /* ---------- The trades in the trade view (user, Nov 2026) ----------
+     APP_FLOW 6.6 "the same work grouped by trade"; GLOSSARY: a trade is one kind of work (painting, flooring, plumbing,
+     electrical…), never a place. Places are the rooms (the room view), so Kitchen, Basement and Exterior are not trades.
+     Each item has one trade, so the trades add up to the same total as the rooms (PROJECT 3b: one cost owner). Plain
+     words for homeowners: vanities sit with cabinets, the tub with its surround under plumbing. An exact id wins over a
+     prefix; a prefix covers the room shares (w1 covers w1-kitchen, w1-basement…). The contractor trade on each item
+     (it.trade) stays for the builder task lists. */
+  RI.TRADES = [
+    ['Painting and drywall', ['w1','x2','s2']],
+    ['Flooring', ['k5','l1','b1','s1']],
+    ['Cabinets and countertops', ['k1','k2','h2','f1']],
+    ['Doors and trim', ['w2','b2','l2','x1']],
+    ['Plumbing', ['k3','h3','h1']],
+    ['Tile', ['k4']],
+    ['Lighting and electrical', ['k6','w3']]
+  ];
+  RI.tradeOf = function(it){
+    var T = RI.TRADES, i;
+    for(i = 0; i < T.length; i++) if(T[i][1].indexOf(it.id) >= 0) return T[i][0];
+    for(i = 0; i < T.length; i++) if(T[i][1].some(function(x){ return it.id.indexOf(x + '-') === 0; })) return T[i][0];
+    return it.trade || 'Other';
+  };
   RI.unitPrice = function(n){ return '$' + (n < 100 && n % 1 ? n.toFixed(2) : Math.round(n).toLocaleString('en-US')); };
   /* Room types to offer at intake (Sam's Volume 2, guide p24) */
   RI.ROOM_TYPES = {

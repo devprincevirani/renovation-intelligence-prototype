@@ -98,8 +98,9 @@
     var held = A.heldCount(est), max = Math.ceil(T.P.high / 25000) * 25000, sel = 'S';
     var unk = []; est.rooms.forEach(function(r){ r.items.forEach(function(it){ if(RI.isHeld(it)) unk.push([r, it]); }); });
     var paid = h.paid || h.trialOpen, credit = !paid && A.creditsLeft() > 0;
-    /* The open room: the largest share of the Standard total */
-    var open = est.rooms.filter(function(r){ return r.key !== 'whole'; }).sort(function(a, b){ return RI.totals('S', {}, b.key).high - RI.totals('S', {}, a.key).high; })[0];
+    /* The open room: the kitchen when the house has one (user, Nov 2026: it has the most to show), else the largest
+       share of the Standard total */
+    var open = est.rooms.filter(function(r){ return r.key === 'kitchen'; })[0] || est.rooms.slice().sort(function(a, b){ return RI.totals('S', {}, b.key).high - RI.totals('S', {}, a.key).high; })[0];
     var photoN = A.photoCount(h), zip = (h.addr && h.addr.zip) || (h.facts && h.facts.zip) || '';
     function roomPhoto(r){ var ps = []; Object.keys(h.photos || {}).forEach(function(k){ if(k === r.key || k.indexOf(r.key + '-') === 0) h.photos[k].forEach(function(p){ if(p.state === 'done') ps.push(p.src); }); }); return ps[0] || null; }
     /* ---------- What a goal does to this house, room by room (no room prices: those open with the presentation) ---------- */
@@ -163,7 +164,7 @@
           var l = level(r, sel), ph = roomPhoto(r), pr = prodImgs(r, sel), part = r.items.some(RI.isHeld) && l.i >= 0;
           var tz = !paid && r !== open ? teaser(r, sel) : null;
           if(tz && tz.show.length) return '<article class="hm-room tz-lock ' + l.cls + '" data-room="' + r.key + '">' +
-            '<div class="hm-ph">' + (ph ? '<img src="' + ph + '" alt="' + RI.esc(r.name) + '" loading="lazy">' : '<span class="hm-noph">' + RI.icon(r.key === 'whole' ? 'house' : 'camera') + '</span>') + '<span class="hm-tag">' + l.name + '</span></div>' +
+            '<div class="hm-ph">' + (ph ? '<img src="' + ph + '" alt="' + RI.esc(r.name) + '" loading="lazy">' : '<span class="hm-noph">' + RI.icon('camera') + '</span>') + '<span class="hm-tag">' + l.name + '</span></div>' +
             '<div class="hm-b"><div class="hm-top"><b>' + RI.esc(r.name) + '</b>' + meter(l) + '</div>' +
               '<ul class="tz-list">' + tz.show.map(function(it){ return tzLine(it, sel); }).join('') + '</ul>' +
               (tz.hidden ? '<span class="tz-bars" aria-hidden="true">' + '<i></i><i></i><i></i>'.slice(0, 7 * Math.min(3, tz.hidden)) + '</span>' : '') +
@@ -175,7 +176,7 @@
             : l.cls === 'held' ? '<a class="tz-more" href="#/houses/' + h.id + '/intake/photos">' + RI.icon('camera','i-sm') + 'Add photos of this room</a>'
             : null;
           return '<article class="hm-room ' + l.cls + (act ? ' tz-lock' : '') + '" data-room="' + r.key + '">' +
-            '<div class="hm-ph">' + (ph ? '<img src="' + ph + '" alt="' + RI.esc(r.name) + '" loading="lazy">' : '<span class="hm-noph">' + RI.icon(r.key === 'whole' ? 'house' : 'camera') + '</span>') + '<span class="hm-tag">' + l.name + '</span></div>' +
+            '<div class="hm-ph">' + (ph ? '<img src="' + ph + '" alt="' + RI.esc(r.name) + '" loading="lazy">' : '<span class="hm-noph">' + RI.icon('camera') + '</span>') + '<span class="hm-tag">' + l.name + '</span></div>' +
             '<div class="hm-b"><div class="hm-top"><b>' + RI.esc(r.name) + '</b>' + meter(l) + '</div>' +
               '<p>' + RI.esc(mainChange(r, sel)) + '.</p>' +
               (pr.length ? '<span class="hm-prods">' + pr.map(function(x){ return '<img src="' + x[0] + '" alt="" title="' + RI.esc(x[1]) + '" loading="lazy">'; }).join('') + '</span>' : '') +
@@ -244,7 +245,7 @@
     }
     function lockedRoom(r){
       var pkd = RI.PACKAGES.filter(function(p){ return p.key === sel; })[0], src = roomPhoto(r) || RI.RoomCard.photoFor(r.key);
-      var photo = src ? '<div class="rc-photo"><img src="' + src + '" alt="' + RI.esc(r.name) + '" loading="lazy"></div>' : '<div class="rc-photo rc-nophoto" aria-hidden="true">' + RI.icon(r.key === 'whole' ? 'house' : 'camera', 'i-lg') + '<span>' + RI.esc(r.name) + '</span></div>';
+      var photo = src ? '<div class="rc-photo"><img src="' + src + '" alt="' + RI.esc(r.name) + '" loading="lazy"></div>' : '<div class="rc-photo rc-nophoto" aria-hidden="true">' + RI.icon('camera', 'i-lg') + '<span>' + RI.esc(r.name) + '</span></div>';
       var head = '<header class="rc-head"><div><h3>' + RI.esc(r.name) + '</h3><p class="xsmall muted">' + RI.esc(pkd.name) + ': ' + RI.esc(pkd.goal) + '</p></div>';
       /* No photos yet: nothing to tease, only the way to add them */
       if(r.items.every(RI.isHeld)) return '<article class="rc px-lockrc" data-room="' + r.key + '">' + photo + '<div class="rc-body">' + head + '</header>' +

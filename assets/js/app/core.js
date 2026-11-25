@@ -68,8 +68,8 @@
     var hasRoom = {basement:f.basement === 'finished' || f.basement === 'partly', halfbath:+f.halfBaths > 0};
     base.rooms = base.rooms.filter(function(r){ return hasRoom[r.key] !== false; });
     base.rooms.forEach(function(r){
-      var photos = r.key === 'whole' ? 99 : A.groupCount(h, r.key);
-      r.sub = r.key === 'whole' ? 'Paint, doors and lighting' : photos + ' photo' + (photos === 1 ? '' : 's');
+      var photos = A.groupCount(h, r.key);
+      r.sub = photos + ' photo' + (photos === 1 ? '' : 's');
       r.items.forEach(function(it){
         ['E','S','P'].forEach(function(p){ var a = it.pk[p]; if(a && a[1] != null){ a[1] = round(a[1]); a[2] = round(a[2]); } });
         it.state = null;
