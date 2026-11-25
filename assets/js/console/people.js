@@ -1,5 +1,6 @@
 /* Console: users and staff (APP_FLOW 7, SECURITY 3.2, BACKLOG M1-34, M4-22) and the audit log (SECURITY 15, M1-36, M4-28).
-   Only Sam invites staff and sets permissions. Contacts and feedback live in release.js. */
+   Each person has one role (Roles tab). Sam and sub admins invite staff and give roles; only Sam changes roles and
+   publishes. Contacts and feedback live in release.js. */
 (function(){
   var RI = window.RI, A = RI.App, C = RI.Con, doc = document;
   var DAY = 86400000, now = Date.now();
@@ -46,8 +47,67 @@
   function staffList(){
     var list = C.get('staff', []), used = RI.store.get('invite.demo-staff.used');
     list.forEach(function(x){ if(x.token === 'demo-staff' && used && x.status === 'invited'){ x.status = 'active'; x.joinedAt = used; } });
+    if(list.some(function(x){ return !x.role || !C.role(x.role); })) giveRoles(list);
     return list;
   }
+  /* Everyone gets a role (Nov 2026). The sample people get the starter roles; anyone else keeps exactly the access they
+     had: the closest role, with the difference kept as their own additions and removals */
+  function giveRoles(list){
+    var roles = C.roles(), DEMO = {'dana@demo.ri':'sub', 'marcus@demo.ri':'price', 'staff@demo.ri':'rev'};
+    list.forEach(function(x){
+      if(x.role && C.role(x.role)) return;
+      if(DEMO[x.email] && C.role(DEMO[x.email])){ x.role = DEMO[x.email]; x.add = []; x.remove = []; return; }
+      var had = full(C.migratePerms(x.perms)), best = null, cost = 99;
+      roles.forEach(function(r){ if(r.fixed || C.isAdminRole(r)) return; var c = had.filter(function(p){ return r.perms.indexOf(p) < 0; }).length + r.perms.filter(function(p){ return had.indexOf(p) < 0; }).length; if(c < cost){ cost = c; best = r; } });
+      best = best || C.role('ro'); x.role = best.id;
+      x.add = had.filter(function(p){ return best.perms.indexOf(p) < 0; }); x.remove = best.perms.filter(function(p){ return had.indexOf(p) < 0; });
+    });
+    C.set('staff', list);
+  }
+  /* A small tooltip for [data-hint] (DESIGN.md: white raised card, Warm Stone hairline, radius 8, the floating shadow,
+     Charcoal text). Optional bold title in data-hint-title; lines that start with "+ " or "− " get the success and danger
+     signs. data-hint-side="right" puts it beside the element when there is room, otherwise above (or below near the top).
+     It goes inside the open dialog when there is one, since a modal dialog covers everything outside it. Screen readers
+     get the same text from the element itself, so the tooltip is hidden from them. */
+  (function(){
+    var box = null, on = null, GAP = 10, EDGE = 8;
+    function hide(){ if(box) box.remove(); box = null; on = null; }
+    function build(el){
+      var b = document.createElement('div'), t = el.getAttribute('data-hint-title');
+      b.className = 'c-hint'; b.setAttribute('aria-hidden', 'true');
+      if(t){ var h = document.createElement('b'); h.textContent = t; b.appendChild(h); }
+      el.getAttribute('data-hint').split('\n').forEach(function(line){
+        var p = document.createElement('p'), sign = line.slice(0, 2);
+        if(sign === '+ ' || sign === '− '){ var i = document.createElement('i'); i.className = sign === '+ ' ? 'h-add' : 'h-rem'; i.textContent = sign.charAt(0); p.appendChild(i); line = line.slice(2); }
+        p.appendChild(document.createTextNode(line)); b.appendChild(p);
+      });
+      return b;
+    }
+    function show(el){
+      if(on === el) return; hide(); on = el; box = build(el);
+      (el.closest('dialog') || document.body).appendChild(box);
+      var r = el.getBoundingClientRect(), b = box.getBoundingClientRect(), W = window.innerWidth, H = window.innerHeight, top, left, side;
+      if(el.getAttribute('data-hint-side') === 'right' && r.right + GAP + b.width <= W - EDGE){
+        side = 'right'; left = r.right + GAP; top = Math.max(EDGE, Math.min(r.top + r.height / 2 - b.height / 2, H - b.height - EDGE));
+        box.style.setProperty('--hy', Math.round(Math.max(14, Math.min(r.top + r.height / 2 - top, b.height - 14))) + 'px');
+      } else {
+        var wide = r.width > b.width, aim = wide ? r.left + 28 : r.left + r.width / 2;
+        side = r.top - b.height - GAP >= EDGE ? 'top' : 'bottom';
+        top = side === 'top' ? r.top - b.height - GAP : r.bottom + GAP;
+        left = Math.max(EDGE, Math.min(wide ? r.left + 12 : aim - b.width / 2, W - b.width - EDGE));
+        box.style.setProperty('--hx', Math.round(Math.max(14, Math.min(aim - left, b.width - 14))) + 'px');
+      }
+      box.classList.add('c-hint-' + side); box.style.top = Math.round(top) + 'px'; box.style.left = Math.round(left) + 'px';
+    }
+    function find(e){ return e.target && e.target.closest ? e.target.closest('[data-hint]') : null; }
+    document.addEventListener('mouseover', function(e){ var el = find(e); if(el) show(el); else if(on && on !== document.activeElement && !on.contains(document.activeElement)) hide(); });
+    document.addEventListener('focusin', function(e){ var el = find(e); if(el) show(el); else hide(); });
+    document.addEventListener('focusout', function(e){ if(on && !on.contains(e.relatedTarget)) hide(); });
+    document.addEventListener('scroll', hide, true);
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') hide(); });
+    document.addEventListener('close', hide, true);
+  })();
+  function adjusted(x){ return (x.add || []).length + (x.remove || []).length; }
 
   /* ---------- Users and staff ----------
      Users: one State column (not verified, active, trial with days left, disabled) and Enable after Disable.
@@ -98,9 +158,9 @@
   }
 
   C.route('/users', function(view){
-    var q = C.query(), tab = q.tab === 'trial' ? 'waitlist' : (q.tab || 'users'), m = C.me(), sam = C.can('staff');
+    var q = C.query(), tab = q.tab === 'trial' ? 'waitlist' : (q.tab || 'users'), m = C.me(), sam = C.can('staff'), isSam = !!(m && m.sam);
     /* The trial is for the contacts Sam invites before launch (PROJECT 3d, GLOSSARY) */
-    var pre = RI.mode() === 'prelaunch', canInvite = sam && pre;
+    var pre = RI.mode() === 'prelaunch', canInvite = isSam && pre; /* trial invites and disabling users stay Sam's (SECURITY 3.2) */
     var st = {uf:'all', uq:'', wf:'all', wq:'', pick:[]};
     var flags = C.get('userFlags', {}), inv = C.get('trialInvites', {});
 
@@ -127,7 +187,7 @@
 
     view.innerHTML = C.page({kicker:'Admin', title:'Users and staff', sub:'Users, account types, staff invites and permissions.',
       actions:sam ? '<div class="us-head" id="us-head" aria-live="polite"></div><button type="button" class="btn btn-primary" id="inv-new">' + RI.icon('user','i-sm') + 'Invite staff</button>' : '',
-      body:'<div class="us-top">' + '<div class="us-tabs" id="us-tab" role="tablist" aria-label="Sections">' + [['users', 'Users', U.length, 'user'], ['staff', 'Staff', staff.length + 1, 'key'], ['waitlist', 'Waitlist<span class="ut-long"> and trial</span>', W.length, 'mail']].map(function(t){
+      body:'<div class="us-top">' + '<div class="us-tabs" id="us-tab" role="tablist" aria-label="Sections">' + [['users', 'Users', U.length, 'user'], ['staff', 'Staff', staff.length + 1, 'key'], ['roles', 'Roles', C.roles().length, 'shield'], ['waitlist', 'Waitlist<span class="ut-long"> and trial</span>', W.length, 'mail']].map(function(t){
         return '<button type="button" role="tab" data-v="' + t[0] + '" aria-selected="' + (t[0] === tab) + '"><span class="ut-ic">' + RI.icon(t[3], 'i-sm') + '</span><span class="ut-t">' + t[1] + '</span><span class="ut-n">' + t[2] + '</span></button>';
       }).join('') + '</div>' + '<div id="us-tools" class="us-bar"></div></div><div id="us-body"></div>'});
 
@@ -145,7 +205,7 @@
         '<div class="c-mt">' + C.table({cls:'us-cards us-users', empty:'No account matches. Try another name, or show all.', cols:[{label:'Person'},{label:'Account type'},{label:'State'},{label:'Houses', num:true},{label:'Updates'},{label:'Joined', num:true},{label:''}],
           rows:rows.map(function(u){
             var act = '';
-            if(sam && !u.demo) act = u.disabled ? '<button type="button" class="us-act" data-en="' + RI.esc(u.email) + '" aria-label="Enable ' + RI.esc(u.email) + '">' + RI.icon('key','i-sm') + 'Enable</button>' : '<button type="button" class="us-act us-act-danger" data-dis="' + RI.esc(u.email) + '" aria-label="Disable ' + RI.esc(u.email) + '">' + RI.icon('lock','i-sm') + 'Disable</button>';
+            if(isSam && !u.demo) act = u.disabled ? '<button type="button" class="us-act" data-en="' + RI.esc(u.email) + '" aria-label="Enable ' + RI.esc(u.email) + '">' + RI.icon('key','i-sm') + 'Enable</button>' : '<button type="button" class="us-act us-act-danger" data-dis="' + RI.esc(u.email) + '" aria-label="Disable ' + RI.esc(u.email) + '">' + RI.icon('lock','i-sm') + 'Disable</button>';
             return {attr:u.disabled ? 'class="us-off"' : '', cells:['<span class="c-person">' + C.av(u.name) + '<span><span class="us-name"><b>' + RI.esc(u.name) + '</b>' + (u.demo ? DEMO_TAG : '') + '</span><small>' + RI.esc(u.email) + '</small><span class="us-pst">' + stateLbl(u) + '</span>' + meta([RI.esc(u.type), u.houses + (u.houses === 1 ? ' house' : ' houses'), 'Joined ' + C.date(u.at)]) + '</span></span>',
               C.chip(RI.esc(u.type)), stateLbl(u), String(u.houses), u.news ? 'Yes' : '<span class="muted">No</span>', C.date(u.at), act]};
           })}) + '</div>' +
@@ -178,7 +238,7 @@
             var ck = canInvite ? [w.status === 'waiting' ? '<input type="checkbox" class="us-ck" data-pick="' + RI.esc(w.email) + '" aria-label="Select ' + RI.esc(w.email) + '"' + (st.pick.indexOf(w.email) > -1 ? ' checked' : '') + '>' : ''] : [];
             return {attr:st.pick.indexOf(w.email) > -1 ? 'class="us-picked"' : '', cells:ck.concat(['<b>' + RI.esc(w.email) + '</b><span class="us-pst">' + wlStatus(w) + '</span>' + meta([w.type ? cap(w.type) : '', w.source === 'home' ? 'Home page' : 'Waitlist page', 'Joined ' + C.date(w.at)]), w.type ? C.chip(cap(w.type)) : '<span class="muted">Not given</span>', w.source === 'home' ? 'Home page' : 'Waitlist page', C.date(w.at), wlStatus(w), act])};
           })}) + '</div>' +
-        '<div class="c-mt">' + C.note(!pre ? 'Trial invites are for the contacts Sam invites before launch. Export the list from Contacts and feedback.' : sam ? 'A trial invite emails a link to sign up for a 15-day trial. Export the list from Contacts and feedback.' : 'Only Sam invites contacts to the trial. Export the list from Contacts and feedback.') + '</div>';
+        '<div class="c-mt">' + C.note(!pre ? 'Trial invites are for the contacts Sam invites before launch. Export the list from Contacts and feedback.' : isSam ? 'A trial invite emails a link to sign up for a 15-day trial. Export the list from Contacts and feedback.' : 'Only Sam invites contacts to the trial. Export the list from Contacts and feedback.') + '</div>';
       var ah = el.querySelector('#us-all'); if(ah) ah.indeterminate = st.pick.length > 0 && !all;
       /* Desktop: the bulk action sits right above the row Invite buttons, same width and place */
       var th = el.querySelector('.us-wl thead th:last-child');
@@ -215,15 +275,39 @@
     function bodyStaff(el){
       var rows = [{cells:['<span class="c-person">' + C.av('Sam', 'sam') + '<span><b>Sam</b><small>admin@demo.ri</small><span class="us-pst">' + C.lbl('published').replace('Published', 'Active') + '</span>' + meta(['Super admin', 'Everything', 'Created on the server']) + '</span></span>', '<span class="c-chip sam">Super admin</span>', C.lbl('published').replace('Published', 'Active'), '<span class="ax-areas"><span class="c-chip sam">Everything</span></span>', '<span class="muted">Created on the server</span>', '']}];
       staff.forEach(function(x){
-        rows.push({attr:sam ? 'data-staff="' + RI.esc(x.email) + '"' : '', cells:['<span class="c-person">' + C.av(x.name || x.email) + '<span><b>' + RI.esc(x.name || 'Not accepted yet') + '</b><small>' + RI.esc(x.email) + '</small><span class="us-pst">' + staffLbl(x) + '</span>' + meta(['Staff', x.status === 'invited' ? 'Invited ' + C.ago(x.invitedAt) : 'Joined ' + C.ago(x.joinedAt || x.invitedAt)]) + '</span></span>', '<span class="c-chip">Staff</span>',
+        var rl = C.role(x.role), rn = rl ? rl.name : 'No role yet', can = canManage(x);
+        rows.push({attr:can ? 'data-staff="' + RI.esc(x.email) + '"' : '', cells:['<span class="c-person">' + C.av(x.name || x.email) + '<span><b>' + RI.esc(x.name || 'Not accepted yet') + '</b><small>' + RI.esc(x.email) + '</small><span class="us-pst">' + staffLbl(x) + '</span>' + meta([RI.esc(rn) + cusBadge(x), x.status === 'invited' ? 'Invited ' + C.ago(x.invitedAt) : 'Joined ' + C.ago(x.joinedAt || x.invitedAt)]) + '</span></span>', '<span class="rl-cell"><span class="c-chip' + (C.isAdminRole(rl) ? ' sam' : '') + ' rl-chip">' + RI.esc(rn) + '</span>' + cusBadge(x) + '</span>',
           staffLbl(x),
-          areaChips(x.perms), x.status === 'invited' ? 'Invited ' + C.ago(x.invitedAt) + ' · link works 7 days' : 'Joined ' + C.ago(x.joinedAt || x.invitedAt),
-          sam ? '<button type="button" class="us-act" data-staff="' + RI.esc(x.email) + '" aria-label="Manage access for ' + RI.esc(x.name || x.email) + '">' + RI.icon('key','i-sm') + 'Manage<span class="us-long"> access</span></button>' : '']});
+          areaChips(C.effPerms(x)), x.status === 'invited' ? 'Invited ' + C.ago(x.invitedAt) + ' · link works 7 days' : 'Joined ' + C.ago(x.joinedAt || x.invitedAt),
+          can ? '<button type="button" class="us-act" data-staff="' + RI.esc(x.email) + '" aria-label="Change the role of ' + RI.esc(x.name || x.email) + '">' + RI.icon('key','i-sm') + 'Change<span class="us-long"> role</span></button>' : '']});
       });
       el.innerHTML = C.table({cls:'us-cards us-staff', cols:[{label:'Person'},{label:'Role'},{label:'State'},{label:'Can work in'},{label:'Since'},{label:'', cls:'us-actc'}], rows:rows}) +
-        '<div class="c-mt">' + C.note('Staff edit drafts. Only Sam publishes, and only Sam manages staff. A new staff member starts with no permissions.') + '</div>';
+        '<div class="c-mt">' + C.note('Each person has one role; what a role can do is set in Roles. Sam and sub admins invite staff and give roles. Only Sam changes roles and publishes.') + '</div>';
       RI.fillIcons(el);
     }
+
+    /* Who may change a person's role: Sam anyone; a sub admin only people without an admin role, and never themselves */
+    function canManage(x){ if(isSam) return true; return sam && !C.isAdminRole(C.role(x.role)) && !C.isAdminPerson(x) && x.email !== (m && m.email); }
+    /* ---------- Roles (Sam's meeting, Nov 2026) ----------
+       One card per role: what it is for, what it can do, who has it. Only Sam creates and changes roles. */
+    function bodyRoles(el){
+      var roles = C.roles(), people = staffList();
+      var who = function(r){ return r.id === 'super' ? [{name:'Sam'}] : people.filter(function(x){ return x.role === r.id; }); };
+      el.innerHTML = '<div class="rl-top"><p>A role is a name and what it can do. Each person has one role; change a role and everyone with it changes at once.' + (isSam ? '' : ' Only Sam creates and changes roles.') + '</p>' +
+          (isSam ? '<button type="button" class="btn btn-primary btn-sm" id="rl-new">' + RI.icon('plus', 'i-sm') + 'Create a role</button>' : '') + '</div>' +
+        '<div class="rl-grid">' + roles.map(function(r){
+          var adm = C.ADMIN_CAPS.filter(function(a){ return r.perms.indexOf(a[0]) > -1; }), caps = r.perms.filter(function(p){ return C.SUPER.indexOf(p) < 0; }), ppl = who(r);
+          return '<article class="rl-c' + (r.fixed ? ' fixed' : '') + '"><div class="rl-h"><div><h3>' + RI.esc(r.name) + '</h3><p>' + RI.esc(r.about || '') + '</p></div>' +
+              (r.fixed ? '<span class="rl-tag lock">' + RI.icon('lock', 'i-sm') + 'Fixed</span>' : r.built ? '<span class="rl-tag bi">Built in</span>' : '') + '</div>' +
+            '<div class="rl-caps">' + adm.map(function(a){ return '<span class="adm">' + a[1] + '</span>'; }).join('') + (caps.length === C.PERMS.length ? '<span>Everything staff can do</span>' : caps.map(function(p){ return '<span>' + SHORT[p] + '</span>'; }).join('')) + '</div>' +
+            '<span class="rl-n">' + (caps.length + adm.length) + ' of ' + (C.PERMS.length + C.ADMIN_CAPS.length) + ' capabilities</span>' +
+            '<div class="rl-ft"><span class="rl-who">' + (ppl.length ? ppl.slice(0, 4).map(function(x){ return C.av(x.name || x.email); }).join('') + ppl.length + (ppl.length === 1 ? ' person' : ' people') : 'Nobody yet') + '</span>' +
+              (isSam && !r.fixed ? '<button type="button" class="us-act" data-role-edit="' + r.id + '" aria-label="Edit the ' + RI.esc(r.name) + ' role">' + RI.icon('pencil', 'i-sm') + 'Edit role</button>' : '') + '</div></article>';
+        }).join('') + '</div>' +
+        '<div class="rl-safe"><b>' + RI.icon('shield', 'i-sm') + 'Safety rules</b><ul><li>There is always a super admin. Sam cannot be removed or given a lower role.</li><li>A sub admin invites staff and gives them a role, but cannot give an admin role, change another admin, or change their own role.</li><li>Publishing stays with Sam unless he gives it to a role on purpose.</li><li>Every role change is written to the audit log.</li></ul></div>';
+      RI.fillIcons(el);
+    }
+    function rolesChanged(){ staff = staffList(); var n = view.querySelector('#us-tab [data-v="roles"] .ut-n'); if(n) n.textContent = C.roles().length; body(); }
 
     /* Beside Invite staff: the waitlist selection. While contacts are ticked, inviting them is the main action,
        so Invite staff steps down to a secondary button */
@@ -245,12 +329,16 @@
       if(tab !== 'waitlist') st.pick = [];
       if(tab === 'users') bodyUsers(el);
       if(tab === 'staff') bodyStaff(el);
+      if(tab === 'roles') bodyRoles(el);
       if(tab === 'waitlist') bodyWaitlist(el);
       headActs();
     }
     view.querySelector('#us-tab').addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if(!b) return; tab = b.getAttribute('data-v'); view.querySelectorAll('#us-tab [data-v]').forEach(function(x){ x.setAttribute('aria-selected', x === b); }); history.replaceState(null, '', '#/users?tab=' + tab); body(); });
     view.addEventListener('click', function(e){
+      if(e.target.closest('.rl-cus')) return;
       var s = e.target.closest('[data-staff]'); if(s){ permsDialog(s.getAttribute('data-staff'), function(){ staff = staffList(); body(); }); return; }
+      var re = e.target.closest('[data-role-edit]'); if(re){ roleDialog(C.role(re.getAttribute('data-role-edit')), rolesChanged); return; }
+      if(e.target.closest('#rl-new')){ roleDialog(null, rolesChanged); return; }
       var tr = e.target.closest('[data-trial]'); if(tr){ trialDialog([tr.getAttribute('data-trial')], tr.hasAttribute('data-again')); return; }
       var d = e.target.closest('[data-dis]'), en = e.target.closest('[data-en]');
       if(d || en){
@@ -259,7 +347,7 @@
         if(off) C.confirm('Disable this account?', RI.esc(em) + ' can no longer log in, and every session ends at once. Their houses stay.', 'Disable account', apply, true); else apply();
       }
     });
-    view.addEventListener('keydown', function(e){ var s = e.target.closest('[data-staff]'); if(s && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); permsDialog(s.getAttribute('data-staff'), function(){ staff = staffList(); body(); }); } });
+    view.addEventListener('keydown', function(e){ var s = !e.target.closest('.rl-cus') && e.target.closest('[data-staff]'); if(s && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); permsDialog(s.getAttribute('data-staff'), function(){ staff = staffList(); body(); }); } });
     var nb = view.querySelector('#inv-new'); if(nb) nb.addEventListener('click', function(){ inviteDialog(); });
     body();
   }, {nav:'users', perm:'users.view'});
@@ -285,64 +373,121 @@
     var held = full(C.migratePerms(perms)), on = AREAS.filter(function(a){ return a[2].some(function(c){ return held.indexOf(c) > -1; }); });
     return on.length ? '<span class="ax-areas">' + on.map(function(a){ return '<span class="c-chip">' + a[0].split(' ')[0] + '</span>'; }).join('') + '</span><small class="ax-cnt">' + held.length + ' of ' + C.PERMS.length + '</small>' : '<span class="muted">No access yet</span>';
   }
+  /* What a role can do, as one short line */
+  function capsLine(r){
+    var adm = C.ADMIN_CAPS.filter(function(a){ return r.perms.indexOf(a[0]) > -1; }).map(function(a){ return a[1]; }), caps = r.perms.filter(function(p){ return C.SUPER.indexOf(p) < 0; });
+    return adm.concat(caps.length === C.PERMS.length ? ['everything staff can do'] : caps.map(function(p){ return SHORT[p]; })).join(', ').replace(/^./, function(c){ return c.toUpperCase(); });
+  }
+  /* Invite someone, or change a person's role: pick one role. Sam may give any role but Super admin; a sub admin only
+     roles without admin powers. A new person starts as Read only, the least access. */
+  var capName = function(c){ var ad = C.ADMIN_CAPS.filter(function(x){ return x[0] === c; })[0]; return ad ? ad[1] : SHORT[c]; };
+  /* Customized: a small badge; hover or focus lists what was added and taken away for this person only */
+  function cusBadge(x){
+    if(!adjusted(x)) return '';
+    var who = x.name ? x.name.split(' ')[0] : 'this person', title = 'Customized for ' + who, lines = (x.add || []).map(function(c){ return '+ ' + capName(c); }).concat((x.remove || []).map(function(c){ return '− ' + capName(c); }));
+    return '<span class="rl-cus" tabindex="0" role="img" data-hint-title="' + RI.esc(title) + '" data-hint="' + RI.esc(lines.join('\n')) + '" aria-label="' + RI.esc(title + ': ' + adjText(x)) + '">' + RI.icon('sliders', 'i-sm') + '</span>';
+  }
+  function adjText(x){ return [(x.add || []).length ? '+' + (x.add || []).map(capName).join(', +') : '', (x.remove || []).length ? '−' + (x.remove || []).map(capName).join(', −') : ''].filter(Boolean).join('; '); }
+  /* Invite someone, or change a person's role: pick one role, then, if needed, adjust it for this person only (add or
+     take away single capabilities) without changing the role. Their additions and removals are kept apart, so a later
+     change to the role still reaches them. Sam may give any role but Super admin; a sub admin only roles without admin
+     powers, and only capabilities they have themselves. A new person starts as Read only, the least access. */
   function accessPanel(email, after){
-    var list = staffList(), x = email ? list.filter(function(s){ return s.email === email; })[0] : null, invite = !email;
+    var me = C.me() || {}, list = staffList(), x = email ? list.filter(function(s){ return s.email === email; })[0] : null, invite = !email;
     if(email && !x) return;
-    var start = x ? full(C.migratePerms(x.perms)) : [], sel = start.slice();
-    var first = x ? (x.name ? x.name.split(' ')[0] : 'They') : '';
+    var first = x && x.name ? x.name.split(' ')[0] : 'this person', First = first.charAt(0).toUpperCase() + first.slice(1);
+    var pickable = C.roles().filter(function(r){ return !r.fixed && (me.sam || !C.isAdminRole(r)); });
+    var cur = x ? x.role : 'ro', add = x ? (x.add || []).slice() : [], rem = x ? (x.remove || []).slice() : [];
+    var start = x ? {role:x.role, add:add.slice().sort().join(), rem:rem.slice().sort().join()} : null;
+    var mine = me.sam ? null : C.me().perms;
     var head = x ? '<div class="ax-who">' + C.av(x.name || x.email) + '<span><b>' + RI.esc(x.name || 'Not accepted yet') + '</b><small>' + RI.esc(x.email) + '</small></span>' + staffLbl(x) + '</div>' :
       '<div class="field"><label for="inv-em">Email</label><input class="input" id="inv-em" type="email" placeholder="name@example.com" autocomplete="off"><span class="err"></span><span class="help">The invite link works once, for 7 days. The email is fixed by the invite.</span></div>';
-    var groups = AREAS.map(function(a, gi){
-      return '<fieldset class="ax-g"><legend><span class="ax-gi">' + RI.icon(a[1], 'i-sm') + '</span><span class="ax-gt">' + a[0] + '</span><small class="ax-gn" data-gn="' + gi + '"></small></legend>' + a[2].map(function(code){
-        return '<label class="ax-r" data-code="' + code + '"><input type="checkbox" value="' + code + '"><span class="ax-t"><b>' + SHORT[code] + '</b>' + (DESC[code].toLowerCase() !== SHORT[code].toLowerCase() ? '<small>' + DESC[code] + '</small>' : '') + '<span class="ax-meta"><code>' + code + '</code><em class="ax-inc"></em></span></span></label>';
-      }).join('') + '</fieldset>';
-    }).join('');
-    var only = '<details class="ax-only"><summary>' + RI.icon('lock', 'i-sm') + 'Only Sam can do these</summary><ul>' + SAM_ONLY.map(function(t){ return '<li>' + t + '</li>'; }).join('') + '</ul></details>';
+    var cards = '<div class="ax-rbar"><span class="rp-l" aria-hidden="true">' + (invite ? 'Their role' : 'Role') + '</span><button type="button" class="btn btn-secondary btn-sm ax-cust" id="ax-cust" aria-expanded="false" aria-controls="ax-pane">' + RI.icon('sliders', 'i-sm') + '<span id="ax-cust-t">Customize</span><em class="ax-cn" id="ax-cn"></em></button></div>' +
+      '<fieldset class="rp"><legend class="sr">' + (invite ? 'Their role' : 'Role') + '</legend>' + pickable.map(function(r){
+      return '<label class="rp-c"' + (r.about ? ' data-hint-side="right" data-hint-title="' + RI.esc(r.name) + '" data-hint="' + RI.esc(r.about) + '"' : '') + '><input type="radio" name="rp" value="' + r.id + '"' + (r.id === cur ? ' checked' : '') + '><span class="rp-t"><b>' + RI.esc(r.name) + (C.isAdminRole(r) ? ' <span class="rp-adm">Admin</span>' : '') + '</b>' + (r.about ? '<span class="sr">' + RI.esc(r.about) + '</span>' : '') + '<em>' + capsLine(r) + '</em></span></label>';
+    }).join('') + '</fieldset>';
+    var codes = AREAS.concat(me.sam ? [['Admin', 'key', ['staff', 'publish']]] : []);
+    var named = !!(x && x.name), capDesc = function(c){ var ad = C.ADMIN_CAPS.filter(function(a){ return a[0] === c; })[0]; return ad ? ad[2] : DESC[c]; };
+    var pane = '<section class="ax-pane" id="ax-pane" aria-labelledby="ax-pane-t" hidden><div class="ax-ph"><button type="button" class="linkbtn ax-back" id="ax-back">' + RI.icon('chev', 'i-sm') + 'Back to roles</button>' +
+      '<div class="ax-pth"><b id="ax-pane-t">' + (named ? 'Permissions for ' + RI.esc(first) : 'Their permissions') + '</b><small>Starts from <b id="ax-from"></b>. Changes here are for ' + (named ? RI.esc(first) : 'this person') + ' only.</small></div>' +
+      '<div class="ax-pt"><em class="ax-cn" id="ax-adj-n"></em><button type="button" class="linkbtn small" id="ax-reset">Match the role again</button></div></div>' +
+      '<div class="ax-cols">' + codes.map(function(a){
+        return '<fieldset class="ax-g"><legend><span class="ax-gi">' + RI.icon(a[1], 'i-sm') + '</span><span class="ax-gt">' + a[0] + '</span><small class="ax-gn"></small></legend>' + a[2].map(function(code){
+          return '<label class="ax-r" data-code="' + code + '"><input type="checkbox" value="' + code + '"><span class="ax-t"><span class="ax-nm"><b>' + capName(code) + '</b><em class="ax-src"></em></span><small>' + RI.esc(capDesc(code) || '') + '</small></span></label>';
+        }).join('') + '</fieldset>';
+      }).join('') + '</div></section>';
     var danger = !x ? '' : x.status !== 'disabled' ?
       '<section class="ax-danger"><div><b>Disable this staff account</b><small>They can no longer log in, and every session ends at once. Their grades and drafts stay.</small></div><button type="button" class="btn btn-secondary btn-sm ax-dis" id="ax-dis">Disable</button></section>' :
-      '<section class="ax-danger"><div><b>This account is disabled</b><small>Turn it back on to let them log in with the permissions above.</small></div><button type="button" class="btn btn-secondary btn-sm" id="ax-en">Turn back on</button></section>';
-    var d = C.dialog(invite ? 'Invite a staff member' : 'Manage access',
-      '<div class="ax-scroll">' + head + '<p class="ax-lead">' + (invite ? 'A new staff member starts with no permissions. Tick what they need.' : 'Tick what ' + RI.esc(first === 'They' ? 'this person' : first) + ' needs.') + ' An edit permission includes reading the same area.</p>' + groups + only + danger + '</div>' +
-      '<div class="ax-foot"><p class="ax-sum" id="ax-sum" aria-live="polite"></p><div class="ax-btns"><button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="button" class="btn btn-primary" id="ax-save">' + (invite ? 'Send the invite' : 'Save changes') + '</button></div></div>');
+      '<section class="ax-danger"><div><b>This account is disabled</b><small>Turn it back on to let them log in with their role.</small></div><button type="button" class="btn btn-secondary btn-sm" id="ax-en">Turn back on</button></section>';
+    var d = C.dialog(invite ? 'Invite someone' : 'Change role',
+      '<div class="ax-split"><div class="ax-scroll">' + head + '<p class="ax-lead">' + (invite ? 'Pick their role. They see only the screens it allows.' : 'Pick the role for ' + RI.esc(first) + '.') + ' What each role can do is set in Roles' + (me.sam ? '' : ', by Sam') + '.</p>' + cards + danger + '</div>' + pane + '</div>' +
+      '<div class="ax-foot"><p class="ax-sum" id="ax-sum" aria-live="polite"></p><div class="ax-btns"><button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="button" class="btn btn-primary" id="ax-save">' + (invite ? 'Send the invite' : 'Save') + '</button></div></div>');
     d.classList.add('dlg-drawer');
-    var names = function(codes){ return codes.map(function(c){ return SHORT[c]; }).join(', '); };
-    function diff(){ var now = full(sel); return {now:now, add:now.filter(function(c){ return start.indexOf(c) < 0; }), rem:start.filter(function(c){ return now.indexOf(c) < 0; })}; }
+    function base(){ var r = C.role(cur); return r ? full(r.perms) : []; }
+    function eff(){ var b = base(); return full(b.concat(add.filter(function(p){ return b.indexOf(p) < 0; })).filter(function(p){ return rem.indexOf(p) < 0; })); }
     function sync(){
-      d.querySelectorAll('.ax-r').forEach(function(r){
-        var c = r.getAttribute('data-code'), inp = r.querySelector('input'), by = includedBy(sel, c);
-        inp.checked = sel.indexOf(c) > -1 || !!by; inp.disabled = !!by; r.classList.toggle('inc', !!by);
-        r.querySelector('.ax-inc').textContent = by ? 'Included with ' + SHORT[by] : '';
+      var b = base(), e = eff(), r = C.role(cur);
+      d.querySelectorAll('.rp-c').forEach(function(l){ l.classList.toggle('on', l.querySelector('input').checked); });
+      d.querySelectorAll('.ax-pane .ax-r').forEach(function(row){
+        var c = row.getAttribute('data-code'), inp = row.querySelector('input'), inRole = b.indexOf(c) > -1, on = e.indexOf(c) > -1, by = includedBy(e, c);
+        var locked = (!!by && on) || (mine && mine.indexOf(c) < 0 && !inRole);
+        inp.checked = on; inp.disabled = locked;
+        row.classList.toggle('add', on && !inRole); row.classList.toggle('rem', !on && inRole); row.classList.toggle('inc', !!by && on);
+        row.querySelector('.ax-src').textContent = by && on && !inRole ? 'Included with ' + capName(by) : on && !inRole ? 'Added for ' + first : !on && inRole ? 'Taken away for ' + first : inRole ? 'From the role' : (mine && mine.indexOf(c) < 0 ? 'You do not have this yourself' : '');
       });
-      var f = diff();
-      AREAS.forEach(function(a, gi){ d.querySelector('[data-gn="' + gi + '"]').textContent = a[2].filter(function(c){ return f.now.indexOf(c) > -1; }).length + ' of ' + a[2].length; });
-      var sum = d.querySelector('#ax-sum'), save = d.querySelector('#ax-save');
-      if(invite){ sum.innerHTML = f.now.length ? '<b>' + f.now.length + ' of ' + C.PERMS.length + '</b> permissions' : 'No permissions yet. They can log in but see no screens.'; return; }
-      if(!f.add.length && !f.rem.length){ sum.innerHTML = '<span class="muted">No changes yet</span>'; save.disabled = true; return; }
+      d.querySelectorAll('.ax-pane .ax-g').forEach(function(g){ g.querySelector('.ax-gn').textContent = g.querySelectorAll('.ax-r input:checked').length + ' of ' + g.querySelectorAll('.ax-r').length; });
+      var n = add.length + rem.length, nt = n ? n + ' change' + (n === 1 ? '' : 's') : '';
+      d.querySelector('#ax-adj-n').textContent = nt; d.querySelector('#ax-cn').textContent = nt;
+      d.querySelector('#ax-from').textContent = r ? r.name : '';
+      d.querySelector('#ax-reset').hidden = !n;
+      var sum = d.querySelector('#ax-sum'), save = d.querySelector('#ax-save'), extra = (add.length ? 'adds ' + add.map(capName).join(', ') : '') + (add.length && rem.length ? '; ' : '') + (rem.length ? 'takes away ' + rem.map(capName).join(', ') : '');
+      if(invite){ sum.innerHTML = '<span>' + (r ? 'Invites them as <b>' + RI.esc(r.name) + '</b>' + (extra ? ', and ' + RI.esc(extra) + ' for them only' : '') : 'Pick a role') + '</span>'; save.disabled = !r; return; }
+      var same = cur === start.role && add.slice().sort().join() === start.add && rem.slice().sort().join() === start.rem;
+      if(same){ sum.innerHTML = '<span class="muted">No changes yet</span>'; save.disabled = true; return; }
       save.disabled = false;
-      sum.innerHTML = (f.add.length ? '<span class="ax-add">Gives: ' + names(f.add) + '</span>' : '') + (f.rem.length ? '<span class="ax-rem">Takes away: ' + names(f.rem) + '</span>' : '') +
-        (x.status === 'active' ? '<span class="ax-warn">' + RI.icon('info', 'i-sm') + RI.esc(first) + ' is signed out of the console when you save.</span>' : '');
+      sum.innerHTML = (cur !== start.role ? '<span class="ax-add">Changes the role: ' + RI.esc((C.role(start.role) || {name:'No role'}).name) + ' to ' + RI.esc(r.name) + '</span>' : '') +
+        (extra ? '<span class="ax-add">For ' + RI.esc(first) + ' only: ' + RI.esc(extra) + '</span>' : (cur === start.role ? '<span class="ax-add">Matches the role again</span>' : '')) +
+        (x.status === 'active' ? '<span class="ax-warn">' + RI.icon('info', 'i-sm') + RI.esc(First) + ' is signed out of the console when you save.</span>' : '');
       RI.fillIcons(sum);
     }
     d.addEventListener('change', function(e){
-      var inp = e.target.closest('.ax-r input'); if(!inp) return; var c = inp.value;
-      sel = inp.checked ? sel.concat(c) : sel.filter(function(v){ return v !== c; }); sync();
+      var ri = e.target.closest('.rp-c input');
+      if(ri){ cur = ri.value; var b = base(); add = add.filter(function(p){ return b.indexOf(p) < 0; }); rem = rem.filter(function(p){ return b.indexOf(p) > -1; }); sync(); return; }
+      var ci = e.target.closest('.ax-pane .ax-r input'); if(!ci) return;
+      var c = ci.value, inRole = base().indexOf(c) > -1;
+      if(ci.checked){ rem = rem.filter(function(p){ return p !== c; }); if(!inRole && add.indexOf(c) < 0) add.push(c); }
+      else { add = add.filter(function(p){ return p !== c; }); if(inRole && rem.indexOf(c) < 0) rem.push(c); }
+      sync();
     });
+    var cust = d.querySelector('#ax-cust'), paneEl = d.querySelector('#ax-pane'), narrow = window.matchMedia('(max-width:767px)');
+    d.querySelector('#ax-reset').addEventListener('click', function(){ add = []; rem = []; sync(); (narrow.matches ? d.querySelector('#ax-back') : cust).focus(); });
+    function showPane(on){
+      d.classList.toggle('ax-open', on); paneEl.hidden = !on;
+      cust.setAttribute('aria-expanded', String(on)); d.querySelector('#ax-cust-t').textContent = on ? 'Hide' : 'Customize';
+      if(narrow.matches) (on ? d.querySelector('#ax-back') : cust).focus();
+    }
+    cust.addEventListener('click', function(){ showPane(!d.classList.contains('ax-open')); });
+    d.querySelector('#ax-back').addEventListener('click', function(){ showPane(false); });
     d.querySelector('#ax-save').addEventListener('click', function(){
-      var f = diff();
+      var r = C.role(cur); if(!r) return;
+      var rec = {role:r.id, add:add.slice(), remove:rem.slice()}, perms = C.effPerms(rec).filter(function(p){ return C.SUPER.indexOf(p) < 0; });
+      var extra = adjText(rec);
       if(invite){
         var em = d.querySelector('#inv-em'), v = em.value.trim().toLowerCase();
         if(!RI.form.emailOk(v)){ RI.form.setInvalid(em, 'Check the email address, for example name@example.com.'); em.focus(); return; }
-        if(staffList().some(function(s){ return s.email === v; })){ RI.form.setInvalid(em, 'This person already has a staff invite or account.'); em.focus(); return; }
-        var l = staffList(); l.push({email:v, name:'', status:'invited', perms:f.now, invitedAt:Date.now(), token:C.uid('t')}); C.set('staff', l);
-        C.log('Staff invited', v + ', with ' + f.now.length + ' permissions', '', 'users');
+        if(staffList().some(function(s){ return s.email === v; }) || v === 'admin@demo.ri'){ RI.form.setInvalid(em, 'This person already has a staff invite or account.'); em.focus(); return; }
+        var l = staffList(); l.push({email:v, name:'', status:'invited', role:r.id, add:rec.add, remove:rec.remove, perms:perms, invitedAt:Date.now(), token:C.uid('t'), by:me.name || 'Sam'}); C.set('staff', l);
+        C.log('Staff invited', v + ', as ' + r.name + (extra ? ' (' + extra + ')' : ''), '', 'users');
         d.close();
-        var s = C.dialog('Invite sent', '<p>We emailed an invite to <b>' + RI.esc(v) + '</b>. It works once, for 7 days.</p><div class="mail-sim"><div class="mh">' + RI.icon('mail','i-sm') + '<span><b>Demo inbox</b> · You are invited to the console</span></div><div class="mb"><p>Sam invited you as staff. Set a password to accept.</p><a class="btn btn-primary btn-sm" href="' + RI.url('invite/?t=demo-staff') + '">Accept the invite</a><p class="xsmall muted">Demo only: this opens the sample invite page.</p></div></div>');
+        var s = C.dialog('Invite sent', '<p>We emailed an invite to <b>' + RI.esc(v) + '</b>, as <b>' + RI.esc(r.name) + '</b>' + (extra ? ' with changes for them only' : '') + '. It works once, for 7 days.</p><div class="mail-sim"><div class="mh">' + RI.icon('mail','i-sm') + '<span><b>Demo inbox</b> · You are invited to the console</span></div><div class="mb"><p>' + RI.esc(me.name || 'Sam') + ' invited you as ' + RI.esc(r.name) + '. Set a password to accept.</p><a class="btn btn-primary btn-sm" href="' + RI.url('invite/?t=demo-staff') + '">Accept the invite</a><p class="xsmall muted">Demo only: this opens the sample invite page.</p></div></div>');
         s.addEventListener('close', function(){ if(after) after(); else C.go('#/users?tab=staff'); });
         return;
       }
-      x.perms = f.now; C.set('staff', list);
-      C.log('Permissions changed', x.email + ': ' + [f.add.length ? 'gave ' + f.add.join(', ') : '', f.rem.length ? 'took away ' + f.rem.join(', ') : ''].filter(Boolean).join('; '), '', 'users');
-      RI.toast('Access saved for ' + (x.name || x.email) + '.', 'check'); d.close(); if(after) after();
+      var was = (C.role(start.role) || {name:'No role'}).name;
+      x.role = r.id; x.add = rec.add; x.remove = rec.remove; x.perms = perms; C.set('staff', list);
+      if(r.id !== start.role) C.log('Role given', x.email + ': ' + was + ' to ' + r.name + (extra ? ' (' + extra + ')' : ''), '', 'users');
+      else C.log('Access adjusted', x.email + ': ' + r.name + (extra ? ', ' + extra : ', matches the role again'), '', 'users');
+      RI.toast((x.name || x.email) + ' is now ' + r.name + (extra ? ', with changes of their own.' : '.'), 'check'); d.close(); if(after) after();
     });
     var dis = d.querySelector('#ax-dis');
     if(dis) dis.addEventListener('click', function(){
@@ -353,7 +498,68 @@
     var en = d.querySelector('#ax-en');
     if(en) en.addEventListener('click', function(){ x.status = 'active'; C.set('staff', list); C.log('Staff enabled', x.email, '', 'users'); RI.toast('Staff account turned back on.', 'check'); d.close(); if(after) after(); });
     sync();
-    var focus = d.querySelector(invite ? '#inv-em' : '.ax-r input:not(:disabled)'); if(focus) setTimeout(function(){ focus.focus(); }, 30);
+    /* Editing someone: opens with the permission list showing, so changes of their own are seen at once (user, Nov 2026).
+       Inviting: opens with the email and the role only; Customize opens the list (user, Nov 2026). On a phone the
+       roles come first; the button shows how many changes they have. */
+    if(!narrow.matches && !invite){ d.style.transition = 'none'; showPane(true); void d.offsetWidth; d.style.transition = ''; }
+    var focus = d.querySelector(invite ? '#inv-em' : '.rp-c input:checked'); if(focus) setTimeout(function(){ focus.focus(); }, 30);
+  }
+  /* Create or edit a role (Sam only): its name, what it is for, and what it can do, grouped by area like before. An
+     edit permission includes reading the same area. Saving changes everyone with the role at once. */
+  function roleDialog(role, after){
+    var me = C.me() || {}; if(!me.sam || (role && role.fixed)) return;
+    var isNew = !role, roles = C.roles(), sel = role ? role.perms.slice() : [];
+    var people = staffList().filter(function(x){ return role && x.role === role.id; });
+    var groups = AREAS.concat([['Admin', 'key', C.ADMIN_CAPS.map(function(a){ return a[0]; })]]).map(function(a, gi){
+      return '<fieldset class="ax-g"><legend><span class="ax-gi">' + RI.icon(a[1], 'i-sm') + '</span><span class="ax-gt">' + a[0] + '</span><small class="ax-gn" data-gn="' + gi + '"></small></legend>' + a[2].map(function(code){
+        var ad = C.ADMIN_CAPS.filter(function(x){ return x[0] === code; })[0];
+        return '<label class="ax-r" data-code="' + code + '"><input type="checkbox" value="' + code + '"><span class="ax-t"><b>' + (ad ? ad[1] : SHORT[code]) + '</b><small>' + (ad ? ad[2] : DESC[code]) + '</small><span class="ax-meta"><em class="ax-inc"></em></span></span></label>';
+      }).join('') + '</fieldset>';
+    }).join('');
+    var d = C.dialog(isNew ? 'Create a role' : 'Edit role: ' + RI.esc(role.name),
+      '<div class="ax-scroll"><div class="rl-f"><div class="field"><label for="rl-name">Role name</label><input class="input" id="rl-name" value="' + RI.esc(role ? role.name : '') + '" placeholder="For example: Pricing editor" autocomplete="off"><span class="err"></span></div>' +
+        '<div class="field"><label for="rl-about">What it is for</label><input class="input" id="rl-about" value="' + RI.esc(role ? role.about || '' : '') + '" placeholder="One line: what someone with this role does" autocomplete="off"></div></div>' +
+        '<p class="ax-lead">What it can do. An edit permission includes reading the same area.</p>' + groups +
+        (!isNew ? '<p class="rl-who-n">' + RI.icon('user', 'i-sm') + (people.length ? people.length + (people.length === 1 ? ' person has' : ' people have') + ' this role (' + people.map(function(x){ return RI.esc(x.name || x.email) + (adjusted(x) ? ', with changes of their own' : ''); }).join('; ') + '). Saving changes what they can do right away; changes of their own stay.' : 'Nobody has this role yet.') + '</p>' : '') +
+        (!isNew && !role.built && !people.length ? '<section class="ax-danger"><div><b>Delete this role</b><small>Nobody has it, so nothing else changes.</small></div><button type="button" class="btn btn-secondary btn-sm" id="rl-del">Delete</button></section>' : '') + '</div>' +
+      '<div class="ax-foot"><p class="ax-sum" id="ax-sum" aria-live="polite"></p><div class="ax-btns"><button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="button" class="btn btn-primary" id="ax-save">' + (isNew ? 'Create the role' : 'Save the role') + '</button></div></div>');
+    d.classList.add('dlg-drawer');
+    var label = function(c){ var ad = C.ADMIN_CAPS.filter(function(x){ return x[0] === c; })[0]; return ad ? ad[1] : SHORT[c]; };
+    function now(){ return full(sel); }
+    function sync(){
+      d.querySelectorAll('.ax-r').forEach(function(r){
+        var c = r.getAttribute('data-code'), inp = r.querySelector('input'), by = includedBy(sel, c);
+        inp.checked = sel.indexOf(c) > -1 || !!by; inp.disabled = !!by; r.classList.toggle('inc', !!by);
+        r.querySelector('.ax-inc').textContent = by ? 'Included with ' + SHORT[by] : '';
+      });
+      var f = now(), sum = d.querySelector('#ax-sum');
+      AREAS.concat([['Admin', '', ['staff', 'publish']]]).forEach(function(a, gi){ d.querySelector('[data-gn="' + gi + '"]').textContent = a[2].filter(function(c){ return f.indexOf(c) > -1; }).length + ' of ' + a[2].length; });
+      if(isNew){ sum.innerHTML = '<b>' + f.length + ' of ' + (C.PERMS.length + 2) + '</b> capabilities'; return; }
+      var add = f.filter(function(c){ return role.perms.indexOf(c) < 0; }), rem = role.perms.filter(function(c){ return f.indexOf(c) < 0; });
+      sum.innerHTML = !add.length && !rem.length ? '<span class="muted">No changes to what it can do</span>' : (add.length ? '<span class="ax-add">Gives: ' + add.map(label).join(', ') + '</span>' : '') + (rem.length ? '<span class="ax-rem">Takes away: ' + rem.map(label).join(', ') + '</span>' : '');
+    }
+    d.addEventListener('change', function(e){ var inp = e.target.closest('.ax-r input'); if(!inp) return; var c = inp.value; sel = inp.checked ? sel.concat(c) : sel.filter(function(v){ return v !== c; }); sync(); });
+    d.querySelector('#ax-save').addEventListener('click', function(){
+      var nm = d.querySelector('#rl-name'), name = nm.value.trim(), about = d.querySelector('#rl-about').value.trim(), f = now();
+      if(!name){ RI.form.setInvalid(nm, 'Give the role a name.'); nm.focus(); return; }
+      if(roles.some(function(r){ return (!role || r.id !== role.id) && r.name.toLowerCase() === name.toLowerCase(); })){ RI.form.setInvalid(nm, 'Another role already has this name.'); nm.focus(); return; }
+      if(!f.length){ d.querySelector('#ax-sum').innerHTML = '<span class="ax-rem">Tick at least one thing this role can do.</span>'; return; }
+      var list = C.roles();
+      if(isNew){
+        list.push({id:'r' + Date.now().toString(36), name:name, about:about, perms:f}); C.set('roles', list);
+        C.log('Role created', name + ': ' + f.length + ' capabilities', '', 'users'); RI.toast('Role created: ' + name + '.', 'check');
+      } else {
+        var add = f.filter(function(c){ return role.perms.indexOf(c) < 0; }), rem = role.perms.filter(function(c){ return f.indexOf(c) < 0; }), renamed = name !== role.name;
+        list.forEach(function(r){ if(r.id === role.id){ r.name = name; r.about = about; r.perms = f; } }); C.set('roles', list);
+        var st = staffList(); st.forEach(function(x){ if(x.role === role.id) x.perms = C.effPerms(x).filter(function(p){ return C.SUPER.indexOf(p) < 0; }); }); C.set('staff', st);
+        C.log('Role changed', name + ': ' + [renamed ? 'renamed from ' + role.name : '', add.length ? 'gave ' + add.map(label).join(', ') : '', rem.length ? 'took away ' + rem.map(label).join(', ') : ''].filter(Boolean).join('; ') + (people.length ? ' (' + people.length + (people.length === 1 ? ' person)' : ' people)') : ''), '', 'users');
+        RI.toast('Role saved' + (people.length ? '. ' + people.length + (people.length === 1 ? ' person has' : ' people have') + ' the new access.' : '.'), 'check');
+      }
+      d.close(); if(after) after();
+    });
+    var del = d.querySelector('#rl-del');
+    if(del) del.addEventListener('click', function(){ C.confirm('Delete the ' + RI.esc(role.name) + ' role?', 'Nobody has it. It leaves the list of roles.', 'Delete role', function(){ C.set('roles', C.roles().filter(function(r){ return r.id !== role.id; })); C.log('Role deleted', role.name, '', 'users'); RI.toast('Role deleted.'); d.close(); if(after) after(); }, true); });
+    sync(); setTimeout(function(){ d.querySelector('#rl-name').focus(); }, 30);
   }
   function inviteDialog(after){ accessPanel(null, after); }
   function permsDialog(email, after){ accessPanel(email, after); }
@@ -363,7 +569,7 @@
      Desktop: a real table, one column per question, rows grouped by day. Tablet: the reason moves under the change.
      Phone: each change is a card. Nothing here can be edited. */
   /* Action tags by meaning: rulebook changes, checks, and people and access */
-  var AU_KIND = {'Published':'pub', 'Draft saved':'draft', 'Discarded':'off', 'Back-test run':'chk', 'Accuracy run':'chk', 'Photo labelled':'chk', 'Graded':'chk',
+  var AU_KIND = {'Published':'pub', 'Draft saved':'draft', 'Discarded':'off', 'Back-test run':'chk', 'Accuracy run':'chk', 'Role created':'acc', 'Role changed':'acc', 'Role given':'acc', 'Access adjusted':'acc', 'Role deleted':'acc', 'Photo labelled':'chk', 'Graded':'chk',
     'Staff invited':'acc', 'Permissions changed':'acc', 'Staff enabled':'acc', 'Contacts exported':'acc', 'Super admin created':'acc', 'Staff disabled':'bad', 'Account disabled':'bad'};
   /* What each area is called, and where it opens */
   var AU_AREA = {rates:['Rates', '#/rates'], rules:['Rules', '#/rules'], sheets:['Condition sheets', '#/condition-sheets'], templates:['Room templates', '#/room-templates'],

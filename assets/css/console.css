@@ -3546,3 +3546,113 @@ dialog.dlg.acl-dlg{width:min(900px,calc(100vw - 32px))}
 }
 @media (prefers-reduced-motion:reduce){ .acl-chips button,.acl-look{transition:none} }
 
+/* The product form's price date (user, Nov 2026) */
+.pf-date{max-width:220px}
+
+/* ===================================================================
+   Roles (Sam's meeting, Nov 2026): the Roles tab, the role picker when
+   inviting someone or changing their role, and the role editor.
+   =================================================================== */
+.rl-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px}
+.rl-top p{margin:0;font-size:.9rem;color:var(--muted);max-width:70ch}
+.rl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.rl-c{display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid var(--border);border-radius:8px;background:var(--raised)}
+.rl-c.fixed{background:#FBF8F3}
+.rl-h{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.rl-h h3{margin:0;font-family:var(--body);font-size:1.05rem;font-weight:600}
+.rl-h p{margin:2px 0 0;font-size:.84rem;color:var(--muted);line-height:1.4}
+.rl-tag{flex:none;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:2px;font-size:12px;font-weight:600}
+.rl-tag.lock{background:var(--sunken);color:var(--muted)}
+.rl-tag.bi{background:var(--info-bg);color:var(--info)}
+.rl-caps{display:flex;flex-wrap:wrap;gap:5px}
+.rl-caps span{padding:2px 8px;border-radius:999px;background:var(--sunken);font-size:12px}
+.rl-caps span.adm{background:var(--deep-forest);color:#fff}
+.rl-n{font-size:12px;color:var(--muted)}
+.rl-ft{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding-top:10px;border-top:1px solid var(--border-soft)}
+.rl-who{display:flex;align-items:center;gap:6px;font-size:.84rem;color:var(--muted)}
+.rl-safe{margin:14px 0 0;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--raised);font-size:.86rem;line-height:1.5}
+.rl-safe b{display:flex;align-items:center;gap:6px;margin-bottom:2px}
+.rl-safe ul{margin:4px 0 0;padding-left:18px}
+.rl-chip{white-space:nowrap}
+/* the role picker */
+.rp{display:grid;gap:8px;margin:0;padding:0;border:0}
+.rp-l{margin:0 0 2px;padding:0;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.rp-c{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;align-items:start;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--raised);cursor:pointer;transition:border-color var(--fast)}
+.rp-c:hover{border-color:var(--border-strong)}
+.rp-c.on{border-color:var(--deep-forest)}
+.rp-c input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--deep-forest)}
+/* Focus ring for keyboard users only, so a mouse click does not thicken the selected card */
+.rp-c:has(input:focus-visible){outline:2px solid var(--deep-forest);outline-offset:2px}
+.rp-t{display:grid;gap:2px;min-width:0}
+.rp-t b{font-size:.95rem;font-weight:600}
+.rp-t small{font-size:.84rem;color:var(--muted);line-height:1.4}
+.rp-t em{font-style:normal;font-size:12px;color:var(--text);line-height:1.45}
+.rp-adm{display:inline-block;margin-left:4px;padding:0 6px;border-radius:2px;background:var(--deep-forest);color:#fff;font-size:11.5px;font-weight:600;vertical-align:1px}
+/* the role editor */
+.rl-f{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){ .rl-f{grid-template-columns:1fr} }
+.rl-who-n{display:flex;align-items:flex-start;gap:8px;margin:0;padding:10px 12px;border-radius:4px;background:var(--info-bg);color:var(--info);font-size:.86rem;line-height:1.45}
+@media (prefers-reduced-motion:reduce){ .rp-c{transition:none} }
+
+/* A role adjusted for one person (user, Nov 2026) */
+.rl-cell{display:inline-flex;align-items:center;gap:6px}
+.rl-cus{flex:none;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:4px;background:var(--sunken);color:var(--hl-text);cursor:help}
+.rl-cus:hover{background:var(--warm-stone);color:var(--text)}
+.rl-cus:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2px}
+.us-meta .rl-cus{width:22px;height:22px;margin-left:6px;vertical-align:-6px}
+/* the tooltip for [data-hint] */
+.c-hint{position:fixed;z-index:1000;max-width:300px;display:grid;gap:3px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--raised);color:var(--muted);font-size:13px;line-height:1.45;pointer-events:none;box-shadow:var(--shadow-float);animation:c-hint-in var(--fast) var(--ease-out)}
+.c-hint b{color:var(--text);font-size:13px;font-weight:600}
+.c-hint p{margin:0;display:flex;gap:8px;align-items:baseline}
+.c-hint i{flex:none;width:10px;font-style:normal;font-weight:700;text-align:center}
+.c-hint .h-add{color:var(--ok)}.c-hint .h-rem{color:var(--bad)}
+.c-hint b+p:has(i){margin-top:3px}
+.c-hint p:has(.h-add),.c-hint p:has(.h-rem){color:var(--text)}
+.c-hint::before{content:"";position:absolute;width:10px;height:10px;background:var(--raised);border:solid var(--border);border-width:1px 0 0 1px}
+.c-hint-top::before{left:var(--hx);bottom:-6px;transform:translateX(-50%) rotate(225deg)}
+.c-hint-bottom::before{left:var(--hx);top:-6px;transform:translateX(-50%) rotate(45deg)}
+.c-hint-right::before{top:var(--hy);left:-6px;transform:translateY(-50%) rotate(-45deg)}
+@keyframes c-hint-in{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){ .c-hint{animation:none} }
+.rp-c[data-hint]{cursor:pointer}
+.ax-rbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin-bottom:-8px}
+.ax-rbar .rp-l{margin:0}
+.ax-cust{display:inline-flex;align-items:center;gap:8px}
+.ax-cust[aria-expanded="true"],.ax-cust[aria-expanded="true"]:hover{background:var(--deep-forest);border-color:var(--deep-forest);color:#fff}
+.ax-cn{flex:none;font-style:normal;font-size:12px;font-weight:600;padding:1px 7px;border-radius:2px;background:var(--sunken);color:var(--hl-text)}
+.ax-cn:empty{display:none}
+.ax-cust[aria-expanded="true"] .ax-cn{background:rgba(255,255,255,.18);color:#fff}
+/* Customize permissions (user, Nov 2026): the drawer widens; roles stay on the left, the permission list is on the right
+   and scrolls on its own. Below 768 px the list is a second step with Back to roles. */
+dialog.dlg.dlg-drawer{transition:width var(--slow) var(--ease-out)}
+dialog.dlg.dlg-drawer.ax-open{width:min(1040px,100vw)}
+@media (prefers-reduced-motion:reduce){ dialog.dlg.dlg-drawer{transition:none} }
+.ax-split{flex:1;min-height:0;display:flex}
+.ax-split>.ax-scroll{flex:1 1 auto;min-width:0}
+.ax-open .ax-split>.ax-scroll{flex:0 0 clamp(280px,36%,370px);border-right:1px solid var(--border)}
+.ax-open .rp-t em{display:none}
+.ax-open .rp-c{padding:10px 12px}
+.ax-open .ax-who{flex-wrap:wrap}
+.ax-open .ax-who>span:nth-child(2){flex:1 1 150px}
+.ax-pane{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;background:var(--page)}
+.ax-ph{flex:none;display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:8px 16px;padding:20px 24px 14px}
+.ax-pth{display:grid;gap:2px}
+.ax-pth>b{font-size:.98rem;font-weight:600}
+.ax-pth small{font-size:.84rem;color:var(--muted)}
+.ax-pth small b{color:var(--text);font-weight:600}
+.ax-pt{display:flex;align-items:center;gap:12px}
+.ax-back{display:none}
+.ax-cols{flex:1;min-height:0;overflow:auto;display:grid;grid-auto-rows:max-content;gap:14px;padding:0 24px 24px}
+.ax-cols .ax-gn{margin-left:auto}
+.ax-nm{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px}
+.ax-src{flex:none;font-style:normal;font-size:12px;font-weight:600;padding:1px 7px;border-radius:2px;background:var(--sunken);color:var(--muted)}
+.ax-src:empty{display:none}
+.ax-cols .ax-r.add{background:#F3F8F4}.ax-cols .ax-r.add .ax-src{background:var(--ok-bg);color:var(--ok)}
+.ax-cols .ax-r.rem{background:#FDF6F4}.ax-cols .ax-r.rem .ax-src{background:#F6E1DC;color:var(--bad)}
+@media (max-width:767px){
+  .ax-open .ax-split>.ax-scroll{display:none}
+  .ax-back{display:inline-flex;align-items:center;gap:6px;width:100%}
+  .ax-back .i{transform:rotate(90deg)}
+  .ax-ph{padding:14px 16px 12px}
+  .ax-cols{padding:0 16px 16px}
+}

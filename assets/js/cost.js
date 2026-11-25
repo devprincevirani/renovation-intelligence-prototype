@@ -104,7 +104,7 @@
         block('What your estimate prices', 'Every job below is priced for your house, from your photos. Not an area average.', 'ar-rates') +
         block('A typical range is wide. Yours is not.', '', 'ar-tvy') +
         faq('Questions about ' + a.name, [
-          ['What does it cost to renovate a ranch in ' + a.name + '?','It depends on what the house needs and how far you go, so we do not quote an area average. Your house gets its own Low and High from its own photos, free, with the unknowns listed apart.'],
+          ['What does it cost to renovate a ranch in ' + a.name + '?','It depends on what the house needs and how far you go, so we do not give an area average. Your house gets its own Low and High from its own photos, free, with the unknowns listed apart.'],
           ['Why is the range wide on some lines?','A range widens when we know less about a line, for example a size taken from a typical room instead of your measurement. Adding the room size narrows it.'],
           ['Do you cover the roof and furnace?','As guidance only: what to look for, a typical lifespan, and a reminder to have it inspected. They are never part of the price.']]) +
         '<div class="stack" style="gap:12px"><h2 style="font-size:1.3rem">Other areas</h2><nav class="chips" aria-label="Other areas">' + nearby + '</nav></div>' +

@@ -408,6 +408,13 @@ body.is-focus .app-top{background:var(--inverse)}
 .tabs-s button{flex:none;display:inline-flex;align-items:center;gap:8px;background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:12px 14px;min-height:48px;font-weight:600;color:var(--muted);cursor:pointer;transition:color var(--fast),border-color var(--base)}
 .tabs-s button:hover{color:var(--text)}
 .tabs-s button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--deep-forest)}
+/* The active tab's line is drawn inside the tab (user, Nov 2026): the row scrolls sideways, which clipped the old
+   border to 1 px so it merged with the grey line under the row */
+.tabs-s button{position:relative;border-bottom:0;margin-bottom:0}
+.tabs-s button::after{content:"";position:absolute;left:10px;right:10px;bottom:0;height:2px;border-radius:2px 2px 0 0;background:transparent;transition:background var(--base)}
+.tabs-s button:hover:not([aria-selected="true"])::after{background:var(--border)}
+.tabs-s button[aria-selected="true"]::after{background:var(--deep-forest)}
+@media (prefers-reduced-motion:reduce){ .tabs-s button::after{transition:none} }
 .tabs-s .n{font-size:.72rem;padding:1px 7px;border-radius:4px;background:var(--sunken);color:var(--text)}
 .tab-p{padding:18px 0 4px;display:grid;gap:12px;animation:fade-in var(--base) var(--ease-out)}
 .unk{list-style:none;padding:0;margin:0;display:grid;gap:8px}
@@ -699,10 +706,10 @@ img.plan-view{min-height:0}
 .pr-photo{width:132px;height:96px;object-fit:cover;border-radius:var(--r-lg);border:1px solid var(--border);flex:none}
 .pr-ht{flex:1;min-width:240px}
 .room-photos{display:flex;gap:6px;overflow-x:auto;padding:12px 20px;border-top:1px solid var(--border-soft);background:#FBFAF7;scrollbar-width:thin}
-.rp{flex:none;border:0;padding:0;background:none;cursor:zoom-in;border-radius:var(--r-md);overflow:hidden}
-.rp img{width:88px;height:66px;object-fit:cover;display:block;transition:transform var(--base) var(--ease-out)}
-.rp:hover img{}
-.rp:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* Scoped to the photo strip: the console's role list is also class "rp" and loads this file */
+.room-photos .rp{flex:none;border:0;padding:0;background:none;cursor:zoom-in;border-radius:var(--r-md);overflow:hidden}
+.room-photos .rp img{width:88px;height:66px;object-fit:cover;display:block;transition:transform var(--base) var(--ease-out)}
+.room-photos .rp:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .rp-more{flex:none;width:66px;height:66px;display:grid;place-items:center;border-radius:var(--r-md);background:var(--sunken);font-weight:600;color:var(--muted)}
 .prod-th{width:22px;height:22px;object-fit:cover;border-radius:3px;margin-right:2px;vertical-align:middle}
 .prods{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
@@ -1855,3 +1862,49 @@ button.tz-more{background:none;border:0;padding:0;font:inherit;cursor:pointer}
   .tv-r.held .p{justify-items:end}
 }
 @media (prefers-reduced-motion:reduce){ .tv-chev{transition:none} }
+
+/* ===================================================================
+   The PDF report (user, Nov 2026; INT70-A01): built when PDF is pressed,
+   printed on its own, hidden on screen. Same numbers as the presentation.
+   =================================================================== */
+.rpt{display:none}
+@media print{
+  html.rpt-on body>*:not(.rpt){display:none!important}
+  html.rpt-on body{background:#fff}
+  html.rpt-on .rpt{display:block}
+  @page{margin:14mm}
+}
+.rpt{color:#222;font-size:10pt;line-height:1.4}
+.rpt h1{margin:2pt 0;font-family:var(--display);font-weight:500;font-size:20pt;line-height:1.15}
+.rpt h2{margin:16pt 0 6pt;padding-bottom:3pt;border-bottom:1.5pt solid var(--deep-forest);font-size:12.5pt;break-after:avoid}
+.rpt h3{display:flex;justify-content:space-between;gap:12pt;margin:10pt 0 3pt;font-size:10.5pt;break-after:avoid}
+.rpt p{margin:0 0 3pt}
+.rpt-head{display:flex;justify-content:space-between;gap:16pt;align-items:flex-end;padding-bottom:8pt;border-bottom:2pt solid var(--deep-forest)}
+.rpt-k{font-size:8.5pt;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#815E3A}
+.rpt-meta{flex:none;text-align:right;font-size:9pt;white-space:nowrap}
+.rpt-ns{color:#777;font-style:italic}
+.rpt-tag{display:inline-block;padding:1pt 5pt;border:1pt dashed #888;font-size:8.5pt}
+.rpt table{width:100%;border-collapse:collapse;font-size:9pt}
+.rpt th{padding:3pt 5pt;border-bottom:1pt solid #888;text-align:left;font-size:7.5pt;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#555}
+.rpt td{padding:3.5pt 5pt;border-bottom:.5pt solid #ddd;vertical-align:top}
+.rpt .n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.rpt tr.cur td{font-weight:700}
+.rpt tr.tot td{border-top:1pt solid #222;border-bottom:0;font-weight:700}
+.rpt tr.off td{color:#888}
+.rpt tr.off td.n{text-decoration:line-through}
+.rpt tr.held td{color:#555;font-style:italic}
+.rpt td small{display:block;font-size:7.5pt;color:#888;font-style:normal}
+.rpt-room{break-inside:avoid}
+.rpt-note{font-size:8.5pt;color:#555}
+.rpt ul{margin:0;padding-left:14pt}
+.rpt li{margin:0 0 2pt}
+.rpt-foot{margin-top:14pt;padding-top:6pt;border-top:.5pt solid #bbb;font-size:8.5pt;color:#555}
+
+/* The "Not confirmed" count draws the eye before the price (user, Nov 2026): the badge stays still and amber; a ring
+   around it pulses for 5 seconds each time the presentation opens (3 pulses of 1.6 s after 0.2 s), or until Not
+   confirmed is opened. A crisp ring, no blur and no glow; still under reduced motion. */
+.tabs-s .n-warn{background:var(--warn-bg);color:var(--warn);font-weight:700;box-shadow:inset 0 0 0 1px #E5C99A}
+.tabs-s .n-pulse{animation:n-ring 1.6s ease-out .2s 3}
+@keyframes n-ring{0%{box-shadow:inset 0 0 0 1px #E5C99A,0 0 0 0 rgba(127,83,20,.5)}75%,100%{box-shadow:inset 0 0 0 1px #E5C99A,0 0 0 8px rgba(127,83,20,0)}}
+@media (prefers-reduced-motion:reduce){ .tabs-s .n-pulse{animation:none} }
+

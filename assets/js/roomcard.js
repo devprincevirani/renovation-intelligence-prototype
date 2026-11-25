@@ -116,7 +116,21 @@
      line, what you get under it, and "How this price is made" opening the breakdown: the product with its maths, the work
      with what it covers, the installed total. o.sw adds the on/off switch (paid presentation); o.locked is the locked
      price to show instead (a locked room: no breakdown); o.img the photo; o.off a line turned off. */
-  var WORK = 'Taking out the old one, fitting and installing, small materials, hauling away';
+  var WORK = 'Taking out the old one, fitting and installing, hauling away';
+  /* Labor as its own rate (user, Nov 2026, from INT70-A01: material and labor priced apart): the line's labor over
+     its own quantity, so "22 linear ft x $221.32". Only the amounts, never the source or the date of a price. */
+  function rateText(n){ return '$' + (Math.abs(n - Math.round(n)) < .005 ? Math.round(n).toLocaleString('en-US') : n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})); }
+  function laborText(it, amt){
+    var m = /([\d,]+(?:\.\d+)?)\s*(sq ft|linear ft|each)/.exec(it.qty || ''), q = m ? +m[1].replace(/,/g, '') : 0;
+    if(!q || !(amt > 0)) return '';
+    return m[2] === 'each' ? (q !== 1 ? q.toLocaleString('en-US') + ' &times; ' : '') + rateText(amt / q) + ' each' : q.toLocaleString('en-US') + ' ' + m[2] + ' &times; ' + rateText(amt / q);
+  }
+  /* One line split into material and labor at one end: the product's price times its quantity is the material, the
+     rest of the installed price is the labor. Used by the breakdown card and the PDF report. */
+  function split(it, pk, end){
+    var a = it.pk[pk], p = RI.productEnd(it, pk, end), val = end === 'hi' ? a[2] : a[1], mat = p ? Math.min(p.total, val) : 0;
+    return {val:val, product:p ? p.name : (a[3] || ''), qty:p ? qtyText(p) : RI.esc(it.qty || ''), material:p ? mat : null, labor:p ? val - mat : null, laborQty:p ? laborText(it, val - mat) : ''};
+  }
   function qtyText(p){
     if(p.per === 'each') return (p.qty !== 1 ? p.qty.toLocaleString('en-US') + ' &times; ' : '') + RI.unitPrice(p.price) + ' each';
     return p.qty.toLocaleString('en-US') + ' ' + p.per + ' &times; ' + RI.unitPrice(p.price);
@@ -136,9 +150,10 @@
     if(p){
       var pp = val ? Math.round(prod / val * 100) : 0;
       body = '<div class="bt-bar" aria-hidden="true"><i class="bt-p" style="flex:' + pp + '"></i><i class="bt-w" style="flex:' + (100 - pp) + '"></i></div>' +
-        '<p class="bt-key"><span><i class="bt-p"></i>Product ' + pp + '%</span><span><i class="bt-w"></i>Work ' + (100 - pp) + '%</span></p>' +
-        row(img ? '<img src="' + img + '" alt="" decoding="async">' : RI.icon('dot'), RI.esc(p.name), qtyText(p), prod) + row(RI.icon('hammer'), 'Work', WORK, val - prod);
-    } else body = row(RI.icon('hammer'), 'Work and materials', RI.esc(a[0]), val);
+        '<p class="bt-key"><span><i class="bt-p"></i>Material ' + pp + '%</span><span><i class="bt-w"></i>Labor ' + (100 - pp) + '%</span></p>' +
+        row(img ? '<img src="' + img + '" alt="" decoding="async">' : RI.icon('dot'), 'Material: ' + RI.esc(p.name), qtyText(p), prod) +
+        row(RI.icon('hammer'), 'Labor', (laborText(it, val - prod) ? laborText(it, val - prod) + ' &middot; ' : '') + RI.esc(a[0]), val - prod);
+    } else body = row(RI.icon('hammer'), 'Material and labor', RI.esc(a[0]), val);
     return '<div class="bt">' + head + body + '<div class="bt-t"><span>Installed</span><span class="bt-v">' + RI.money(val) + '</span></div></div>';
   }
   function buyRow(it, pk, end, o){
@@ -273,5 +288,5 @@
     return nu;
   }
 
-  RI.RoomCard = {swap:swap, swapEl:swapEl, settle:settle, skel:skel, html:html, locked:locked, kind:kind, endsSwitch:endsSwitch, endImg:endImg, buyRow:buyRow, buysHead:buysHead, heldRow:heldRow, sampleNote:sampleNote, partName:partName, tiles:tiles, change:change, counts:counts, wire:wire, photoFor:function(k){ return PHOTOS[k] ? RI.img(PHOTOS[k]) : null; }};
+  RI.RoomCard = {split:split, qtyText:qtyText, swap:swap, swapEl:swapEl, settle:settle, skel:skel, html:html, locked:locked, kind:kind, endsSwitch:endsSwitch, endImg:endImg, buyRow:buyRow, buysHead:buysHead, heldRow:heldRow, sampleNote:sampleNote, partName:partName, tiles:tiles, change:change, counts:counts, wire:wire, photoFor:function(k){ return PHOTOS[k] ? RI.img(PHOTOS[k]) : null; }};
 })();

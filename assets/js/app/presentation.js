@@ -70,7 +70,7 @@
         '<div class="pr-actions"><button type="button" class="btn btn-secondary btn-sm" id="share">' + RI.icon('share','i-sm') + 'Share</button><button type="button" class="btn btn-secondary btn-sm" id="pdf">' + RI.icon('file','i-sm') + 'PDF</button><button type="button" class="btn btn-secondary btn-sm" id="fb">Feedback</button></div></header>' +
       '<div class="pr-layout"><aside class="pr-side" id="pr-bar" aria-label="Package and total"><div class="pr-side-in"><div class="seg" role="tablist" aria-label="Package" id="pk"><span class="seg-thumb"></span>' + RI.PACKAGES.map(function(x){ return '<button type="button" role="tab" data-pk="' + x.key + '" aria-selected="' + (x.key === h.pk) + '">' + x.name + '</button>'; }).join('') + '</div>' +
         '<span class="small muted pr-goal" id="pr-goal"></span><div class="pr-total" aria-live="polite"><span class="lbl"><span id="pr-off"></span>' + (held.u + held.m ? '<span class="state state-partial">Partial</span>' : '') + '</span><span class="range-txt" id="pr-tot"></span><div data-scale="0,1"><div class="rl' + (held.u + held.m ? ' partial' : '') + '" id="pr-rl" data-low="0" data-high="0"></div></div></div><button type="button" class="linkbtn small pr-reset" id="pr-reset">Turn all items on</button></div></aside><div class="pr-main">' +
-      '<div class="tabs-s" role="tablist" aria-label="Views" id="views">' + [['rooms','Rooms'],['trades','Trades'],['products','Products'],['unk','Not confirmed <span class="n">' + (held.u + held.m) + '</span>'],['extras','Potential extra costs'],['notinc','Not included'],['sys','House systems']].concat(pro ? [['tasks','Task lists']] : []).map(function(t, i){ return '<button role="tab" data-v="' + t[0] + '" aria-selected="' + (i === 0) + '">' + t[1] + '</button>'; }).join('') + '</div>' +
+      '<div class="tabs-s" role="tablist" aria-label="Views" id="views">' + [['rooms','Rooms'],['trades','Trades'],['products','Products'],['unk','Not confirmed <span class="n' + (held.u + held.m ? ' n-warn n-pulse' : '') + '">' + (held.u + held.m) + '</span>'],['extras','Potential extra costs'],['notinc','Not included'],['sys','House systems']].concat(pro ? [['tasks','Task lists']] : []).map(function(t, i){ return '<button role="tab" data-v="' + t[0] + '" aria-selected="' + (i === 0) + '">' + t[1] + '</button>'; }).join('') + '</div>' +
       '<div id="pv"></div>' +
       '<section class="fb-inline" id="fb-inline"></section></div></div>' +
       '<p class="disc-line">' + RI.icon('info','i-sm') + 'This is an estimate for planning, never a contractor\'s bid. Quantities shown are net. Lines we could not confirm are left out of every total. Anything hidden in walls, floors or systems stays unknown until someone opens them.</p></div>';
@@ -254,6 +254,8 @@
        nothing for the first draw */
     function show(v, how){
       tab = v; view.querySelectorAll('#views [data-v]').forEach(function(b){ b.setAttribute('aria-selected', b.getAttribute('data-v') === v); });
+      /* opening Not confirmed stops the badge's pulse early */
+      if(v === 'unk'){ var nb = view.querySelector('#views .n-pulse'); if(nb) nb.classList.remove('n-pulse'); }
       var fill = function(){ ({rooms:viewRooms, trades:viewTrades, products:viewProducts, unk:viewUnk, extras:viewExtras, notinc:viewNotInc, sys:viewSys, tasks:viewTasks})[v](); RI.fillIcons(pv); };
       if(!how) return fill();
       if(how === 'fade' && v === 'rooms' && pv.querySelector('#pv-card')) return drawCard();
@@ -302,11 +304,46 @@
     });
     /* PDF through the browser's print dialog: every room, one after another, with what each one buys.
        The screen goes back to the one-room view once the dialog closes. */
+    /* The PDF report (user, Nov 2026; INT70-A01): the house, the three package budgets, the chosen package by trade,
+       every room's products with material and labor, what is not confirmed, what is not included and the house
+       systems as advice. Same numbers as the screen; never a price source or a price date. */
+    function reportHtml(){
+      var R = RI.RoomCard, E = R.split ? end : 'lo', pkd = RI.PACKAGES.filter(function(p){ return p.key === h.pk; })[0], held = A.heldCount(est), nh = held.u + held.m;
+      var rg = function(lo, hi){ return RI.money(lo) + ' to ' + RI.money(hi); }, esc = RI.esc;
+      var facts = (est.facts && est.facts.length ? est.facts.filter(function(f){ return f[0] !== 'Photos'; }).map(function(f){ return f[0] + ' ' + f[1]; }) : [h.facts && h.facts.year ? 'Built ' + h.facts.year : '', h.facts && h.facts.sqft ? (+h.facts.sqft).toLocaleString('en-US') + ' sq ft' : '', h.facts && h.facts.beds ? h.facts.beds + ' bed' : '', h.facts && h.facts.baths ? h.facts.baths + (h.facts.halfBaths ? '.5' : '') + ' bath' : '']).filter(Boolean).join(' · ');
+      var by = {}; est.rooms.forEach(function(r){ r.items.forEach(function(it){ var a = it.pk[h.pk]; if(RI.isHeld(it) || !a || a[1] == null || h.off[it.id]) return; var g = RI.tradeOf(it); by[g] = by[g] || [0, 0]; by[g][0] += a[1]; by[g][1] += a[2]; }); });
+      var tr = Object.keys(by).sort(function(x, y){ return by[y][1] - by[x][1]; }), t = RI.totals(h.pk, h.off);
+      var offs = [], unk = [];
+      est.rooms.forEach(function(r){ r.items.forEach(function(it){ if(h.off[it.id]) offs.push(r.name + ', ' + ((RI.ITEM_PART && RI.ITEM_PART[it.id]) || it.name).toLowerCase()); if(RI.isHeld(it)) unk.push('<li><b>' + esc(r.name) + ', ' + esc(it.name.toLowerCase()) + '.</b> ' + (it.fix ? esc(it.fix) + ' would settle it.' : '') + '</li>'); }); });
+      var rooms = est.rooms.map(function(r){
+        var lines = r.items.filter(function(it){ return RI.isHeld(it) || (it.pk[h.pk] && it.pk[h.pk][1] != null); }); if(!lines.length) return '';
+        var rt = RI.totals(h.pk, h.off, r.key);
+        return '<section class="rpt-room"><h3><span>' + esc(r.name) + '</span><span>' + (rt.high ? rg(rt.low, rt.high) : 'Not priced yet') + '</span></h3><table><thead><tr><th>Part</th><th>Product</th><th>Quantity</th><th class="n">Material</th><th class="n">Labor</th><th class="n">Total</th></tr></thead><tbody>' +
+          lines.map(function(it){
+            var part = esc((RI.ITEM_PART && RI.ITEM_PART[it.id]) || it.name);
+            if(RI.isHeld(it)) return '<tr class="held"><td>' + part + '</td><td colspan="5">Not priced yet' + (it.fix ? ': ' + esc(it.fix).toLowerCase() + ' would settle it' : '') + '</td></tr>';
+            var s = R.split(it, h.pk, E), off = !!h.off[it.id];
+            return '<tr' + (off ? ' class="off"' : '') + '><td>' + part + (off ? '<small>Turned off</small>' : '') + '</td><td>' + (s.product ? esc(s.product) : '<span class="rpt-ns">No product chosen yet</span><small>' + esc(it.pk[h.pk][0]) + '</small>') + '</td><td>' + s.qty + '</td>' +
+              (s.material != null ? '<td class="n">' + RI.money(s.material) + '</td><td class="n">' + RI.money(s.labor) + '</td>' : '<td colspan="2" class="n rpt-ns">Not split yet</td>') + '<td class="n">' + RI.money(s.val) + '</td></tr>';
+          }).join('') + '</tbody></table></section>';
+      }).join('');
+      return '<div class="rpt-head"><div><p class="rpt-k">Renovation estimate</p><h1>' + esc(A.addr(h)) + '</h1><p>' + esc(A.place(h)) + (facts ? ' · ' + esc(facts) : '') + '</p></div>' +
+          '<div class="rpt-meta"><p>Prepared ' + new Date().toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'}) + '</p><p>Package shown: <b>' + pkd.name + '</b></p>' + (nh ? '<p><span class="rpt-tag">Partial: ' + nh + ' line' + (nh === 1 ? '' : 's') + ' not priced yet</span></p>' : '') + '</div></div>' +
+        '<h2>Planning budget by package</h2><table><thead><tr><th>Package</th><th>What it does</th><th class="n">Low to High</th></tr></thead><tbody>' +
+          RI.PACKAGES.map(function(p){ var x = RI.totals(p.key, h.off); return '<tr' + (p.key === h.pk ? ' class="cur"' : '') + '><td>' + p.name + (p.key === h.pk ? ' (shown below)' : '') + '</td><td>' + p.goal + '</td><td class="n">' + rg(x.low, x.high) + '</td></tr>'; }).join('') +
+          '</tbody></table><p class="rpt-note">Contingency is not included. Keep some money aside for what is found once work starts. Items you turned off are left out of every budget.</p>' +
+        '<h2>' + pkd.name + ', by trade</h2><table><thead><tr><th>Trade</th><th class="n">Low to High</th></tr></thead><tbody>' + tr.map(function(k){ return '<tr><td>' + esc(k) + '</td><td class="n">' + rg(by[k][0], by[k][1]) + '</td></tr>'; }).join('') +
+          '<tr class="tot"><td>Total, ' + pkd.name + '</td><td class="n">' + rg(t.low, t.high) + '</td></tr></tbody></table>' +
+        '<h2>' + pkd.name + ', room by room</h2><p class="rpt-note">Products and amounts at the ' + (E === 'hi' ? 'high' : 'low') + ' end of each range. Material is the product times its quantity; labor is the work on that line.</p>' + rooms +
+        (unk.length ? '<h2>Not confirmed, left out of the budget</h2><ul>' + unk.join('') + '</ul>' : '') +
+        '<h2>Not included</h2><ul>' + RI.NOT_INCLUDED.filter(function(x){ return x !== 'Items you turned off'; }).map(function(x){ return '<li>' + esc(x) + '</li>'; }).join('') + '<li>Items you turned off' + (offs.length ? ': ' + esc(offs.join('; ')) : ' (none)') + '</li></ul>' +
+        '<h2>House systems, advice only</h2><ul>' + est.mechanicals.map(function(m){ return '<li><b>' + esc(m.name) + '.</b> ' + esc(m.life || '') + '. Have it inspected.</li>'; }).join('') + '</ul>' +
+        '<p class="rpt-foot">An estimate for planning, not a contractor\'s bid. Sample products and prices until Sam\'s product list arrives.</p>';
+    }
     view.querySelector('#pdf').addEventListener('click', function(){
-      if(tab !== 'rooms') show('rooms');
-      pv.innerHTML = '<div class="wb-all">' + est.rooms.map(function(r){ return RI.RoomCard.html(r, h.pk, {photo:roomPhoto(r.key), range:roomRange(r), buysHtml:buysHtml(r), ends:endsFor(r)}); }).join('') + '</div>';
-      pv.querySelectorAll('details.wb-kept, details.wb-how').forEach(function(d){ d.open = true; }); /* the PDF shows how every price is made */ RI.fillIcons(pv);
-      window.addEventListener('afterprint', function(){ if(tab === 'rooms') viewRooms(); RI.fillIcons(pv); }, {once:true});
+      var rp = document.getElementById('rpt'); if(!rp){ rp = document.createElement('div'); rp.id = 'rpt'; rp.className = 'rpt'; document.body.appendChild(rp); }
+      rp.innerHTML = reportHtml(); document.documentElement.classList.add('rpt-on');
+      window.addEventListener('afterprint', function(){ document.documentElement.classList.remove('rpt-on'); rp.innerHTML = ''; }, {once:true});
       RI.toast('Choose "Save as PDF" in the print dialog.', 'file');
       RI.track('pdf_downloaded', {house:h.id}); setTimeout(function(){ window.print(); }, 400);
     });
