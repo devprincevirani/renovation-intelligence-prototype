@@ -165,15 +165,43 @@
       var eb = pv.querySelectorAll('.rc-ends [data-end] b'); if(eb.length === 2 && r){ var tt = RI.totals(h.pk, h.off, r.key); eb[0].textContent = RI.money(tt.low); eb[1].textContent = RI.money(tt.high); }
       if(plan) plan.update(h.pk, h.off, selRoom);
     }
-    function viewTrades(){
-      var by = {};
-      est.rooms.forEach(function(r){ r.items.forEach(function(it){ var t = it.trade; by[t] = by[t] || {lo:0, hi:0, lines:[], held:0}; if(RI.isHeld(it)){ by[t].held++; by[t].lines.push([r, it, null]); return; } var a = it.pk[h.pk]; if(a[1] == null || h.off[it.id]) return; by[t].lo += a[1]; by[t].hi += a[2]; by[t].lines.push([r, it, a]); }); });
-      var keys = Object.keys(by).sort(function(a, b){ return by[b].hi - by[a].hi; }), mx = Math.max.apply(null, keys.map(function(k){ return by[k].hi; })) || 1;
-      pv.innerHTML = '<p class="small muted tab-intro">The same work grouped by trade. Each task is counted once, by the one trade that owns it.</p><div class="trades" data-scale="0,' + mx + '">' + keys.map(function(k){
-        var t = by[k];
-        return '<details class="trade"><summary><span><b>' + k + '</b><span class="xsmall muted">' + t.lines.length + ' line' + (t.lines.length === 1 ? '' : 's') + (t.held ? ', ' + t.held + ' not confirmed' : '') + '</span></span><span class="rl" data-low="' + t.lo + '" data-high="' + t.hi + '"></span><span class="range-txt">' + (t.hi ? RI.range(t.lo, t.hi) : '<span class="muted">Not priced</span>') + '</span></summary>' +
-          '<ul>' + t.lines.map(function(l){ return '<li><span><b>' + l[0].name + '</b> ' + RI.esc(l[1].name) + '<span class="xsmall muted">' + (l[2] ? RI.esc(l[2][0]) : '') + '</span></span>' + (l[2] ? '<span class="range-txt small">' + RI.range(l[2][1], l[2][2]) + '</span>' : heldTag(l[1])) + '</li>'; }).join('') + '</ul></details>';
-      }).join('') + '</div>';
+    /* The trade view (user, Nov 2026; APP_FLOW 6.6 "trade view with items on and off"): grouped by trade (painting, flooring, plumbing…; GLOSSARY), never by place; each line
+       is a room with its part, net quantity and action, its Low to High and an on/off switch. A line turned off stays,
+       muted; lines not priced yet come last with what would settle them. The trades add up to the rooms' total. */
+    function viewTrades(keep){
+      var openG = keep ? [].slice.call(pv.querySelectorAll('.tv-g[open]')).map(function(d){ return d.getAttribute('data-g'); }) : [];
+      var by = {}, order = RI.TRADES.map(function(g){ return g[0]; });
+      est.rooms.forEach(function(r){ r.items.forEach(function(it){
+        var a = it.pk[h.pk], held = RI.isHeld(it); if(!held && (!a || a[1] == null)) return;
+        var g = RI.tradeOf(it), t = by[g] = by[g] || {lo:0, hi:0, lines:[], held:0, rooms:{}};
+        t.rooms[r.key] = 1; t.lines.push([r, it]); if(held){ t.held++; return; } if(!h.off[it.id]){ t.lo += a[1]; t.hi += a[2]; }
+      }); });
+      var keys = Object.keys(by).sort(function(a, b){ return by[b].hi - by[a].hi || order.indexOf(a) - order.indexOf(b); }), mx = Math.max.apply(null, keys.map(function(k){ return by[k].hi; })) || 1;
+      var part = function(it){ return RI.esc((RI.ITEM_PART && RI.ITEM_PART[it.id]) || it.name); };
+      /* one: the trade covers a single room, so the part is the title and the room moves under it */
+      function line(r, it, one){
+        var a = it.pk[h.pk], off = !!h.off[it.id];
+        if(RI.isHeld(it)){
+          var why = it.fix ? RI.esc(it.fix) + ' would settle it' : '';
+          return '<li class="tv-r held"><span><b>' + (one ? RI.esc(it.name) : RI.esc(r.name)) + '</b><small>' + (one ? RI.esc(r.name) : RI.esc(it.name)) + (why ? ' · ' + why : '') + '</small></span><span class="p">' + heldTag(it) + '<span class="offt">Not in the total</span></span></li>';
+        }
+        var title = one ? part(it) : RI.esc(r.name), sub = (one ? RI.esc(r.name) : part(it)) + ' · ' + RI.esc(it.qty) + ' · ' + RI.esc(a[0]);
+        return '<li class="tv-r' + (off ? ' off' : '') + '" data-item="' + it.id + '"><span><b>' + title + '</b><small>' + sub + '</small></span>' +
+          '<span class="p"><span class="v range-txt">' + RI.range(a[1], a[2]) + '</span>' + (off ? '<span class="offt">Turned off</span>' : '') + '</span>' +
+          '<label class="switch sw"><input type="checkbox" data-id="' + it.id + '"' + (off ? '' : ' checked') + '><span class="track"></span><span class="sr">Include ' + RI.esc(r.name) + ', ' + part(it).toLowerCase() + '</span></label></li>';
+      }
+      var t = RI.totals(h.pk, h.off), n = keys.length;
+      pv.innerHTML = '<p class="small muted tab-intro">The same work, grouped by trade. Turn any item on or off here or in Rooms.</p><div class="tv" data-scale="0,' + mx + '">' + keys.map(function(k){
+        var g = by[k], nr = Object.keys(g.rooms).length;
+        g.lines.sort(function(x, y){ var hx = RI.isHeld(x[1]) ? 1 : 0, hy = RI.isHeld(y[1]) ? 1 : 0; return hx - hy || ((y[1].pk[h.pk] || [])[2] || 0) - ((x[1].pk[h.pk] || [])[2] || 0); });
+        return '<details class="tv-g" data-g="' + RI.esc(k) + '"' + (openG.indexOf(k) >= 0 ? ' open' : '') + '><summary><span class="tv-n"><b>' + RI.esc(k) + '</b><small>' + nr + ' room' + (nr === 1 ? '' : 's') + (g.held ? ' · ' + g.held + ' not priced yet' : '') + '</small></span>' +
+          '<span class="rl" data-low="' + g.lo + '" data-high="' + g.hi + '"></span><span class="tv-amt range-txt">' + (g.hi ? RI.range(g.lo, g.hi) : 'Not priced yet') + '</span><span class="tv-chev" aria-hidden="true"></span></summary>' +
+          /* option F (user, Nov 2026): column names, the lines, then a total line that ends the trade, like a bill */
+          '<div class="tv-body"><div class="tv-cols" aria-hidden="true"><span>' + (nr === 1 ? 'Work' : 'Room and work') + '</span><span>Low to High</span><span>Include</span></div>' +
+          '<ul class="tv-l">' + g.lines.map(function(l){ return line(l[0], l[1], nr === 1); }).join('') + '</ul>' +
+          '<div class="tv-tot"><span>Total ' + RI.esc(k.charAt(0).toLowerCase() + k.slice(1)) + (g.held ? '<small>' + g.held + ' line' + (g.held === 1 ? '' : 's') + ' not priced yet, left out</small>' : '') + '</span><span class="range-txt">' + (g.hi ? RI.range(g.lo, g.hi) : 'Not priced yet') + '</span></div>' +
+          '<button type="button" class="tv-close" data-tv-close>Close ' + RI.esc(k.charAt(0).toLowerCase() + k.slice(1)) + '<span class="tv-chev up" aria-hidden="true"></span></button></div></details>';
+      }).join('') + '</div><p class="tv-sum">These ' + n + ' trade' + (n === 1 ? '' : 's') + ' add up to <b class="range-txt">' + RI.range(t.low, t.high) + '</b>, the same as your rooms. Each part is counted once.</p>';
       RI.initRanges(pv); pv.querySelectorAll('.rl').forEach(function(x){ x.classList.add('drawn'); });
     }
     function viewUnk(){
@@ -238,6 +266,8 @@
     seg.addEventListener('keydown', function(e){ if(e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return; var ks = ['E','S','P'], n = ks[(ks.indexOf(h.pk) + (e.key === 'ArrowRight' ? 1 : 2)) % 3]; setPk(n); seg.querySelector('[data-pk="' + n + '"]').focus(); });
 
     pv.addEventListener('click', function(e){
+      /* the close row at the end of an open trade: closes it, keeps its header in view and the focus on it */
+      var tc = e.target.closest('[data-tv-close]'); if(tc){ var dg = tc.closest('details'), sm = dg.querySelector('summary'); dg.open = false; if(sm.getBoundingClientRect().top < 80) sm.scrollIntoView({block:'center', behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'}); sm.focus({preventScroll:true}); return; }
       var ph = e.target.closest('[data-ph]'); if(ph){ var kk = ph.getAttribute('data-ph').split('|'), pp = (h.photos[kk[0]] || []).filter(function(x){ return x.state === 'done'; })[+kk[1]]; if(pp) A.dialog(RI.esc(est.rooms.filter(function(r){ return r.key === kk[0]; })[0].name), '<img class="plan-view" src="' + pp.src + '" alt="' + RI.esc(pp.name) + '">', {wide:true}); return; }
       var pick = e.target.closest('[data-pick]'); if(pick){ if(pick.getAttribute('data-pick') !== selRoom){ selRoom = pick.getAttribute('data-pick'); drawCard('room'); } return; }
       var en = e.target.closest('[data-end]'); if(en){ if(en.getAttribute('data-end') !== end){ end = en.getAttribute('data-end'); h.end = end; save(); drawEnd(); } }
@@ -251,6 +281,7 @@
       pv.querySelectorAll('[data-item]').forEach(function(row){ var iid = row.getAttribute('data-item'), cb = row.querySelector('input[data-id]'); row.classList.toggle('off', !!h.off[iid]); if(cb) cb.checked = !h.off[iid]; });
       if(note.length) RI.toast((on ? '' : 'Also turned off. ') + note.join(' '), 'info');
       totals(true); refreshRooms();
+      if(tab === 'trades'){ viewTrades(true); var f = pv.querySelector('input[data-id="' + id + '"]'); if(f) f.focus(); }
     });
 
     /* Share */
