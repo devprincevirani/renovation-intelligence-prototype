@@ -283,6 +283,7 @@
     var s = A.me(), top = doc.getElementById('app-top'), tabs = doc.getElementById('app-tabs');
     var items = [['houses', A.isPro() ? 'Client houses' : 'My houses', '#/houses', 'house']];
     if(A.isPro()) items.push(['resources','Resources','#/resources','file']);
+    if(RI.Ref) items.push(['refer','Refer','#/refer','share']);
     items.push(['account','Account','#/account','user']);
     var initials = s ? (s.name || s.email).split(/[\s@.]/).filter(Boolean).slice(0, 2).map(function(x){ return x[0].toUpperCase(); }).join('') : '';
     var focusExit = doc.body.classList.contains('is-focus');

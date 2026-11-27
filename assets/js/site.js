@@ -287,7 +287,7 @@
       ['Legal and other', [['Terms', 'terms/', 'Terms of use', 'file'], ['Privacy', 'privacy/', 'How data is handled', 'shield'], ['Disclaimer', 'disclaimer/', 'An estimate, not a bid', 'info'], ['Page not found', '404.html', 'The 404 screen', 'warn']]]
     ]},
     {key:'accounts', name:'Accounts', icon:'user', sections:[
-      ['Sign up', [['Sign up', 'signup/', 'Before launch: closed, points to the waitlist', 'user'], ['Sign up from Sam\'s trial invite', 'signup/?invite=demo-trial', 'The invited path, with 3 invite credits', 'mail'], ['Sign up for the 15-day trial', 'signup/?invite=trial-invite', 'Email locked, choose a password', 'clock'],['Check your email', 'verify-email/?email=homeowner@demo.ri', 'Confirm the address after sign up', 'mail'], ['Email link expired', 'verify-email/?email=homeowner@demo.ri&state=expired', 'The link is older than 24 hours', 'clock']]],
+      ['Sign up', [['Sign up', 'signup/', 'Before launch: closed, points to the waitlist', 'user'], ['Sign up from Sam\'s trial invite', 'signup/?invite=demo-trial', 'The invited path, with 3 invite credits', 'mail'], ['Sign up for the 15-day trial', 'signup/?invite=trial-invite', 'Email locked, choose a password', 'clock'], ['Sign up from a referral link', 'signup/?ref=JORDAN10', 'After launch: names who shared it', 'share'], ['Check your email', 'verify-email/?email=homeowner@demo.ri', 'Confirm the address after sign up', 'mail'], ['Email link expired', 'verify-email/?email=homeowner@demo.ri&state=expired', 'The link is older than 24 hours', 'clock']]],
       ['Log in and passwords', [['Log in', 'login/', 'Email and password, plus the demo roles', 'lock'], ['Forgot password', 'forgot-password/', 'Ask for a reset link', 'refresh'], ['Set a new password', 'reset-password/?email=homeowner@demo.ri', 'Opened from the reset link', 'lock']]],
       ['Staff', [['Staff invite', 'invite/?t=demo-staff', 'Accept Sam\'s invite and set a password', 'shield'], ['Staff invite expired', 'invite/?t=old', 'The invite link no longer works', 'clock']]]
     ]},
@@ -295,7 +295,7 @@
       ['Houses', [['My houses', 'app/#/houses', 'Cards with status and the next step', 'house'], ['Add a house', 'app/#/houses/new', 'Starts a new intake', 'house']]],
       ['Intake', [['Tell us about the home', 'app/#/go/draft/intake~house', 'Address, size, rooms', 'house'], ['Rooms and photos', 'app/#/go/draft/intake~rooms', 'Tray, room cards, sizes, submit', 'camera']], 'flow'],
       ['After submit', [['House being read', 'app/#/go/working/-', 'Progress while the photos are read', 'clock'], ['Price by package', 'app/#/go/ready/-', 'Free: Low and High for three goals', 'sliders'], ['Checkout', 'app/#/go/ready/checkout', 'One payment for the presentation', 'lock'], ['Presentation', 'app/#/go/open/presentation', 'Rooms, products, share and PDF', 'file']]],
-      ['Other', [['Account', 'app/#/account', 'Profile, demo data, the free limit', 'user'], ['Error screen', 'app/#/demo-error', 'When a screen fails to load', 'warn']]]
+      ['Other', [['Refer and earn', 'app/#/refer', 'Your link, credit and referrals', 'share'], ['Account', 'app/#/account', 'Profile, demo data, the free limit', 'user'],['Error screen', 'app/#/demo-error', 'When a screen fails to load', 'warn']]]
     ]},
     {key:'builder', name:'Builder app', icon:'hammer', role:'builder', sections:[
       ['Builder', [['Client houses', 'app/#/houses', 'Six client houses with names', 'hammer'], ['Presentation with task lists', 'app/#/go/open/presentation', 'Task lists per trade, as CSV', 'list'], ['Resources', 'app/#/resources', 'Scope documents', 'file']]]
@@ -308,7 +308,7 @@
       ['Pricing', [['Products', 'admin/#/products', 'The product library by tier', 'tag'], ['Rates', 'admin/#/rates', 'Low and High per line', 'file']]],
       ['Content', [['Guidance', 'admin/#/guidance', 'Systems guidance and texts', 'info'], ['Builder documents', 'admin/#/resources', 'Scope documents', 'file']]],
       ['Changes', [['Publish queue', 'admin/#/publish', 'Drafts waiting for Sam', 'refresh'], ['Back-tests', 'admin/#/backtests', 'Replay houses after a change', 'clock']]],
-      ['Customers', [['Contacts and feedback', 'admin/#/feedback', 'Feedback and the updates list', 'mail'], ['Funnel', 'admin/#/funnel', 'Where people leave', 'sliders']]],
+      ['Customers', [['Contacts and feedback', 'admin/#/feedback', 'Feedback and the updates list', 'mail'], ['Funnel', 'admin/#/funnel', 'Where people leave', 'sliders'], ['Referrals', 'admin/#/referrals', 'Rewards to review, settings', 'share']]],
       ['Admin', [['Users and staff', 'admin/#/users', 'Accounts, staff, waitlist', 'user'], ['Audit log', 'admin/#/audit', 'Every change, who and why', 'console']]]
     ]},
     {key:'other', name:'Shared view', icon:'share', sections:[
