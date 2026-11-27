@@ -1482,6 +1482,10 @@ textarea.input{min-height:96px;resize:vertical}
 .invite-chip{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:var(--r-md);background:rgba(161,125,88,.1);border:1px dashed rgba(161,125,88,.55);font-size:.86rem;line-height:1.45}
 .invite-chip>.i{flex:none;margin-top:2px;color:#815E3A}
 .invite-chip code{font-family:ui-monospace,Menlo,monospace;font-size:.82rem;padding:1px 6px;border-radius:2px;background:var(--raised);border:1px solid var(--border);color:var(--deep-forest);font-weight:600}
+/* An email fixed by an invite: read only, with a lock at the right */
+.lock-wrap{position:relative}
+.lock-wrap .input{padding-right:42px;cursor:default}
+.lock-wrap>.i{position:absolute;right:14px;top:50%;width:16px;height:16px;transform:translateY(-50%);color:var(--muted);pointer-events:none}
 /* Account type: six tiles with icons, the chosen one explained below */
 .types-pick2{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
 .types-pick2 label{position:relative;cursor:pointer}

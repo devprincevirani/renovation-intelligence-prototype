@@ -111,7 +111,8 @@
 
   /* ---------- Users and staff ----------
      Users: one State column (not verified, active, trial with days left, disabled) and Enable after Disable.
-     Waitlist and trial: Sam invites waiting contacts to the 15-day trial (SECURITY 3.2, APP_FLOW 10 "Trial invite", BACKLOG M1-38).
+     Waitlist: Sam invites waiting contacts to the 15-day trial (SECURITY 3.2, APP_FLOW 10 "Trial invite", BACKLOG M1-38).
+     Trial invites: every trial invite, and Invite to trial for an email that is not on the waitlist.
      Staff: the table, then a grid of who can do what (SECURITY 3.2, 3.3). */
   var TRIAL_DAYS = 15;
   /* Example rows so the screen reads at its real size. Accounts made in this browser are added on top */
@@ -132,6 +133,14 @@
     {email:'j.carter@example.com', type:'buyer', source:'waitlist', at:now - 20 * DAY, invitedAt:now - 15 * DAY},
     {email:'lee.morgan@example.com', type:'other', source:'home', at:now - 22 * DAY}
   ];
+  /* Trial invites Sam sent straight to an email, without a waitlist row. Invites made in this browser go on top */
+  var SAMPLE_DIRECT = [
+    {email:'priya.shah@example.com', type:'builder', at:now - DAY},
+    {email:'tom.becker@example.com', type:'seller', at:now - 6 * DAY}
+  ];
+  /* The same account types, words and icons as the sign-up and waitlist pages */
+  var TYPES = [['homeowner', 'Homeowner', 'house', 'I own the house'], ['buyer', 'Buyer', 'search', 'I am looking at a house'], ['seller', 'Seller', 'tag', 'I am selling a house'],
+    ['builder', 'Builder', 'hammer', 'I renovate houses for clients'], ['agent', 'Agent', 'key', 'I help people buy and sell'], ['other', 'Other', 'more', 'Something else']];
   /* Short names for the grid; the full sentence stays in the invite and permissions dialogs */
   var SHORT = {'houses.view':'See houses', 'houses.grade':'Grade decisions', 'rulebook.view':'Read the rulebook', 'rulebook.edit':'Edit rulebook drafts',
     'pricing.edit':'Edit products and rates', 'content.edit':'Edit guidance and documents', 'accuracy.manage':'Label photos for accuracy', 'backtests.run':'Run back-tests',
@@ -161,7 +170,7 @@
     var q = C.query(), tab = q.tab === 'trial' ? 'waitlist' : (q.tab || 'users'), m = C.me(), sam = C.can('staff'), isSam = !!(m && m.sam);
     /* The trial is for the contacts Sam invites before launch (PROJECT 3d, GLOSSARY) */
     var pre = RI.mode() === 'prelaunch', canInvite = isSam && pre; /* trial invites and disabling users stay Sam's (SECURITY 3.2) */
-    var st = {uf:'all', uq:'', wf:'all', wq:'', pick:[]};
+    var st = {uf:'all', uq:'', wf:'all', wq:'', tf:'all', tq:'', pick:[]};
     var flags = C.get('userFlags', {}), inv = C.get('trialInvites', {});
 
     function users(){
@@ -183,11 +192,25 @@
       });
       return list;
     }
-    var U = users(), W = waitlist(), staff = staffList();
+    /* Every trial invite sent: straight to an email (Trial invites tab) or to a waitlist contact */
+    function invites(){
+      var out = [], us = users();
+      function add(email, type, from, at){
+        if(out.some(function(x){ return x.email === email; })) return;
+        var u = us.filter(function(x){ return x.email === email; })[0];
+        out.push({email:email, type:type, from:from, at:at, user:u && u.trial ? u : null});
+      }
+      C.get('trialDirect', []).slice().reverse().forEach(function(x){ add(x.email, x.type, 'direct', inv[x.email] || x.at); });
+      SAMPLE_DIRECT.forEach(function(x){ add(x.email, x.type, 'direct', inv[x.email] || x.at); });
+      W.forEach(function(w){ if(w.invitedAt) add(w.email, w.type, 'waitlist', w.invitedAt); });
+      out.forEach(function(x){ x.status = x.user ? 'trial' : 'invited'; });
+      return out.sort(function(a, b){ return b.at - a.at; });
+    }
+    var U = users(), W = waitlist(), I = invites(), staff = staffList();
 
     view.innerHTML = C.page({kicker:'Admin', title:'Users and staff', sub:'Users, account types, staff invites and permissions.',
       actions:sam ? '<div class="us-head" id="us-head" aria-live="polite"></div><button type="button" class="btn btn-primary" id="inv-new">' + RI.icon('user','i-sm') + 'Invite staff</button>' : '',
-      body:'<div class="us-top">' + '<div class="us-tabs" id="us-tab" role="tablist" aria-label="Sections">' + [['users', 'Users', U.length, 'user'], ['staff', 'Staff', staff.length + 1, 'key'], ['roles', 'Roles', C.roles().length, 'shield'], ['waitlist', 'Waitlist<span class="ut-long"> and trial</span>', W.length, 'mail']].map(function(t){
+      body:'<div class="us-top">' + '<div class="us-tabs" id="us-tab" role="tablist" aria-label="Sections">' + [['users', 'Users', U.length, 'user'], ['staff', 'Staff', staff.length + 1, 'key'], ['roles', 'Roles', C.roles().length, 'shield'], ['waitlist', 'Waitlist', W.length, 'mail'], ['invites', 'Trial<span class="ut-long"> invites</span>', I.length, 'share']].map(function(t){
         return '<button type="button" role="tab" data-v="' + t[0] + '" aria-selected="' + (t[0] === tab) + '"><span class="ut-ic">' + RI.icon(t[3], 'i-sm') + '</span><span class="ut-t">' + t[1] + '</span><span class="ut-n">' + t[2] + '</span></button>';
       }).join('') + '</div>' + '<div id="us-tools" class="us-bar"></div></div><div id="us-body"></div>'});
 
@@ -268,7 +291,65 @@
       RI.fillIcons(d);
       d.querySelector('#tr-go').addEventListener('click', function(){
         var t = Date.now(); emails.forEach(function(e){ inv[e] = t; C.log('Trial invite sent', e, '', 'users'); }); C.set('trialInvites', inv);
-        st.pick = []; W = waitlist(); d.close(); RI.toast(one ? 'Trial invite sent.' : emails.length + ' trial invites sent.', 'check'); body();
+        st.pick = []; invitesChanged(); d.close(); RI.toast(one ? 'Trial invite sent.' : emails.length + ' trial invites sent.', 'check'); body();
+      });
+    }
+    function invitesChanged(){
+      W = waitlist(); I = invites();
+      [['waitlist', W.length], ['invites', I.length]].forEach(function(t){ var n = view.querySelector('#us-tab [data-v="' + t[0] + '"] .ut-n'); if(n) n.textContent = t[1]; });
+    }
+
+    /* Trial invites: everyone Sam invited to the trial, from the waitlist or straight to an email */
+    function tiStatus(x){
+      if(x.status === 'trial'){ var d = daysLeft(x.user); return d > 0 ? '<span class="lb ' + (d <= 3 ? 'lb-queued' : 'lb-pub') + '">On trial, ' + d + (d === 1 ? ' day' : ' days') + ' left</span>' : '<span class="lb lb-off">Trial ended</span>'; }
+      return '<span class="lb lb-info">Invited</span>';
+    }
+    function bodyInvites(el){
+      var rows = I.filter(function(x){ return (st.tf === 'all' || x.status === st.tf) && (!st.tq || x.email.indexOf(st.tq) > -1); });
+      var from = function(x){ return x.from === 'direct' ? 'Invited by email' : 'Waitlist'; };
+      var tools = doc.getElementById('us-tools');
+      tools.innerHTML = C.search('us-tq', 'Search email', st.tq) +
+        pick('us-tf', 'Status', [['all','All statuses',I.length],['invited','Invited',count(I, function(x){ return x.status; }, 'invited')],['trial','On trial',count(I, function(x){ return x.status; }, 'trial')]], st.tf);
+      el.innerHTML =
+        '<div class="c-mt">' + C.table({cls:'us-wl us-cards', empty:I.length ? 'Nobody matches. Try another email, or show all.' : 'No trial invites yet.', cols:[{label:'Email'},{label:'Account type'},{label:'From'},{label:'Sent', num:true},{label:'Status'},{label:'', cls:'us-actc'}],
+          rows:rows.map(function(x){
+            var act = canInvite && x.status === 'invited' ? '<button type="button" class="us-act" data-trial="' + RI.esc(x.email) + '" data-again="1" title="Last sent ' + C.date(x.at) + '" aria-label="Resend the trial invite to ' + RI.esc(x.email) + '">' + RI.icon('refresh','i-sm') + 'Resend</button>' : '';
+            return {cells:['<b>' + RI.esc(x.email) + '</b><span class="us-pst">' + tiStatus(x) + '</span>' + meta([x.type ? cap(x.type) : '', from(x), 'Sent ' + C.date(x.at)]),
+              x.type ? C.chip(cap(x.type)) : '<span class="muted">Not given</span>', from(x), C.date(x.at), tiStatus(x), act]};
+          })}) + '</div>' +
+        '<div class="c-mt">' + C.note(!pre ? 'Trial invites are for the contacts Sam invites before launch.' : isSam ? 'Invite to trial emails a sign-up link for a 15-day trial. The account type sets what they see, never what they may do.' : 'Only Sam invites people to the trial.') + '</div>';
+      RI.fillIcons(el);
+      RI.fillIcons(tools);
+      tools.querySelector('#us-tq').addEventListener('input', function(){ st.tq = this.value.trim().toLowerCase(); var p = this.selectionStart; bodyInvites(el); var n = doc.getElementById('us-tq'); n.focus(); n.setSelectionRange(p, p); });
+      tools.querySelector('#us-tf').addEventListener('change', function(){ st.tf = this.value; bodyInvites(el); doc.getElementById('us-tf').focus(); });
+    }
+    /* Invite to trial: an email and an account type, picked with the same cards as the sign-up page */
+    function newTrialDialog(){
+      var d = C.dialog('Invite to the trial',
+        '<p>They get an email with a link to sign up for a 15-day trial.</p>' +
+        '<div class="field"><label for="ti-em">Email</label><input class="input" id="ti-em" type="email" placeholder="name@example.com" autocomplete="off"><span class="err"></span></div>' +
+        '<fieldset class="field tp-field"><legend class="flabel tp-head"><span>Account type</span><span class="tp-desc" id="ti-type-desc" aria-live="polite">' + TYPES[0][3] + '</span></legend><div class="types-pick3">' + TYPES.map(function(t, i){
+          return '<label><input type="radio" name="ti-type" value="' + t[0] + '" data-d="' + t[3] + '"' + (i === 0 ? ' checked' : '') + '><span><span class="tp-ic">' + RI.icon(t[2]) + '</span><b>' + t[1] + '</b><span class="tp-ok" aria-hidden="true">' + RI.icon('check') + '</span></span></label>';
+        }).join('') + '</div></fieldset>' +
+        '<div class="cta-row" style="justify-content:flex-end"><button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="button" class="btn btn-primary" id="ti-go">' + RI.icon('mail','i-sm') + 'Send the invite</button></div>');
+      RI.fillIcons(d);
+      var em = d.querySelector('#ti-em'), desc = d.querySelector('#ti-type-desc');
+      em.focus();
+      em.addEventListener('input', function(){ RI.form.setInvalid(em, ''); });
+      d.addEventListener('change', function(e){
+        if(e.target.name !== 'ti-type') return;
+        desc.textContent = e.target.getAttribute('data-d'); desc.classList.remove('flip'); void desc.offsetWidth; desc.classList.add('flip');
+      });
+      d.querySelector('#ti-go').addEventListener('click', function(){
+        var v = em.value.trim().toLowerCase(), type = d.querySelector('input[name="ti-type"]:checked').value;
+        if(!RI.form.emailOk(v)){ RI.form.setInvalid(em, 'Check the email address, for example name@example.com.'); em.focus(); return; }
+        if(users().some(function(u){ return u.email === v; })){ RI.form.setInvalid(em, 'This email already has an account.'); em.focus(); return; }
+        if(I.some(function(x){ return x.email === v; })){ RI.form.setInvalid(em, 'This email already has a trial invite. Use Resend in the list.'); em.focus(); return; }
+        var t = Date.now(), list = C.get('trialDirect', []);
+        list.push({email:v, type:type, at:t, by:(m && m.name) || 'Sam'}); C.set('trialDirect', list);
+        inv[v] = t; C.set('trialInvites', inv);
+        C.log('Trial invite sent', v + ', as ' + cap(type), '', 'users');
+        invitesChanged(); d.close(); RI.toast('Trial invite sent to ' + v + '.', 'check'); body();
       });
     }
 
@@ -313,6 +394,12 @@
        so Invite staff steps down to a secondary button */
     function headActs(){
       var slot = doc.getElementById('us-head'), staffBtn = doc.getElementById('inv-new'); if(!slot) return;
+      /* On the Trial invites tab the header button invites to the trial instead of inviting staff */
+      if(staffBtn){
+        var ti = tab === 'invites';
+        staffBtn.hidden = ti && !canInvite;
+        staffBtn.innerHTML = ti ? RI.icon('mail','i-sm') + 'Invite to trial' : RI.icon('user','i-sm') + 'Invite staff';
+      }
       var on = tab === 'waitlist' && canInvite, n = on ? st.pick.length : 0;
       /* One control for the selection: the count, clear, and the action, joined; a divider keeps it apart from Invite staff */
       slot.innerHTML = !on ? '' : n ? '<div class="us-selgrp" role="group" aria-label="' + n + ' contacts selected"><span class="us-sg-n"><b>' + n + '</b>selected</span>' +
@@ -331,6 +418,7 @@
       if(tab === 'staff') bodyStaff(el);
       if(tab === 'roles') bodyRoles(el);
       if(tab === 'waitlist') bodyWaitlist(el);
+      if(tab === 'invites') bodyInvites(el);
       headActs();
     }
     view.querySelector('#us-tab').addEventListener('click', function(e){ var b = e.target.closest('[data-v]'); if(!b) return; tab = b.getAttribute('data-v'); view.querySelectorAll('#us-tab [data-v]').forEach(function(x){ x.setAttribute('aria-selected', x === b); }); history.replaceState(null, '', '#/users?tab=' + tab); body(); });
@@ -348,7 +436,7 @@
       }
     });
     view.addEventListener('keydown', function(e){ var s = !e.target.closest('.rl-cus') && e.target.closest('[data-staff]'); if(s && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); permsDialog(s.getAttribute('data-staff'), function(){ staff = staffList(); body(); }); } });
-    var nb = view.querySelector('#inv-new'); if(nb) nb.addEventListener('click', function(){ inviteDialog(); });
+    var nb = view.querySelector('#inv-new'); if(nb) nb.addEventListener('click', function(){ if(tab === 'invites') newTrialDialog(); else inviteDialog(); });
     body();
   }, {nav:'users', perm:'users.view'});
 
