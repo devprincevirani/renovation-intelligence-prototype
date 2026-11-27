@@ -3656,3 +3656,117 @@ dialog.dlg.dlg-drawer.ax-open{width:min(1040px,100vw)}
   .ax-ph{padding:14px 16px 12px}
   .ax-cols{padding:0 16px 16px}
 }
+
+/* ---------- Referrals (business model 3) ---------- */
+/* Summary tiles double as filters: press one to show only those rows, press it again for all */
+.refc-kpis .ov-k{border:0;font:inherit;text-align:left;cursor:pointer}
+.refc-kpis .ov-k[aria-pressed="true"]{background:#FCFAF6;box-shadow:inset 0 -3px 0 var(--deep-forest)}
+.refc-kpis .ov-k.key[aria-pressed="true"]{box-shadow:inset 0 3px 0 var(--deep-forest),inset 0 -3px 0 var(--deep-forest)}
+@media (min-width:720px){ .refc-kpis{grid-template-columns:repeat(4,minmax(0,1fr))} }
+@media (max-width:599px){ .refc-kpis .ov-k{padding:14px 16px;gap:6px} .refc-kpis .ov-kv{font-size:1.9rem} }
+.refc-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.refc-bar .c-search{flex:0 1 300px}
+@media (max-width:599px){ .refc-bar .c-seg{flex-wrap:wrap;overflow:visible} .refc-bar .c-search{flex:1 1 100%} }
+
+/* The table: a real table from 1360, five columns so it fits beside the side menu. Below that each referral is
+   a short card: the person and their status on top, who referred them and the reward next, then the actions */
+.refc-sub{display:block;margin-top:2px;font-size:.76rem;color:var(--muted)}
+.refc-acts{display:inline-flex;justify-content:flex-end;gap:6px}
+.refc-amt{font-variant-numeric:tabular-nums;color:var(--muted)}
+.refc-amt.got{font-weight:600;color:var(--text)}
+.refc-tbl .c-person small{overflow-wrap:anywhere}
+.refc-tbl td:nth-child(1) b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (min-width:1360px){
+  .refc-tbl td:nth-child(1){max-width:260px}
+  .refc-tbl td:nth-child(2){min-width:180px}
+  .refc-tbl td:nth-child(4){white-space:nowrap}
+  .refc-tbl td:last-child{text-align:right;white-space:nowrap}
+}
+@media (max-width:1359px){
+  .refc-tbl,.refc-tbl tbody{display:grid}
+  .refc-tbl thead{display:none}
+  .refc-tbl tr{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"ref st" "who amt" "act act";gap:12px 14px;padding:14px 16px;border-bottom:1px solid var(--border-soft)}
+  .refc-tbl td{display:block;margin:0;padding:0;border:0;min-width:0;text-align:left}
+  .refc-tbl td::before{display:none}
+  .refc-tbl td:nth-child(1){grid-area:ref}
+  .refc-tbl td:nth-child(2){grid-area:who}
+  .refc-tbl td:nth-child(2)::before{content:"Referred by";display:block;margin-bottom:6px;font-size:.66rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .refc-tbl td:nth-child(3){grid-area:st;justify-self:end}
+  .refc-tbl td:nth-child(4){grid-area:amt;align-self:end;justify-self:end;text-align:right}
+  .refc-tbl td:nth-child(4) .refc-amt{font-size:1.05rem}
+  .refc-tbl td:nth-child(5){grid-area:act}
+  .refc-tbl td:nth-child(5):empty{display:none}
+  .refc-tbl td:nth-child(5) .refc-acts{display:flex}
+  .refc-tbl td:nth-child(5) .us-act{flex:1 1 0;justify-content:center;min-height:40px}
+  .refc-tbl td:nth-child(5)>.us-act{width:100%}
+}
+/* Tablet: two cards to a row */
+@media (min-width:600px) and (max-width:1359px){
+  .c-tbl-wrap:has(.refc-tbl){border:0;border-radius:0;background:none;overflow:visible}
+  .refc-tbl tbody{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .refc-tbl tr,.refc-tbl tr:last-child{align-content:start;border:1px solid var(--border);border-radius:8px;background:var(--raised)}
+}
+
+/* Program settings: the two kinds of referral side by side. Each card holds its numbers, set with a minus and a plus,
+   and the path to its reward, drawn from the values as they are typed. The footer says whether anything is unsaved */
+.refc-set{border:1px solid var(--border);border-radius:8px;background:var(--raised);overflow:hidden}
+.refc-set-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;padding:18px 20px;border-bottom:1px solid var(--border-soft)}
+.refc-set-h h2{font-family:var(--display);font-weight:500;font-size:1.15rem;line-height:1.25}
+.refc-set-h p{margin:4px 0 0;font-size:.8rem;color:var(--muted)}
+.refc-master{min-height:38px;padding:4px 16px 4px 6px;border:1px solid var(--border);border-radius:999px;background:#FBF9F5}
+.refc-ms{min-width:7.4em;font-size:.86rem;font-weight:600;color:var(--text)}
+.refc-tracks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:20px 20px 16px}
+.refc-track{display:grid;align-content:start;padding:16px 18px 18px;border:1px solid var(--border-soft);border-radius:8px;background:#FCFBF8;transition:opacity var(--base)}
+.refc-tr-h{display:flex;align-items:center;gap:12px;padding-bottom:12px;margin-bottom:2px;border-bottom:1px solid var(--border-soft)}
+.refc-tr-h b{display:block;font-size:.95rem}
+.refc-tr-h small{display:block;margin-top:1px;font-size:.8rem;color:var(--muted)}
+.refc-tr-ic{flex:none;width:36px;height:36px;border-radius:8px;display:grid;place-items:center;background:var(--sunken);color:var(--deep-forest)}
+.refc-tr-ic .i{width:18px;height:18px}
+.refc-fld{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 16px;padding:12px 0;border-bottom:1px solid var(--border-soft)}
+.refc-fl{display:grid;gap:2px;min-width:0}
+.refc-fl label{font-size:.9rem;font-weight:600;color:var(--text)}
+.refc-fl small{font-size:.78rem;line-height:1.4;color:var(--muted)}
+.refc-fld .err{grid-column:1/-1;justify-self:end;font-size:.76rem}
+/* The stepper: minus, the value with its unit, plus */
+.refc-stp{display:inline-flex;align-items:stretch;height:40px;border:1px solid var(--border-strong);border-radius:6px;background:var(--raised);overflow:hidden;transition:border-color var(--fast),box-shadow var(--fast)}
+.refc-stp:focus-within{border-color:var(--deep-forest);box-shadow:0 0 0 3px rgba(32,59,56,.12)}
+.field.invalid .refc-stp{border-color:var(--bad)}
+.refc-sb{flex:none;width:36px;display:grid;place-items:center;padding:0;border:0;background:none;color:var(--muted);cursor:pointer;transition:background var(--fast),color var(--fast)}
+.refc-sb:hover:not(:disabled){background:var(--sunken);color:var(--text)}
+.refc-sb:disabled{opacity:.35;cursor:default}
+.refc-sb:focus-visible{outline:2px solid var(--deep-forest);outline-offset:-2px}
+.refc-sv{display:flex;align-items:center;justify-content:center;gap:3px;width:116px;padding:0 6px;border-inline:1px solid var(--border-soft);font-variant-numeric:tabular-nums}
+.refc-sv input{width:3.2ch;padding:0;border:0;background:none;font:inherit;font-size:1rem;font-weight:600;color:var(--text);text-align:center;outline:none;-moz-appearance:textfield;appearance:textfield}
+.refc-sv input::-webkit-outer-spin-button,.refc-sv input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.refc-sv input:disabled{color:var(--muted)}
+.refc-u{font-size:.84rem;color:var(--muted)}
+/* The path to the reward: plain steps, then the credit as a green chip */
+.refc-path{list-style:none;margin:0;padding:14px 0 0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.refc-path li{display:inline-flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted);white-space:nowrap}
+.refc-path li:not(:last-child)::after{content:"";width:12px;height:1px;background:var(--border-strong)}
+.refc-path li.end{padding:3px 10px;border-radius:999px;background:var(--ok-bg);color:var(--ok);font-weight:600}
+.refc-review{display:flex;align-items:center;gap:12px 14px;margin:0 20px 20px;padding:14px 16px;border:1px solid var(--border-soft);border-radius:8px;background:#FCFBF8;transition:opacity var(--base)}
+.refc-review .refc-fl{flex:1}
+.refc-review .switch{flex:none;min-height:32px}
+.refc-off .refc-track,.refc-off .refc-review{opacity:.45}
+.refc-set-f{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;min-height:60px;padding:10px 20px;border-top:1px solid var(--border);background:#FBF9F5}
+.refc-sum{display:inline-flex;align-items:center;gap:8px;margin:0;font-size:.84rem;font-weight:500;color:var(--ok)}
+.refc-sum.dirty{color:var(--warn)}
+.refc-sum.ro{color:var(--muted);font-weight:400}
+.refc-dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+.refc-btns{display:flex;gap:8px}
+@media (max-width:899px){ .refc-tracks{grid-template-columns:minmax(0,1fr)} }
+@media (max-width:479px){
+  .refc-set-h,.refc-set-f{padding-left:16px;padding-right:16px}
+  .refc-tracks{padding:16px 16px 12px;gap:12px}
+  .refc-track{padding:14px}
+  .refc-review{margin:0 16px 16px;align-items:flex-start}
+  .refc-review .refc-tr-ic{display:none}
+  /* Each number: what it is on top, a full-width stepper under it */
+  .refc-fld{grid-template-columns:minmax(0,1fr);gap:8px}
+  .refc-stp{width:100%}
+  .refc-sv{flex:1;width:auto}
+  .refc-fld .err{justify-self:start}
+  .refc-btns{flex:1 1 100%}
+  .refc-btns .btn{flex:1}
+}

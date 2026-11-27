@@ -660,7 +660,7 @@
   var AU_KIND = {'Published':'pub', 'Draft saved':'draft', 'Discarded':'off', 'Back-test run':'chk', 'Accuracy run':'chk', 'Role created':'acc', 'Role changed':'acc', 'Role given':'acc', 'Access adjusted':'acc', 'Role deleted':'acc', 'Photo labelled':'chk', 'Graded':'chk',
     'Staff invited':'acc', 'Permissions changed':'acc', 'Staff enabled':'acc', 'Contacts exported':'acc', 'Super admin created':'acc', 'Staff disabled':'bad', 'Account disabled':'bad'};
   /* What each area is called, and where it opens */
-  var AU_AREA = {rates:['Rates', '#/rates'], rules:['Rules', '#/rules'], sheets:['Condition sheets', '#/condition-sheets'], templates:['Room templates', '#/room-templates'],
+  var AU_AREA = {referrals:['Referrals', '#/referrals'], rates:['Rates', '#/rates'], rules:['Rules', '#/rules'], sheets:['Condition sheets', '#/condition-sheets'], templates:['Room templates', '#/room-templates'],
     packages:['Packages', '#/packages'], products:['Products', '#/products'], guidance:['Guidance', '#/guidance'], resources:['Builder documents', '#/resources'],
     backtests:['Back-tests', '#/backtests'], accuracy:['Photo accuracy', '#/accuracy'], users:['Users and staff', '#/users?tab=staff'], feedback:['Contacts and feedback', '#/feedback'], tree:['Decision tree', '']};
   C.route('/audit', function(view){

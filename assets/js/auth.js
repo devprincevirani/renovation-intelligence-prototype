@@ -91,6 +91,10 @@
       if(P.invite){ $('su-closed-t').textContent = 'This invite link does not work'; $('su-closed-b').textContent = 'It may be mistyped or too old. Ask Sam for a new one, or join the waitlist and we will write when sign up opens.'; }
     }
     if(pre && inv){ $('su-invited').hidden = false; if(!P.email) P.email = inv.email; if(inv.days) trialForm(); }
+    /* A referral link (?ref=CODE, business model 3): say who shared it; the new account is linked to them when it is made.
+       Before launch sign up is closed, so the link shows the closed screen like any other visit */
+    var refBy = !inv && P.ref && RI.Ref && RI.Ref.settings().on ? RI.Ref.ownerOf(P.ref) : null;
+    if(refBy && !pre){ $('su-invited').innerHTML = RI.icon('share') + '<span><b>' + RI.esc(RI.Ref.nameOf(refBy)) + ' sent you this link.</b> Create your account to explore renovation costs for free.</span>'; $('su-invited').hidden = false; }
     if(P.type){ var r = doc.querySelector('input[name="su-type"][value="' + P.type + '"]'); if(r) r.checked = true; }
     if(P.email) se.value = P.email;
     blurEmail(se); meter(sp, $('su-pw-meter'));
@@ -113,6 +117,7 @@
       wait(900).then(function(){
         var email = se.value.trim().toLowerCase();
         RI.users.put({email:email, pw:F.hash(sp.value), type:type, verified:false, trial:!!(pre && inv), news:$('su-news').checked, at:Date.now()});
+        if(refBy) RI.Ref.attach(P.ref, email);
         RI.track('signup_completed', {type:type});
         location.href = '../verify-email/?email=' + encodeURIComponent(email);
       });

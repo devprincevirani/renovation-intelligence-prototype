@@ -12,23 +12,35 @@
     if(A.status(h) === 'open'){ A.go('#/houses/' + h.id + '/presentation'); return; }
     if(A.status(h) !== 'ready' && !(runPay && A.status(h) === 'draft')){ A.go('#/houses/' + h.id); return; }
     var s = A.me(), cov = A.cover(h), PRICE = A.priceFor(h).amount; RI.track('checkout_started', {house:h.id});
+    /* Referral credit (business model 3): offered here, on by default, never more than the price */
+    var CREDIT = RI.Ref ? Math.min(RI.Ref.balance(s.email), PRICE) : 0, useCredit = CREDIT > 0;
+    var total = function(){ return PRICE - (useCredit ? CREDIT : 0); };
     var exit = doc.getElementById('focus-exit'); if(exit) exit.innerHTML = '<a class="exit-btn" href="#/houses/' + h.id + '" aria-label="Cancel and go back to the house"><span class="eb-l">Cancel</span>' + RI.icon('x','i-sm') + '</a>';
     view.innerHTML = '<div class="app-wrap co-wrap"><div class="co-demo">' + RI.icon('info','i-sm') + '<span><b>Demo checkout.</b> In the product this is Stripe\'s own secure page. No real payment is taken here.</span></div>' +
       '<div class="co">' +
       '<section class="co-sum"><p class="label">Your order</p><div class="co-house">' + (cov ? '<img src="' + cov + '" alt="">' : '') + '<div><b>' + RI.esc(A.addr(h)) + '</b><span class="small muted">' + RI.esc(A.place(h)) + '</span></div></div>' +
         '<h1>The full presentation</h1><ul class="ticks"><li>' + RI.icon('check') + '<span>Every room and trade, with products</span></li><li>' + RI.icon('check') + '<span>Switch goals, turn items on or off</span></li><li>' + RI.icon('check') + '<span>House systems guidance</span></li><li>' + RI.icon('check') + '<span>PDF and a private share link</span></li></ul>' +
-        '<dl class="co-tot"><div><dt>One payment for this house</dt><dd>$' + PRICE + '.00</dd></div><div class="tot"><dt>Total today</dt><dd>$' + PRICE + '.00</dd></div></dl><p class="xsmall muted">Sample price. The presentation stays available after you pay. This is an estimate for planning, not a contractor\'s bid.</p></section>' +
+        '<dl class="co-tot"><div><dt>One payment for this house</dt><dd>$' + PRICE + '.00</dd></div>' +
+          (CREDIT ? '<div class="co-credit"><dt><label class="check"><input type="checkbox" id="c-credit" checked><span>Use my referral credit</span></label></dt><dd id="c-credit-v">−$' + CREDIT + '.00</dd></div>' : '') +
+          '<div class="tot"><dt>Total today</dt><dd id="c-total">$' + total() + '.00</dd></div></dl><p class="xsmall muted">Sample price. The presentation stays available after you pay. This is an estimate for planning, not a contractor\'s bid.</p></section>' +
       '<section class="co-pay" id="co-pay"><h2>Pay with card</h2><form class="form-grid" id="card" novalidate>' +
         '<div class="field"><label for="c-em">Email</label><input class="input" id="c-em" type="email" value="' + RI.esc(s.email) + '" autocomplete="email"></div>' +
         '<div class="field"><label for="c-no">Card number</label><div class="card-in"><input class="input" id="c-no" inputmode="numeric" autocomplete="cc-number" value="4242 4242 4242 4242"><span class="brands"><i>VISA</i><i>MC</i></span></div><span class="help">Demo card. Use any card number; nothing is charged.</span><span class="err"></span></div>' +
         '<div class="grid-3"><div class="field"><label for="c-ex">Expiry</label><input class="input" id="c-ex" inputmode="numeric" autocomplete="cc-exp" value="12 / 30"></div><div class="field"><label for="c-cv">CVC</label><input class="input" id="c-cv" inputmode="numeric" autocomplete="cc-csc" value="123"></div><div class="field"><label for="c-zip">ZIP</label><input class="input" id="c-zip" inputmode="numeric" value="' + RI.esc((h.addr || {}).zip || '') + '"></div></div>' +
         '<div class="notice notice-bad" id="c-err" hidden role="alert"></div>' +
-        '<button type="submit" class="btn btn-primary btn-block" id="c-pay">' + RI.icon('lock','i-sm') + 'Pay $' + PRICE + '.00</button>' +
+        '<button type="submit" class="btn btn-primary btn-block" id="c-pay">' + RI.icon('lock','i-sm') + 'Pay $' + total() + '.00</button>' +
         '<p class="co-secure">' + RI.icon('shield','i-sm') + 'Payments are handled by Stripe. Card details never reach our servers.</p>' +
         '<div class="cta-row" style="justify-content:space-between"><a href="#/houses/' + h.id + '" class="textlink">Cancel and go back</a><button type="button" class="linkbtn small" id="decline">Demo: try a declined card</button></div>' +
       '</form></section></div></div>';
     var declined = false;
     view.querySelector('#decline').addEventListener('click', function(){ declined = true; RI.toast('The next payment will be declined, to show that state.', 'info'); });
+    var cc = view.querySelector('#c-credit');
+    if(cc) cc.addEventListener('change', function(){
+      useCredit = cc.checked;
+      view.querySelector('#c-credit-v').classList.toggle('off', !useCredit);
+      view.querySelector('#c-total').textContent = '$' + total() + '.00';
+      view.querySelector('#c-pay').innerHTML = RI.icon('lock','i-sm') + 'Pay $' + total() + '.00';
+    });
     view.querySelector('#card').addEventListener('submit', function(e){
       e.preventDefault(); var btn = view.querySelector('#c-pay'), err = view.querySelector('#c-err'); err.hidden = true;
       var no = view.querySelector('#c-no'); if(no.value.replace(/\D/g, '').length < 12){ RI.form.setInvalid(no, 'Check the card number.'); return; } RI.form.setInvalid(no, null);
@@ -41,6 +53,10 @@
         h.paid = true; h.paidAt = Date.now();
         if(runPay){ var again = !!h.run; h.status = 'submitted'; h.step = 'review'; h.run = {start:Date.now()}; h.submittedAt = Date.now(); h.version = (h.version || 1) + (again ? 1 : 0); RI.track('intake_submitted', {paid:true}); }
         A.put(h); RI.track('payment_completed', {house:h.id});
+        if(RI.Ref){
+          if(useCredit && CREDIT) RI.Ref.spend(s.email, CREDIT, 'Report: ' + A.addr(h));
+          RI.Ref.purchase(s.email, 'report'); /* if a referral brought this person here, its hold for refunds starts now */
+        }
         A.later(function(){ RI.toast(runPay ? 'Paid. Your house is in line, and the presentation opens when it is ready.' : 'Your presentation is open. In the product we would email you a receipt.', 'mail'); A.go('#/houses/' + h.id + (runPay ? '' : '/presentation')); }, 1800);
       }, 1400);
     });

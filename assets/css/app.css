@@ -2298,3 +2298,114 @@ dialog.ed-dlg{border-radius:var(--r-lg)}
 .pro-dlg-tot{margin:14px 0 8px}
 .co-tot .pro-next{color:var(--muted);font-size:.9rem}
 @media (max-width:639px){ .pro-head-r{width:100%} .pro-head-r > *{flex:1 1 100%} }
+
+/* ---------- Refer and earn (business model 3) ----------
+   Read top to bottom: what you get and your link, your credit, how it works, your friends step by step, questions */
+.rr{display:grid;gap:16px}
+.rr .nowrap{white-space:nowrap}
+.rr-pre{margin:0}
+/* 1. What you get, and your link */
+.rr-hero{position:relative;display:grid;gap:18px;padding:clamp(22px,4vw,34px);border-radius:var(--r-lg);background:var(--deep-forest);color:var(--soft-ivory);overflow:hidden;isolation:isolate}
+.rr-hero::after{content:"";position:absolute;z-index:-1;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;border:30px solid rgba(255,255,255,.05);pointer-events:none}
+.rr-k{margin:0;font-family:var(--body);line-height:1.4;font-size:.74rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--hl-on-dark)}
+.rr-title{margin:-8px 0 0;max-width:22ch;font-family:var(--display);font-weight:500;font-size:clamp(1.7rem,4vw,2.35rem);line-height:1.12;color:#fff;text-wrap:balance}
+.rr-offers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.rr-offer{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:var(--r-md);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14)}
+.rr-offer b{flex:none;font-family:var(--display);font-weight:500;font-size:2.2rem;line-height:1;color:var(--hl-on-dark);font-variant-numeric:tabular-nums}
+.rr-offer span{font-size:.88rem;line-height:1.4;color:rgba(255,255,255,.86)}
+.rr-share{display:grid;gap:10px;padding:16px;border-radius:var(--r-md);background:var(--raised);color:var(--text)}
+.rr-share label{font-size:.8rem;font-weight:600;color:var(--muted)}
+.rr-link{display:flex;flex-wrap:wrap;gap:8px}
+.rr-link .input{flex:1 1 240px;min-width:0;font-size:.92rem}
+.rr-link .btn{flex:none;min-width:140px;justify-content:center}
+.rr-send{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.rr-code{font-size:.84rem;color:var(--muted)}
+.rr-code b{font-family:ui-monospace,Menlo,monospace;letter-spacing:.04em;color:var(--deep-forest)}
+/* 2. Your credit: what you can spend now leads */
+.rr-bal{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:12px}
+.rr-b{display:grid;gap:4px;align-content:start;min-width:0;padding:16px 18px;border:1px solid var(--border);border-radius:var(--r-lg);background:var(--raised)}
+.rr-b.main{border-color:var(--deep-forest);box-shadow:inset 0 0 0 1px var(--deep-forest)}
+.rr-bl{font-size:.8rem;font-weight:600;color:var(--muted)}
+.rr-bv{font-family:var(--display);font-weight:500;font-size:2rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.rr-b.main .rr-bv{color:var(--deep-forest)}
+.rr-bn{font-size:.78rem;line-height:1.4;color:var(--muted)}
+/* 3. How it works: four steps joined by a dotted line, then an example with real amounts */
+.rr-how{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.rr-how li{position:relative;display:grid;gap:4px;align-content:start;font-size:.86rem}
+.rr-how li:not(:last-child)::after{content:"";position:absolute;top:21px;left:54px;right:-10px;height:2px;background:repeating-linear-gradient(90deg,var(--border-strong) 0 6px,transparent 6px 11px)}
+.rr-ic{position:relative;z-index:1;width:44px;height:44px;margin-bottom:6px;border-radius:50%;display:grid;place-items:center;background:var(--sunken);color:var(--deep-forest)}
+.rr-ic .i{width:20px;height:20px}
+.rr-how li:last-child .rr-ic{background:var(--deep-forest);color:var(--soft-ivory)}
+.rr-how b{font-size:.95rem}
+.rr-how li>span:last-child{line-height:1.45;color:var(--muted)}
+.rr-eg{display:flex;align-items:flex-start;gap:14px;padding:14px 16px;border-radius:var(--r-md);background:#FBF7F0;border:1px dashed rgba(161,125,88,.5)}
+.rr-eg-k{flex:none;margin-top:2px;padding:2px 8px;border-radius:3px;background:rgba(161,125,88,.16);color:#815E3A;font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.rr-eg p{margin:0;font-size:.9rem;line-height:1.5}
+/* 4. Your friends: who, the amount, a step bar, and what happens next */
+.rr-lh{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.rr-lh h2{font-size:1.25rem}
+.rr-lh>span{font-size:.84rem;color:var(--muted)}
+.rr-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.rr-f{display:grid;gap:12px;padding:14px 16px;border:1px solid var(--border-soft);border-radius:var(--r-md);background:#FCFBF8}
+.rr-fh{display:flex;align-items:center;gap:12px}
+.rr-av{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--sunken);color:var(--deep-forest);font-weight:600}
+.rr-f.is-done .rr-av{background:var(--ok-bg);color:var(--ok)}
+.rr-f.is-stop .rr-av{color:var(--muted)}
+.rr-who{flex:1;display:grid;gap:1px;min-width:0}
+.rr-who b{overflow-wrap:anywhere}
+.rr-who small{font-size:.78rem;color:var(--muted)}
+.rr-amt{flex:none;display:grid;justify-items:end;font-family:var(--display);font-size:1.3rem;font-weight:500;line-height:1.15;font-variant-numeric:tabular-nums}
+.rr-amt small{font-family:var(--body);font-size:.72rem;font-weight:400;color:var(--muted)}
+.rr-amt.got{color:var(--ok)}
+.rr-amt.wait,.rr-amt.none{color:var(--muted)}
+.rr-bar{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.rr-bar li{display:grid;gap:6px;font-size:.72rem;line-height:1.3;color:var(--muted)}
+.rr-bar li::before{content:"";height:6px;border-radius:3px;background:#E8DFD3}
+.rr-bar li.done{color:var(--text)}
+.rr-bar li.done::before{background:var(--deep-forest)}
+.rr-bar li.now{font-weight:600;color:var(--deep-forest)}
+.rr-bar li.now::before{background:linear-gradient(90deg,var(--deep-forest) 50%,#E8DFD3 50%)}
+.rr-bar li.stop{font-weight:600;color:var(--bad)}
+.rr-bar li.stop::before{background:var(--bad)}
+.rr-f.is-stop .rr-bar li.done::before{background:var(--border-strong)}
+.rr-f.is-done .rr-bar li::before{background:var(--ok)}
+.rr-next{margin:0;font-size:.88rem;line-height:1.45}
+.rr-f.is-stop .rr-next{color:var(--muted)}
+.rr-demo{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;padding-top:10px;border-top:1px dashed var(--border-soft)}
+.rr-demo>span{font-size:.68rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.rr-empty{display:flex;align-items:flex-start;gap:12px;padding:16px;border-radius:var(--r-md);background:var(--sunken);color:var(--muted)}
+.rr-empty p{margin:0}
+/* 5. Common questions */
+.rr-qs{display:grid;border-top:1px solid var(--border-soft)}
+.rr-q{border-bottom:1px solid var(--border-soft)}
+.rr-q summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:48px;padding:10px 0;font-weight:600;cursor:pointer}
+.rr-q summary::-webkit-details-marker{display:none}
+.rr-q summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.rr-q summary .i{flex:none;color:var(--muted);transition:transform var(--fast)}
+.rr-q[open] summary .i{transform:rotate(180deg)}
+.rr-q p{margin:0 0 14px;max-width:62ch;line-height:1.5;color:var(--muted)}
+.rr-fine{margin:0;font-size:.78rem;color:var(--muted)}
+/* Checkout: the referral credit line */
+.co-credit dd{color:var(--ok)}
+.co-credit dd.off{color:var(--muted);text-decoration:line-through}
+@media (max-width:719px){
+  .rr-how{grid-template-columns:minmax(0,1fr);gap:0}
+  .rr-how li{grid-template-columns:44px minmax(0,1fr);column-gap:14px;row-gap:2px;padding-bottom:18px}
+  .rr-how li:last-child{padding-bottom:0}
+  .rr-how li .rr-ic{grid-row:1/3;margin:0}
+  .rr-how li>b,.rr-how li>span:last-child{grid-column:2}
+  .rr-how li:not(:last-child)::after{top:50px;bottom:4px;left:21px;right:auto;width:2px;height:auto;background:repeating-linear-gradient(180deg,var(--border-strong) 0 6px,transparent 6px 11px)}
+  .rr-bal{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rr-b.main{grid-column:1/-1}
+}
+@media (max-width:599px){
+  .rr-offers{grid-template-columns:minmax(0,1fr)}
+  .rr-offer b{min-width:2.4ch;font-size:1.9rem}
+  .rr-link .btn{flex:1 1 100%}
+  .rr-b{padding:14px}
+  .rr-bv{font-size:1.6rem}
+  .rr-eg{flex-direction:column;gap:8px}
+  .rr-f{padding:14px}
+}
+@media (max-width:419px){ .rr-bar li{font-size:.66rem} }
+@media (prefers-reduced-motion:reduce){ .rr-q summary .i{transition:none} }
