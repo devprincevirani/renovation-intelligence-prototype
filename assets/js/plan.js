@@ -76,7 +76,8 @@
       function pick(k){ if(opts.onSelect) opts.onSelect(k); }
       host.addEventListener('click', function(e){ var g = e.target.closest('[data-room]'); if(g) pick(g.getAttribute('data-room')); });
       host.addEventListener('keydown', function(e){ if((e.key === 'Enter' || e.key === ' ') && e.target.closest('.pl-room')){ e.preventDefault(); pick(e.target.closest('.pl-room').getAttribute('data-room')); } });
-      if('IntersectionObserver' in window){
+      /* opts.still (home page): drawn at once, nothing moves because the page scrolled */
+      if(!opts.still && 'IntersectionObserver' in window){
         drawEl.classList.add('pre');
         var io = new IntersectionObserver(function(es){ if(es[0].isIntersecting){ drawEl.classList.remove('pre'); drawEl.classList.add('in'); io.disconnect(); } }, {rootMargin:'0px 0px -15% 0px'});
         io.observe(drawEl);

@@ -1,23 +1,26 @@
 <!doctype html>
-<html lang="en" data-root="" data-page="home">
+<html lang="en" data-root="" data-page="home" data-type="software">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Renovation cost for one specific house | Renovation Intelligence</title>
 <meta name="description" content="See what your home could become and know what it could cost. Explore renovation cost ranges for free, or get a detailed renovation report for $50.">
 <meta name="theme-color" content="#203B38">
+<meta name="page-type" content="software">
+<meta name="site-kind" content="software">
 <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Jost:wght@400;500&display=swap">
-<link rel="stylesheet" href="assets/css/styles.css?v=4">
+<link rel="stylesheet" href="assets/css/styles.css?v=54">
 <link rel="preload" as="image" href="assets/img/hero-kitchen-remodel.jpg">
-<script defer src="assets/js/data.js?v=146"></script>
-<script defer src="assets/js/site.js?v=153"></script>
-<script defer src="assets/js/plan.js"></script>
-<script defer src="assets/js/materials.js"></script>
-<script defer src="assets/js/compare.js"></script>
-<script defer src="assets/js/home.js"></script>
+<script>document.documentElement.classList.add('hx-js')</script>
+<script defer src="assets/js/data.js?v=147"></script>
+<script defer src="assets/js/site.js?v=164"></script>
+<script defer src="assets/js/plan.js?v=2"></script>
+<script defer src="assets/js/materials.js?v=4"></script>
+<script defer src="assets/js/compare.js?v=8"></script>
+<script defer src="assets/js/home.js?v=7"></script>
 </head>
 <body>
 <div id="site-head"></div>
@@ -29,10 +32,11 @@
       <div class="hero-copy hx-copy">
         <!-- Headline: business model v1.0 (Nov 2026) -->
         <h1 id="h-hero">See what your home could become. <span class="hx-accent">Know what it could cost.</span></h1>
-        <p class="lede">Add your photos. Get a Low and a High for three renovation goals, with the real products.</p>
+        <!-- Supporting message and calls to action: business model v1.0, lines 136 to 142. Before launch the buttons read Join the waitlist and See what the $50 report includes (user, Nov 27) -->
+        <p class="lede">Explore renovation possibilities and preliminary cost ranges for free. Get a detailed renovation plan, estimated costs, and recommended materials for just <span data-offer="price">$50</span>.</p>
         <div class="cta-row">
-          <a class="btn btn-primary btn-lg" data-cta data-arrow href="waitlist/">Join the waitlist</a>
-          <a class="btn btn-secondary btn-lg" href="sample/">See a sample</a>
+          <a class="btn btn-primary btn-lg" data-cta="free" data-arrow href="waitlist/">Join the waitlist</a>
+          <a class="btn btn-secondary btn-lg" data-cta="report" href="pricing/#report">See what the $50 report includes</a>
         </div>
         <ul class="hx-trust" aria-label="At a glance">
           <li><span class="hx-ti"><i data-i="tag" class="i-sm"></i></span>Cost ranges are free</li>
@@ -77,16 +81,50 @@
     </div>
   </section>
 
+  <!-- 4. How it works: three steps -->
+  <section class="hx-steps-sec" aria-labelledby="h-process" id="how">
+    <div class="wrap">
+      <div class="hx-head" data-rv>
+        <p class="label">How it works</p>
+        <h2 id="h-process">Three steps to your price</h2>
+      </div>
+      <ol class="gv-steps hx-steps">
+        <li class="gv-s" data-rv>
+          <div class="gv-v gv-v1" aria-hidden="true"><div class="gv-photos">
+            <figure><img src="assets/img/kitchen-dated.jpg" alt="" loading="lazy"></figure>
+            <figure><img src="assets/img/wood-floor.jpg" alt="" loading="lazy"></figure>
+            <figure><img src="assets/img/brick-ranch.jpg" alt="" loading="lazy"></figure>
+            <figure class="add"><i data-i="camera"></i><figcaption>Add a room</figcaption></figure>
+          </div></div>
+          <div class="gv-cap"><span class="gv-n">1</span><h3>Add your house</h3><span class="gv-t"><i data-i="clock" class="i-sm"></i>About 10 minutes</span></div>
+        </li>
+        <li class="gv-s" data-rv>
+          <div class="gv-v gv-v2" aria-hidden="true">
+            <div class="gv-scan"><img src="assets/img/kitchen-dated.jpg" alt="" loading="lazy"><span class="gv-pill"><i data-i="refresh" class="i-sm"></i>Reading your photos</span></div>
+            <div class="gv-prog"><i></i><i></i><i class="cur"><b></b></i><i></i></div>
+          </div>
+          <div class="gv-cap"><span class="gv-n us">2</span><h3>We read your photos</h3><span class="gv-t"><i data-i="clock" class="i-sm"></i>A few minutes</span></div>
+        </li>
+        <li class="gv-s" data-rv>
+          <div class="gv-v gp" data-gv="price" aria-hidden="true"></div>
+          <div class="gv-cap"><span class="gv-n">3</span><h3>See your price</h3><span class="gv-t"><i data-i="tag" class="i-sm"></i>Free</span></div>
+        </li>
+      </ol>
+      <p class="hx-more" data-rv><a class="textlink" href="sample/">See a sample report <i data-i="arrow" class="i-sm"></i></a></p>
+    </div>
+  </section>
+
   <!-- 2. Before and after: the original section, with real before and after photos -->
-  <section aria-labelledby="h-cmp">
+  <section aria-labelledby="h-cmp" id="before-after">
     <div class="wrap">
       <div class="cmp-head">
-        <div class="sec-head" style="margin:0">
+        <div class="sec-head">
           <p class="label">See what we see</p>
-          <h2 id="h-cmp">Before on the left. After on the right.</h2>
-          <p class="lede">Drag the handle across each photo. Under each one: the parts of that room and what each goal does with them.</p>
+          <h2 id="h-cmp">The same room, before and after</h2>
+          <p class="lede">Drag the handle across the photo. The list shows the parts of the room and what each goal does with them.</p>
         </div>
         <div class="cmp-ctrl">
+          <div class="cmp-rooms" id="cmp-rooms"></div>
           <span class="small muted" id="cmp-goal-label">Show the work for</span>
           <div class="seg" role="tablist" aria-label="Package" aria-describedby="cmp-goal-label" id="cmp-seg"><span class="seg-thumb"></span>
             <button type="button" role="tab" data-pk="E" aria-selected="false">Essential</button>
@@ -96,28 +134,27 @@
         </div>
       </div>
       <div class="cmp-grid" id="cmp"></div>
-      <p class="xsmall muted" style="margin-top:18px">Real before and after photos of real remodels, not generated images. The parts and prices under each photo come from our sample house. Kitchen and cabinets: Stilfehler, CC BY-SA 4.0. Bathroom: NPS / Jacob W. Frank, public domain. Via Wikimedia Commons.</p>
     </div>
   </section>
 
   <!-- 3. Three goals, as product tiles -->
-  <section class="boards-sec hx-goals" aria-labelledby="h-boards">
+  <section class="boards-sec hx-goals" aria-labelledby="h-boards" id="packages">
     <div class="wrap">
       <div class="hx-head" data-rv>
         <p class="label">Three goals</p>
-        <h2 id="h-boards">A package is a goal you can see</h2>
+        <h2 id="h-boards">The three renovation packages</h2>
       </div>
-      <div class="boards" id="boards" data-rv></div>
+      <div class="boards" id="boards" data-ui data-rv></div>
     </div>
   </section>
 
   <!-- Floor plan explorer (as on the live site) -->
-  <section class="offer" aria-labelledby="h-plan">
+  <section class="offer" aria-labelledby="h-plan" id="explore">
     <div class="wrap">
       <div class="sec-head">
         <p class="label">Explore the sample house</p>
         <h2 id="h-plan">Every room, priced on the plan</h2>
-        <p class="lede">Darker rooms need more work under the goal you choose. Select a room to see its items, and turn any of them off. You can change the goal and the items, never the quantities or the decisions.</p>
+        <p class="lede">Select a room to see its items and turn any of them off. Darker rooms need more work.</p>
       </div>
       <div class="explorer" id="explorer">
         <div class="explorer-plan">
@@ -137,14 +174,14 @@
   </section>
 
   <!-- Honest by design: the same estimate shown two ways, so the rule is seen, not read -->
-  <section class="uz-sec" aria-labelledby="h-unknown">
+  <section class="uz-sec" aria-labelledby="h-unknown" id="honest">
     <div class="wrap">
       <div class="hx-head" data-rv>
         <p class="label">Honest by design</p>
         <h2 id="h-unknown">An unknown is never a zero</h2>
         <p class="lede">A missing photo does not make a room free. We name what is missing, and the total says Partial.</p>
       </div>
-      <div class="uz" id="uz" data-rv></div>
+      <div class="uz" id="uz" data-ui data-rv></div>
       <ul class="uz-chips" data-rv>
         <li><span class="uz-ic"><i data-i="camera" class="i-sm"></i></span><span><b>Unknowns named, never zero</b><span>With what would settle each one</span></span></li>
         <li><span class="uz-ic"><i data-i="file" class="i-sm"></i></span><span><b>An estimate, not a bid</b><span>A contractor still sees the house</span></span></li>
@@ -153,46 +190,14 @@
     </div>
   </section>
 
-  <!-- 4. How it works: three steps -->
-  <section class="hx-steps-sec" aria-labelledby="h-process">
-    <div class="wrap">
-      <div class="hx-head" data-rv>
-        <p class="label">How it works</p>
-        <h2 id="h-process">Three steps to your price</h2>
-      </div>
-      <ol class="gv-steps hx-steps">
-        <li class="gv-s" data-rv>
-          <div class="gv-v gv-v1" aria-hidden="true"><div class="gv-photos">
-            <figure><img src="assets/img/kitchen-dated.jpg" alt="" loading="lazy"><figcaption>Kitchen</figcaption></figure>
-            <figure><img src="assets/img/wood-floor.jpg" alt="" loading="lazy"><figcaption>Living room</figcaption></figure>
-            <figure><img src="assets/img/brick-ranch.jpg" alt="" loading="lazy"><figcaption>Exterior</figcaption></figure>
-            <figure class="add"><i data-i="camera"></i><figcaption>Add a room</figcaption></figure>
-          </div></div>
-          <div class="gv-cap"><span class="gv-n">1</span><h3>Add your house</h3><span class="gv-t"><i data-i="clock" class="i-sm"></i>About 10 minutes</span></div>
-        </li>
-        <li class="gv-s" data-rv>
-          <div class="gv-v gv-v2" aria-hidden="true">
-            <div class="gv-scan"><img src="assets/img/kitchen-dated.jpg" alt="" loading="lazy"><span class="gv-pill"><i data-i="refresh" class="i-sm"></i>Reading your photos</span></div>
-            <div class="gv-prog"><i></i><i></i><i class="cur"><b></b></i><i></i></div>
-          </div>
-          <div class="gv-cap"><span class="gv-n us">2</span><h3>We read it</h3><span class="gv-t"><i data-i="clock" class="i-sm"></i>A few minutes</span></div>
-        </li>
-        <li class="gv-s" data-rv>
-          <div class="gv-v gv-v3" data-gv="ranges"></div>
-          <div class="gv-cap"><span class="gv-n">3</span><h3>See your price</h3><span class="gv-t"><i data-i="tag" class="i-sm"></i>Free</span></div>
-        </li>
-      </ol>
-    </div>
-  </section>
-
   <!-- 5. What you get: four visual cards, free and full -->
-  <section class="hx-get-sec" aria-labelledby="h-get">
+  <section class="hx-get-sec" aria-labelledby="h-get" id="what-you-get">
     <div class="wrap">
       <div class="hx-head" data-rv>
         <p class="label">What you get</p>
         <h2 id="h-get">Free to see. One payment for the detail.</h2>
       </div>
-      <div class="hx-get">
+      <div class="hx-get" data-ui>
         <article class="hx-card" data-rv>
           <div class="hx-vis hx-vis-ranges" id="vis-ranges" aria-hidden="true"></div>
           <span class="hx-badge">Free</span>
@@ -232,7 +237,7 @@
   </section>
 
   <!-- For professionals: Pro at $99 a month (business model v1.0, Nov 2026) -->
-  <section class="band" aria-labelledby="h-builders">
+  <section class="band" aria-labelledby="h-builders" id="professionals">
     <div class="wrap band-grid">
       <div class="stack" style="gap:18px">
         <p class="label">For professionals</p>
@@ -241,22 +246,25 @@
         <p class="pp-price"><b><span data-offer="credits">10</span> properties a month for <span data-offer="pro">$99</span>.</b> Extra properties <span data-offer="extra">$10</span> each.</p>
         <div class="cta-row"><a class="btn btn-ivory" data-cta="pro" href="waitlist/?type=agent">Join the waitlist as a professional</a><a class="textlink" href="professionals/">For professionals</a></div>
       </div>
-      <div class="band-list" aria-label="What Pro includes">
+      <div class="pro-side">
+        <img class="pro-photo" src="assets/img/colonial.jpg" alt="A two-story house with wood siding and a green front door" loading="lazy" width="1280" height="853">
+        <div class="band-list" aria-label="What Pro includes">
         <div><span>Property analyses</span><span><span data-offer="credits">10</span> a month</span></div>
         <div><span>A full detailed report for each</span><span>All three packages</span></div>
         <div><span>Client reports to download and share</span><span>PDF and link</span></div>
         <div><span>Extra properties</span><span><span data-offer="extra">$10</span> each</span></div>
-        <div><span>Task lists and trade scope documents</span><span>Builder and agent accounts</span></div>
+        <div><span>Task lists and trade scope documents</span><span>Included</span></div>
+      </div>
       </div>
     </div>
   </section>
 
   <!-- Areas (as on the live site) -->
-  <section aria-labelledby="h-areas">
+  <section aria-labelledby="h-areas" id="areas">
     <div class="wrap">
       <div class="sec-head">
         <p class="label">Areas we cover</p>
-        <h2 id="h-areas">Five areas to start</h2>
+        <h2 id="h-areas">Renovation costs in five areas</h2>
         <p class="lede">Typical Low and High costs for the work each area's houses most often need.</p>
       </div>
       <div class="areas-strip" id="areas-strip"></div>
@@ -291,12 +299,13 @@
   </section>
 
   <!-- Questions (as on the live site) -->
-  <section aria-labelledby="h-faq">
+  <section aria-labelledby="h-faq" id="questions">
     <div class="wrap split">
       <div class="sec-head" style="align-content:start">
         <p class="label">Questions</p>
-        <h2 id="h-faq">Before you start</h2>
+        <h2 id="h-faq">Questions before you start</h2>
         <p class="lede">If something here is not clear, the estimate itself will say so too.</p>
+        <img class="faq-photo" src="assets/img/questions-painter.jpg" alt="A man holding a paint roller stops in front of a half-painted wall and scratches his head" loading="lazy" width="960" height="655">
       </div>
       <div class="faq">
         <details open><summary>How close is the number?</summary><div class="a"><p>It is a range. The Low and the High come from local installed rates and real products for each line. Where our evidence is weaker, the range is wider. Lines we could not confirm are listed apart, never hidden inside the total.</p></div></details>
@@ -308,6 +317,7 @@
     </div>
   </section>
 </main>
+  <template id="page-credits">Before and after photos: kitchen and cabinets by Stilfehler, CC BY-SA 4.0; bathroom by NPS / Jacob W. Frank, public domain; via Wikimedia Commons.</template>
 
 <div id="site-foot"></div>
 </body>

@@ -129,10 +129,10 @@ section{padding-block:clamp(56px,8vw,112px)}
 .mainnav a.btn-ivory,.site-foot a.btn-ivory,.drawer a.btn-ivory{color:var(--deep-forest);text-decoration:none}
 .site-foot a.btn-ivory:hover{text-decoration:none}
 .menu-btn{display:none;margin-left:auto;background:none;border:1px solid var(--inverse-line);color:var(--on-inverse);border-radius:var(--r-md);min-height:44px;min-width:44px;padding:0 12px;align-items:center;gap:8px;cursor:pointer;font-weight:600;font-size:.9rem}
-.drawer{position:fixed;inset:0;z-index:80;display:grid;grid-template-columns:1fr;pointer-events:none}
+.drawer{position:fixed;inset:0;z-index:80;display:grid;grid-template-columns:1fr;pointer-events:none;overflow:hidden;visibility:hidden;transition:visibility 0s var(--slow)}
 .drawer-scrim{position:absolute;inset:0;background:rgba(18,44,41,.45);opacity:0;transition:opacity var(--base)}
 .drawer-panel{position:absolute;top:0;right:0;bottom:0;width:min(360px,88vw);background:var(--inverse);color:var(--on-inverse);transform:translateX(100%);transition:transform var(--slow) var(--ease-out);display:flex;flex-direction:column;padding:16px 20px calc(24px + env(safe-area-inset-bottom,0px))}
-.drawer.open{pointer-events:auto}
+.drawer.open{pointer-events:auto;visibility:visible;transition:visibility 0s}
 .drawer.open .drawer-scrim{opacity:1}
 .drawer.open .drawer-panel{transform:none}
 .drawer-top{display:flex;align-items:center;justify-content:space-between;min-height:48px;margin-bottom:16px}
@@ -199,7 +199,7 @@ section{padding-block:clamp(56px,8vw,112px)}
 .page-head .wrap{display:grid;gap:18px}
 .page-head h1{max-width:18ch}
 .split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(28px,4vw,56px)}
-.closing{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:end}
+div.closing{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:end}
 .ticks{list-style:none;padding:0;margin:0;display:grid;gap:10px}
 .ticks li{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;font-size:.95rem}
 .ticks .i{margin-top:3px;color:var(--hl)}
@@ -743,7 +743,7 @@ fieldset{border:0;padding:0;margin:0;min-width:0}
   .htypes{grid-template-columns:minmax(0,1fr)}
   .auth{grid-template-columns:minmax(0,1fr)}
   .auth-side{display:none}
-  .closing{grid-template-columns:minmax(0,1fr);align-items:start}
+  div.closing{grid-template-columns:minmax(0,1fr);align-items:start}
   .sim-controls{border-right:0;border-bottom:1px solid var(--border)}
   .ht-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
   .ht-facts div:nth-child(3){border-left:0}
@@ -833,8 +833,8 @@ fieldset{border:0;padding:0;margin:0;min-width:0}
 @keyframes seq-chip{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
 @keyframes seq-sheet{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
 @keyframes seq-scan{0%{top:2%;opacity:0}12%{opacity:1}88%{opacity:1}100%{top:72%;opacity:0}}
-.seq-pre .read-dims .d1{transform:scaleX(0)}.seq-pre .read-dims .d2{transform:scaleY(0)}.seq-pre .read-dims .box{opacity:0}
-.seq-pre .read-dims .t,.seq-pre .dim-label,.seq-pre .rpin,.seq-pre .sheet{opacity:0}
+html.hx-js .seq-pre .read-dims .d1{transform:scaleX(0)}html.hx-js .seq-pre .read-dims .d2{transform:scaleY(0)}html.hx-js .seq-pre .read-dims .box{opacity:0}
+html.hx-js .seq-pre .read-dims .t,html.hx-js .seq-pre .dim-label,html.hx-js .seq-pre .rpin,html.hx-js .seq-pre .sheet{opacity:0}
 .seq-run .scan{animation:seq-scan 1.15s .1s cubic-bezier(.45,0,.55,1) both}
 .seq-run .d1{animation:seq-grow-x .7s .45s var(--ease-out) both}
 .seq-run .t1{animation:seq-fade .2s .45s both}
@@ -2107,9 +2107,6 @@ html:not(.team) .fx-demo{display:none!important}
 .hx > section:not(.hero){padding-block:clamp(56px,7vw,96px)}
 .hx-head{display:grid;gap:8px;justify-items:center;text-align:center;margin:0 auto clamp(24px,3vw,36px);max-width:44rem}
 .hx-head h2{margin:0}
-/* Reveal on scroll (only when the script runs and motion is allowed) */
-html.hx-js .hx [data-rv]{opacity:0;transform:translateY(18px);transition:opacity .6s var(--ease-out) var(--rv,0ms),transform .6s var(--ease-out) var(--rv,0ms)}
-html.hx-js .hx [data-rv].in{opacity:1;transform:none}
 /* Hero */
 .hx-accent{color:var(--hl-text)}
 .hx-copy .cta-row{margin-top:4px}
@@ -2372,8 +2369,7 @@ dialog.mt-dlg[open]{display:flex;flex-direction:column}
 .tg-ph img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s var(--ease-out)}
 .tg-tile:hover .tg-ph{box-shadow:0 0 0 2px var(--raised),0 0 0 4px var(--warm-stone)}
 .tg-tile:hover .tg-ph img{transform:scale(1.05)}
-.tg-tile:focus-visible{outline:none}
-.tg-tile:focus-visible .tg-ph{box-shadow:0 0 0 2px var(--raised),0 0 0 4px var(--deep-forest)}
+.tg-tile:focus-visible{outline:2px solid var(--deep-forest);outline-offset:2px}
 .tg-n{font-size:.76rem;font-weight:600;line-height:1.25;overflow-wrap:break-word}
 @container (min-width:360px){ .tg-grid{grid-template-columns:repeat(4,minmax(0,1fr))} .tg-ph{aspect-ratio:1} }
 .tg-big .tg-grid{gap:14px}
@@ -2541,3 +2537,471 @@ dialog.tg-dlg{width:min(620px,calc(100vw - 32px))}
 }
 /* The header holds five links from 1280 px; below that, Renovation cost is in the menu and the footer only */
 @media (max-width:1279px){ .mainnav .nav-wide{display:none} }
+
+/* ==========================================================================
+   Home: one section per screen (taste-skill layout within DESIGN.md), Nov 27 2026.
+   The hero is the first screen under the sticky header; every other section is one or two whole screens
+   (--h desktop, --ht tablet, --hm phone), its heading first on the left line. DESIGN.md wins over the skill:
+   borders not shadows, corners 2/4/8, no hover lift or zoom, nothing moves because the page scrolled.
+   ========================================================================== */
+html[data-page="home"]{scroll-padding-top:var(--head-h)}
+.hx > section:not(.hx-hero){box-sizing:border-box;min-height:calc(var(--h,1) * 100svh)}
+.hx > section:not(.hx-hero){padding:112px 0 72px}
+.hx .hx-head{justify-items:start;text-align:left;margin:0 0 32px;max-width:46rem}
+.hx .sec-head{margin-bottom:32px;max-width:60rem}
+.hx .boards-sec .hx-head{margin-bottom:24px}
+.pk-phone{display:none}
+/* Reveal on scroll (restored Nov 27 at the user's request). html.hx-rv is set by home.js only when motion is allowed */
+html.hx-rv .hx [data-rv],html.hx-rv .site-foot [data-rv]{opacity:0;transform:translateY(18px);transition:opacity .6s var(--ease-out) var(--rv,0ms),transform .6s var(--ease-out) var(--rv,0ms)}
+html.hx-rv .hx [data-rv].in,html.hx-rv .site-foot [data-rv].in{opacity:1;transform:none}
+/* once a card has faded in, its hover lift still works */
+html.hx-rv .hx .hx-card[data-rv].in:hover{transform:translateY(-4px)}
+@media (prefers-reduced-motion:reduce){ html.hx-rv .hx .hx-card[data-rv].in:hover{transform:none} }
+/* corners: squares, not circles; tags 2px. Pins on photos stay round: they are markers */
+.hx-doc-ic,.uz-vs,.uz-ic,.hx .gv-n{border-radius:var(--r-md)}
+.hx .cmp-n{border-radius:var(--r-sm)}
+.uz-tag,.hx .cmp.cmp-ba .cmp-tag{border-radius:var(--r-sm)}
+.hx .cmp.cmp-ba .cmp-tag{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(30,30,30,.72)}
+/* shadows only on what floats (the hero's price sheet) */
+.uz-card,.uz-card.is-good{box-shadow:none}
+.board-pin{box-shadow:none}
+/* no gradient fades */
+.uz-miss,.is-good .uz-miss{background:var(--page)}
+.hx .area-card::before{display:none}
+/* Areas (Nov 27): the photo sits above its name, never behind it, so each house shows whole */
+.hx .area-card{display:flex;flex-direction:column;align-content:normal;min-height:0}
+.hx .area-card img{position:static;display:block;width:100%;height:auto;aspect-ratio:3 / 2;flex:none;object-fit:cover;object-position:var(--fp,50% 55%);z-index:auto;transition:none}
+.hx .area-card .t{background:var(--inverse);padding:14px 16px 16px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:2px 12px}
+.hx .area-card .t h3{grid-column:1 / -1}
+.hx .area-card .go{margin-top:0}
+/* each photo's focal point: the house, not the sky or the street */
+.hx .area-card[href*="clinton-township"]{--fp:50% 62%}
+.hx .area-card[href*="dearborn"]{--fp:40% 60%}
+.hx .area-card[href*="livonia"]{--fp:74% 58%}
+.hx .area-card[href*="sterling-heights"]{--fp:50% 55%}
+.hx .area-card[href*="warren"]{--fp:32% 68%}
+
+/* 2. How it works */
+.hx #how .gv-v{height:clamp(240px,50vh,440px)}
+/* 3. Before and after: one room at a time, photo left and its parts right */
+.hx .cmp-head{align-items:end;margin-bottom:28px}
+.hx .cmp-ctrl{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;justify-content:flex-end}
+.hx .cmp-grid{grid-template-columns:minmax(0,1fr);gap:0}
+.hx .cmp-card{grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:32px;align-items:start}
+.hx .cmp-card[hidden]{display:none}
+.hx .cmp-card .cmp{aspect-ratio:auto;height:clamp(260px,50vh,470px)}
+.hx .cmp-room-seg button{white-space:nowrap}
+/* 4. Packages: a little tighter, three columns down to tablet width (no sideways swipe row) */
+.hx .board{padding:16px 16px 14px;gap:12px}
+@media (min-width:640px) and (max-width:1080px){
+  .hx .boards{grid-auto-flow:row;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-columns:auto;overflow:visible;scroll-snap-type:none;margin-inline:0;padding-inline:0}
+}
+@media (max-width:639px){
+  .hx .boards{grid-auto-flow:row;grid-template-columns:minmax(0,1fr);grid-auto-columns:auto;overflow:visible;scroll-snap-type:none;margin-inline:0;padding-inline:0}
+}
+/* 5. Explorer: the side panel is as tall as the plan; only its item list scrolls (two columns only) */
+@media (min-width:901px){
+  .hx .explorer-panel{contain:size;grid-template-rows:auto auto auto minmax(0,1fr);overflow:hidden}
+  .hx .explorer-panel .tryit-items{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px}
+}
+/* 5. Explorer: the plan scales with the screen height */
+.hx .plan-svg{max-height:34vh}
+/* 6. Honest by design: on the page lines */
+.hx .uz,.hx .uz-chips{max-width:none}
+/* 7. What you get */
+.hx .hx-vis{height:clamp(170px,26vh,240px)}
+.hx .hx-more{display:flex;justify-content:flex-start;flex-wrap:wrap;gap:4px 24px;text-align:left}
+/* 8. For professionals: its photo above the list */
+.pro-side{display:grid;gap:20px;align-content:start}
+.pro-photo{width:100%;height:clamp(200px,40vh,380px);object-fit:cover;border-radius:var(--r-lg);display:block}
+/* 9. Areas: the cards are under "Areas (Nov 27)" above; the grid is in the 12-column block below */
+@media (min-width:1024px){ .hx .areas-strip{grid-template-columns:repeat(5,minmax(0,1fr))} .hx .hx-get{grid-template-columns:repeat(4,minmax(0,1fr))} .has-close .foot-grid{grid-template-columns:minmax(0,1.6fr) repeat(3,minmax(0,1fr))} .has-close .foot-brand{grid-column:auto} }
+/* 11. The close and the footer: one screen together */
+.site-foot.has-close{min-height:100svh;box-sizing:border-box;padding-top:112px}
+.foot-close{padding-bottom:48px;margin-bottom:40px;border-bottom:1px solid var(--inverse-line)}
+.foot-close .hx-cta-grid{align-items:start}
+.foot-credit{opacity:.75}
+
+/* short desktop screens (1024x768): less air above and below */
+@media (min-width:1024px) and (max-height:820px){
+  .hx > section:not(.hx-hero){padding:88px 0 40px}
+  .site-foot.has-close{padding-top:88px}
+}
+/* tablet: the box grows past its screens rather than overlap (--ht) */
+@media (min-width:640px) and (max-width:1023px){
+  .hx > section:not(.hx-hero){min-height:calc(var(--ht,var(--h,1)) * 100svh)}
+  .hx > section:not(.hx-hero){padding:96px 0 64px}
+  .hx .cmp-head{grid-template-columns:minmax(0,1fr)}
+  .hx .cmp-ctrl{justify-content:flex-start}
+}
+/* phone: one column; sections are one or two screens (--hm) */
+@media (max-width:639px){
+  .hx > section:not(.hx-hero){min-height:calc(var(--hm,1) * 100lvh)}
+  .hx > section:not(.hx-hero){padding:88px 0 48px}
+  .hx .cmp-card{grid-template-columns:minmax(0,1fr);gap:16px}
+  .hx .cmp-ctrl{justify-content:flex-start}
+  .site-foot.has-close{padding-top:88px}
+}
+/* Screens per section, by device (desktop: one screen each) */
+@media (min-width:640px) and (max-width:1023px){
+  #how,#explore{--ht:2}
+  .hx .uz-chips{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .hx .hx-vis{height:clamp(150px,20vh,220px)}
+  .pro-photo{height:clamp(180px,24vh,300px)}
+  .foot-close .hx-cta-grid{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
+  .has-close .foot-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .has-close .foot-brand{grid-column:auto}
+}
+@media (max-width:639px){
+  #how,#before-after,#explore,#honest,#what-you-get,#professionals,#areas{--hm:2}
+  .hx #how .gv-v{height:36vh}
+  .pro-photo{height:22vh}
+  .hx .boards-sec .hx-head{margin-bottom:16px}
+  .pk-phone{margin-bottom:12px}
+  .hx .board{padding:12px 12px 10px;gap:8px}
+  .hx .board-grid{row-gap:6px}
+  .hx .board-head p{margin-top:0}
+  .site-foot.has-close{min-height:200lvh}
+  .pk-phone{display:inline-flex;margin-bottom:16px}
+  .hx .boards[data-show] .board{display:none}
+  .hx .boards[data-show="E"] .board[data-pk="E"],.hx .boards[data-show="S"] .board[data-pk="S"],.hx .boards[data-show="P"] .board[data-pk="P"]{display:grid}
+  .hx .explorer-panel .tryit-items{max-height:320px;overflow-y:auto;overscroll-behavior:contain}
+  .hx .plan-svg{max-height:none}
+}
+/* short desktop screens: the big pictures and the footer a little smaller */
+@media (min-width:1024px) and (max-height:820px){
+  .hx .cmp-card .cmp{height:46vh}
+  .hx .plan-svg{max-height:30vh}
+  .hx .uz-chips{margin-top:16px}
+  .hx .uz-rows li{padding:7px 0}
+  .hx .board{padding:14px 14px 12px;gap:10px}
+  .hx .board-grid{row-gap:8px}
+  .foot-close{padding-bottom:32px;margin-bottom:24px}
+  .has-close .foot-bottom{margin-top:24px}
+  .has-close .foot-grid ul{gap:0}
+  .has-close .foot-grid ul a{padding:3px 0}
+}
+@media (max-width:1199px){
+  .hx .cmp-head{grid-template-columns:minmax(0,1fr)}
+  .hx .cmp-ctrl{justify-content:flex-start}
+}
+
+/* ---------- Home: one 12-column grid from 1024 (taste-skill equal edges). Words take columns 1 to 5, pictures 6 to 12;
+   card rows are 4+4+4 or 6+6. Below 1024 the splits stack; on a phone the photo you work with comes first. ---------- */
+@media (min-width:1024px){
+  .hx #professionals .band-grid,.hx #questions .split,.hx .cmp-card,.hx .explorer,.hx .cmp-head{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px}
+  .hx #professionals .band-grid > .stack,.hx #questions .split > .sec-head{grid-column:1 / span 5}
+  .hx #professionals .pro-side,.hx #questions .faq{grid-column:6 / -1}
+  /* before and after: the parts list left, the photo right */
+  .hx .cmp-head{align-items:end}
+  .hx .cmp-head > .sec-head{grid-column:1 / span 5}
+  .hx .cmp-head > .cmp-ctrl{grid-column:6 / -1;justify-content:flex-end}
+  .hx .cmp-card{align-items:start}
+  .hx .cmp-card > .cmp-body{grid-column:1 / span 5;grid-row:1}
+  .hx .cmp-card > .cmp{grid-column:6 / -1;grid-row:1}
+  /* explorer: the room panel left, the plan right, as two cards */
+  .hx .explorer{border:0;border-radius:0;background:none;overflow:visible}
+  .hx .explorer-panel{grid-column:1 / span 5;grid-row:1;border:1px solid var(--border);border-radius:var(--r-lg);background:var(--raised)}
+  .hx .explorer-plan{grid-column:6 / -1;grid-row:1;border:1px solid var(--border);border-radius:var(--r-lg)}
+  /* card rows on the columns: 4+4+4 and 3+3+3+3, 24px gutters */
+  .hx .gv-steps,.hx .boards,.hx .hx-get,.hx .uz-chips{column-gap:24px}
+  /* honest by design: two cards 6+6, the "vs" mark sits on the gutter between them */
+  /* areas: the first area large on columns 1 to 6 across both rows, the other four 3+3 on columns 7 to 12;
+     the large photo fills its card, so it takes the height of the two rows beside it */
+  .hx .areas-strip{grid-template-columns:repeat(12,minmax(0,1fr));gap:24px}
+  .hx .areas-strip .area-card{grid-column:span 3}
+  .hx .areas-strip .area-card:first-child{grid-column:1 / span 6;grid-row:1 / span 2}
+  .hx .areas-strip .area-card img{aspect-ratio:16 / 9}
+  .hx .areas-strip .area-card:first-child img{flex:1 1 0;min-height:0;aspect-ratio:auto}
+}
+/* tablet: the first area across the top, the other four 2+2 under it */
+@media (min-width:640px) and (max-width:1023px){
+  .hx .areas-strip{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  .hx .areas-strip .area-card:first-child{grid-column:1 / -1}
+  .hx .areas-strip .area-card:first-child img{aspect-ratio:2 / 1}
+}
+/* phone: one column, every photo the full width */
+@media (max-width:639px){
+  .hx .areas-strip{grid-template-columns:minmax(0,1fr);gap:12px}
+  .hx .areas-strip .area-card img{aspect-ratio:16 / 10}
+}
+
+/* the room total sits under its label; honest by design is two cards 6+6 from tablet, the "vs" mark on the gutter */
+.hx .cmp-simple .cc-head{flex-direction:column;align-items:flex-start;gap:4px}
+.hx .cmp-simple .cmp-total{justify-items:start;text-align:left}
+@media (min-width:640px){
+  .hx .uz{position:relative;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px}
+  .hx .uz-vs{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:1;width:40px;height:40px}
+}
+/* tablet: before and after stacks, the photo full width, then its parts */
+@media (min-width:640px) and (max-width:1023px){
+  .hx .cmp-card{grid-template-columns:minmax(0,1fr);gap:20px}
+  .hx .cmp-card .cmp{height:clamp(260px,34vh,420px)}
+}
+
+/* ---------- Home: checker round (taste-skill consistency), Nov 27 2026 ---------- */
+/* the page container sits on the content edges (same lines as before, no inner padding) */
+html[data-page="home"] .wrap{width:min(100% - 2 * var(--gut),var(--wrap));max-width:none;padding-inline:0;margin-inline:auto}
+/* splits are top-aligned */
+.hx #professionals .band-grid,.hx .cmp-head{align-items:start}
+/* body text in the ink on light grounds, ivory on Deep Forest */
+.hx > section:not(.hx-hero) .lede{color:var(--text)}
+.hx .band .lede{color:var(--on-inverse)}
+/* one size for the small headings */
+.hx .gv-cap h3,.hx .hx-card h3,.hx .area-card h3,.hx .explorer-panel h3,.hx .board-head h3,.hx-zip h3{font-size:1.25rem;line-height:1.25}
+/* questions: a photo under the heading */
+.faq-photo{display:block;width:100%;height:clamp(180px,30vh,320px);object-fit:cover;object-position:60% 20%;border-radius:var(--r-lg);margin-top:24px}
+@media (max-width:1023px){ .faq-photo{display:none} }
+/* the close in the footer: labels you can see, one button height, no rule between the close and the links */
+.foot-lbl{display:block;font-size:.85rem;font-weight:600;color:var(--on-inverse);margin-bottom:6px}
+.foot-close{border-bottom:0;padding-bottom:24px;margin-bottom:24px}
+.foot-close .btn,.foot-close .input{min-height:48px}
+/* phone: a last odd tile takes the whole row */
+@media (max-width:639px){
+  .hx .cmp-simple .cc-list li:last-child:nth-child(odd){grid-column:1 / -1}
+}
+/* 320px: the logo and the Menu button fit the header row (no sideways scroll on any page) */
+@media (max-width:359px){ .site-head .wrap{gap:10px} .menu-btn{padding-inline:10px} }
+/* checker round 3: the room tabs' focus ring shows inside their switch; the footer fits its
+   the close on the page's split line (5 + 7 columns); answers in the ink */
+.hx .seg button:focus-visible{outline-offset:-3px}
+.foot-close{padding-bottom:12px;margin-bottom:12px}
+.has-close .foot-bottom{margin-top:24px}
+.hx .faq .a{color:var(--text)}
+@media (min-width:1024px){
+  .foot-close .hx-cta-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px;align-items:start}
+  .foot-close .hx-cta-main{grid-column:1 / span 5}
+  .foot-close .hx-zip{grid-column:6 / -1}
+}
+/* phone areas: two per row, the first and the last across */
+/* before and after from 1024: a two-track split on the page's split line (5 columns and 4 gutters, then the photo) */
+@media (min-width:1024px){
+  .hx .cmp-card{grid-template-columns:calc((100% - 11 * 24px) * 5 / 12 + 4 * 24px) minmax(0,1fr)}
+  .hx .cmp-card > .cmp-body{grid-column:1}
+  .hx .cmp-card > .cmp{grid-column:2}
+}
+.hx .explorer-panel .ex-head .textlink{margin-top:4px;min-height:32px}
+/* last trims: the footer on short desktop screens, packages on a phone */
+@media (min-width:1024px) and (max-height:820px){ .has-close .foot-bottom{margin-top:12px;padding-top:16px} }
+@media (max-width:639px){ .pk-phone{margin-bottom:8px} .hx .boards-sec .hx-head{margin-bottom:12px} }
+/* before and after controls: the room tabs on their own row, then "Show the work for" beside the goal switch */
+.hx .cmp-ctrl .cmp-rooms{flex-basis:100%;display:flex}
+@media (min-width:1024px){ .hx .cmp-ctrl .cmp-rooms{justify-content:flex-end} }
+/* the ZIP label above its field, like every other label */
+@media (min-width:640px){ .foot-close .hx-zip-form{flex-wrap:wrap} .foot-close .hx-zip-form .foot-lbl{flex-basis:100%;margin-bottom:0} }
+
+/* ---------- Home, How it works, step 3: the price card for one house (Nov 27 2026) ----------
+   The house, its three goals on one scale (Low to High, no middle mark), and what is left out of the total. */
+.gp{display:grid;grid-template-rows:auto 1fr auto;gap:12px;padding:16px 18px}
+.gp-head{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:12px;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border-soft)}
+.gp-head img{width:48px;height:40px;object-fit:cover;border-radius:var(--r-md)}
+.gp-t{display:grid;min-width:0;line-height:1.3}
+.gp-t b{font-size:.92rem;font-weight:600}
+.gp-t small{font-size:.76rem;color:var(--muted)}
+.gp-rows{position:relative;display:grid;align-content:space-evenly;gap:10px;padding-bottom:18px}
+.gp-r{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:end}
+.gp-n{display:grid;line-height:1.3;min-width:0}
+.gp-n b{font-size:.88rem;font-weight:600;color:var(--muted)}
+.gp-n small{font-size:.74rem;color:var(--muted)}
+.gp-r.on .gp-n b{color:var(--text)}
+.gp-v{font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.gp-v em{font-style:normal;font-weight:400}
+.gp-r.on .gp-v{font-size:.92rem;font-weight:600;color:var(--text)}
+.gp-l{grid-column:1 / -1}
+.gp-r.on .gv-rz{border-color:var(--accent)}
+.gp-r.on .gv-rz::before,.gp-r.on .gv-rz::after{background:var(--accent)}
+.gp-axis{position:absolute;left:0;right:0;bottom:0;height:14px;border-top:1px dotted var(--border)}
+.gp-axis span{position:absolute;top:2px;font-size:.68rem;color:var(--muted);font-variant-numeric:tabular-nums;transform:translateX(0)}
+.gp-axis span+span{transform:translateX(-50%)}
+.gp-unk{display:flex;gap:8px;align-items:flex-start;margin:0;padding:8px 10px;border:1px dashed var(--border-strong);border-radius:var(--r-md);background:var(--page);font-size:.78rem;line-height:1.35;color:var(--text)}
+.gp-unk .i{flex:none;margin-top:1px;color:var(--hl-text)}
+.gp-unk b{font-weight:600}
+@media (max-width:639px){ .hx #how .gv-v.gp{height:auto} }
+
+/* ---------- Home, before and after, rebuilt (Nov 27 2026) ----------
+   The heading across the top. On the left one white panel: the room tabs, "Show the work for" with the goal switch, then
+   the room's total and its parts. On the right the photo, as tall as the panel. Below 1024: heading, controls, photo, parts.
+   The head, the gallery and the open card are display:contents, so their parts sit on one grid. */
+.hx #before-after .wrap{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "ctrl" "photo" "body";row-gap:16px}
+.hx #before-after .cmp-head,.hx #before-after .cmp-grid,.hx #before-after .cmp-card:not([hidden]){display:contents}
+.hx #before-after .cmp-head > .sec-head{grid-area:head;margin:0 0 8px;max-width:46rem}
+.hx #before-after .cmp-ctrl{grid-area:ctrl;display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px 14px;align-items:center;justify-content:stretch;justify-items:stretch}
+.hx #before-after .cc-t b{white-space:normal;overflow:visible}
+@media (max-width:639px){ .hx #before-after .cmp-ctrl{grid-template-columns:minmax(0,1fr);gap:8px 0} .hx #before-after #cmp-goal-label{margin-top:4px} }
+.hx #before-after .cmp-rooms{grid-column:1 / -1;display:block}
+.hx #before-after .cmp-ctrl .seg{display:flex;width:100%}
+.hx #before-after .cmp-ctrl .seg button{flex:1;padding:0 8px}
+.hx #before-after #cmp-goal-label{white-space:nowrap}
+.hx #before-after .cmp-card:not([hidden]) > .cmp{grid-area:photo}
+.hx #before-after .cmp-card:not([hidden]) > .cmp-body{grid-area:body}
+.hx #before-after .cc-head .label{display:none}
+.hx #before-after .cc-big{font-size:1.5rem}
+@media (min-width:1024px){
+  .hx #before-after .wrap{grid-template-columns:calc((100% - 11 * 24px) * 5 / 12 + 4 * 24px) minmax(0,1fr);grid-template-areas:"head head" "ctrl photo" "body photo";grid-template-rows:auto auto 1fr;column-gap:24px;row-gap:0}
+  .hx #before-after .cmp-head > .sec-head{margin-bottom:32px;max-width:none}
+  .hx #before-after .cmp-ctrl{background:var(--raised);border:1px solid var(--border);border-bottom:0;border-radius:var(--r-lg) var(--r-lg) 0 0;padding:20px 20px 16px}
+  .hx #before-after .cmp-card:not([hidden]) > .cmp-body{background:var(--raised);border:1px solid var(--border);border-radius:0 0 var(--r-lg) var(--r-lg);padding:16px 20px 20px;align-content:start;position:relative}
+  .hx #before-after .cmp-card:not([hidden]) > .cmp-body::before{content:"";position:absolute;top:-1px;left:20px;right:20px;border-top:1px solid var(--border-soft)}
+  .hx #before-after .cmp-card:not([hidden]) > .cmp-body{border-top:0}
+  .hx #before-after .cmp-card:not([hidden]) > .cmp{height:auto;min-height:360px;align-self:stretch}
+}
+@media (min-width:1024px) and (max-height:820px){ .hx #before-after .cmp-head > .sec-head{margin-bottom:20px} .hx #before-after .cmp-ctrl{padding:16px 20px 12px} .hx #before-after .cmp-card:not([hidden]) > .cmp-body{padding:12px 20px 16px} }
+
+/* ---------- Home, before and after, round 2 (Nov 27 2026): one height for every room; the rooms as picture tabs;
+   the total and its goal on one line; one part always open, pinned to the bottom of the panel ---------- */
+.hx #before-after{--ba-h:clamp(420px,56vh,520px)}
+.cmp-rtabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.cmp-rtab{display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 10px 6px 6px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--raised);font:inherit;font-size:.88rem;font-weight:600;color:var(--muted);text-align:left;cursor:pointer;transition:border-color var(--base),color var(--base)}
+.cmp-rtab img{width:38px;height:38px;flex:none;object-fit:cover;border-radius:var(--r-sm)}
+.cmp-rtab span{min-width:0;line-height:1.2}
+.cmp-rtab:hover{border-color:var(--border-strong);color:var(--text)}
+.cmp-rtab[aria-selected="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);color:var(--text)}
+.cmp-rtab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hx #before-after .cmp-simple .cc-head{width:100%}
+.hx #before-after .cmp-simple .cmp-total{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px 12px;width:100%;text-align:left}
+.hx #before-after .cc-sub{min-height:0}
+.hx #before-after .cc-detail{display:flex;gap:10px;align-items:flex-start;min-height:0;padding:12px 14px;background:var(--page);border:1px solid var(--border-soft);color:var(--text);font-size:.88rem;line-height:1.45}
+.hx #before-after .cc-detail b{font-weight:600;margin-right:6px}
+.hx #before-after .cc-detail .cmp-n{flex:none;margin-top:1px}
+@media (min-width:1024px){
+  .hx #before-after .wrap{grid-template-rows:auto auto minmax(0,1fr)}
+  .hx #before-after .cmp-card:not([hidden]) > .cmp{height:var(--ba-h);min-height:0;align-self:start}
+  .hx #before-after .cmp-card:not([hidden]) > .cmp-body{display:flex;flex-direction:column;gap:14px}
+  .hx #before-after .cc-detail{margin-top:auto}
+}
+@media (min-width:1024px) and (max-width:1199px){ .cmp-rtab img{display:none} .cmp-rtab{justify-content:center;min-height:44px;padding:6px 8px} }
+@media (max-width:639px){
+  .cmp-rtab{flex-direction:column;align-items:stretch;gap:6px;padding:6px;text-align:center}
+  .cmp-rtab img{width:100%;height:44px}
+}
+@media (min-width:1024px) and (max-height:820px){ .hx #before-after{--ba-h:456px} }
+/* the open part: what each goal does with it; the box fills what the parts leave, so no room shows a gap */
+.hx #before-after .cc-detail{display:grid;align-content:start;gap:8px;padding:12px 14px}
+.ccd-head{display:flex;align-items:center;gap:8px;margin:0}
+.ccd-head b{font-weight:600}
+.ccd-sub{margin-left:auto;font-size:.74rem;color:var(--muted)}
+.ccd-goals{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.ccd-goals li{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:2px 10px;align-items:baseline;font-size:.82rem;color:var(--muted);line-height:1.35}
+.ccd-goals li.on{color:var(--text)}
+.ccd-goals li.on .ccd-g,.ccd-goals li.on .ccd-v{font-weight:600}
+.ccd-g{font-size:.76rem}
+.ccd-v{font-variant-numeric:tabular-nums;white-space:nowrap}
+.ccd-held{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:0;font-size:.84rem;color:var(--text)}
+@media (min-width:1024px){ .hx #before-after .cc-detail{flex:1 1 auto;margin-top:0} }
+/* fit the kitchen (5 parts) at the same height as the other rooms: one-line intro, compact controls; short screens
+   show the open part for the current goal only */
+@media (min-width:1024px){
+  .hx #before-after{--ba-h:clamp(420px,calc(100svh - 360px),560px)}
+  .hx #before-after .cmp-head > .sec-head .lede{max-width:none}
+  .hx #before-after .cmp-ctrl{padding:16px 18px 14px;gap:10px 14px}
+  .cmp-rtab{min-height:46px;padding:5px 10px 5px 5px}
+  .cmp-rtab img{width:34px;height:34px}
+  .hx #before-after .cmp-ctrl .seg button{min-height:40px}
+  .hx #before-after .cmp-card:not([hidden]) > .cmp-body{padding:14px 18px 18px;gap:12px}
+}
+@media (min-width:1024px) and (max-height:820px){ .hx #before-after .ccd-goals li:not(.on){display:none} .hx #before-after .ccd-sub{display:none} }
+@media (min-width:1024px) and (max-height:820px){ .hx #before-after{--ba-h:484px} }
+@media (min-width:640px) and (max-width:1023px) and (max-height:1100px){ .hx #before-after .ccd-goals li:not(.on){display:none} .hx #before-after .ccd-sub{display:none} }
+@media (min-width:1024px){ .hx #before-after .cc-detail{align-content:center;gap:12px} .hx #before-after .ccd-goals{gap:10px} }
+
+/* ---------- Home: the close gets its own light band above the dark footer (Nov 27 2026) ----------
+   The last call to action is the page's conversion moment, so it stands apart from the links and legal text:
+   warm stone ground, the main action in Deep Forest, the ZIP check in a white card. Together one screen on desktop. */
+.site-foot.has-close{display:flex;flex-direction:column;padding-top:0}
+.has-close > .foot-close{margin:0;padding:96px 0 72px;border:0;background:var(--sunken);color:var(--text)}
+.has-close > .wrap{flex:1 0 auto;width:min(100% - 2 * var(--gut),var(--wrap));padding-top:56px}
+.foot-close .hx-cta-grid{align-items:center}
+.foot-close .hx-cta h2{color:var(--text);margin:0 0 20px;max-width:16ch}
+.foot-close .hx-cta-sub{color:var(--muted)}
+.foot-close .hx-cta-sub a,.foot-close .textlink,.foot-close .hx-zip-msg a{color:var(--accent)}
+.foot-close .foot-lbl{color:var(--text)}
+.foot-close .success{color:var(--text)}
+.foot-close .err{color:var(--bad)}
+.foot-close .hx-zip{background:var(--raised);border:1px solid var(--border);padding:24px}
+.foot-close .hx-zip h3{color:var(--text)}
+.foot-close .hx-zip h3 .i{color:var(--hl)}
+.foot-close .hx-zip-msg{color:var(--muted);min-height:1.4em}
+@media (max-width:639px){ .has-close > .foot-close{padding:72px 0 48px} .has-close > .wrap{padding-top:48px} }
+@media (min-width:1024px){ .has-close > .foot-close{padding:112px 0 48px} .has-close > .wrap{padding-top:40px} .foot-close .hx-cta h2{max-width:22ch} }
+@media (min-width:1024px) and (max-height:820px){ .has-close > .foot-close{padding:96px 0 36px} .has-close > .wrap{padding-top:32px} .foot-close .hx-cta h2{margin-bottom:14px} }
+@media (min-width:1024px) and (max-height:820px){ .has-close > .foot-close{padding:88px 0 28px} .foot-close .hx-cta h2{font-size:clamp(1.6rem,1.2rem + 1.2vw,2.1rem);max-width:none} }
+
+/* the closing band is back as its own section above the questions, at its original compact height (user, Nov 27) */
+.hx > section.hx-cta{min-height:0;padding:clamp(56px,7vw,96px) 0}
+
+/* ---------- Before and after, simpler (Nov 27): one row per part, the room total closes the list ---------- */
+.hx #before-after .cmp-simple{display:flex;flex-direction:column;gap:0}
+.cc-rows{list-style:none;margin:0;padding:0;display:grid;border-top:0}
+/* name and price on one line, what happens to it underneath across the full width */
+.cc-rows li{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"n v" "a a";gap:1px 16px;align-items:baseline;margin:0;padding:9px 0;border-radius:0;border-bottom:1px solid var(--border-soft);background:none}
+.cr-n{grid-area:n;min-width:0;font-size:.95rem;font-weight:600;color:var(--text)}
+.cr-a{grid-area:a;font-size:.82rem;line-height:1.4;color:var(--muted)}
+.cr-v{grid-area:v;font-size:.92rem;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.cc-rows li.is-kept .cr-v,.cc-rows li.is-guide .cr-v{font-weight:400;color:var(--muted)}
+.cc-rows .state{font-size:.72rem}
+.cc-total{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px;margin:0;padding-top:14px;border-top:1px solid var(--border)}
+.cc-tl{font-size:.82rem;font-weight:600;color:var(--muted)}
+.cc-total .cc-big{margin-left:auto;font-size:1.35rem}
+@media (min-width:1024px){ .hx #before-after .cc-total{margin-top:auto} .hx #before-after .cc-rows{margin-bottom:12px} }
+/* shorter desktop screens and tablets: tighter rows, tabs without pictures, nothing cut off */
+@media (min-width:1024px) and (max-height:820px),(min-width:640px) and (max-width:1023px){
+  .cc-rows li{padding:5px 0;gap:0 16px}
+  .cr-a{font-size:.8rem;line-height:1.35}
+  .cc-total{padding-top:10px}
+  .hx #before-after .cc-rows{margin-bottom:8px}
+}
+@media (min-width:1024px) and (max-height:820px){ .cmp-rtab img{display:none} .cmp-rtab{justify-content:center;min-height:42px} }
+/* tablets: the photo gives way on shorter screens so the longest room (kitchen, five parts) still fits one screen */
+@media (min-width:640px) and (max-width:1023px){ .hx #before-after .cmp-card:not([hidden]) > .cmp{height:clamp(228px,calc(100svh - 796px),330px)} }
+
+/* Before and after panel (make-ui, Nov 27): one rule above the total, row prices in full dollars like the total,
+   and the total as a label column plus its amount, with the Partial tag beside the amount it qualifies */
+.hx #before-after .cc-rows li:last-child{border-bottom:0}
+.cr-v .range-txt{font-weight:600}
+.hx #before-after .cmp-simple .cc-total{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;column-gap:12px;row-gap:4px;padding-top:14px}
+.hx #before-after .cc-tl{grid-column:1;display:grid;gap:1px}
+.hx #before-after .cc-pk{font-size:.8rem;font-weight:400;color:var(--muted)}
+.hx #before-after .cc-total .cc-big{grid-column:2;margin:0;justify-self:end}
+.hx #before-after .cc-total .state{grid-column:3}
+/* the package switch sits next to the list from 1024, so the total does not repeat its name there */
+@media (min-width:1024px){ .hx #before-after .cc-pk{display:none} }
+/* phone: label and package on the left; the amount, then its Partial tag, on the right */
+@media (max-width:639px){
+  .hx #before-after .cmp-simple .cc-total{grid-template-columns:minmax(0,1fr) auto}
+  .hx #before-after .cc-tl{grid-row:1 / span 2;align-self:start}
+  .hx #before-after .cc-total .cc-big{grid-column:2;grid-row:1}
+  .hx #before-after .cc-total .state{grid-column:2;grid-row:2;justify-self:end}
+}
+
+/* Rows read at a glance (make-ui, Nov 27): the part and its Low and High on top; under it, what happens (one word and an icon)
+   and the range line. The tag column has one width, so every range line starts on the same x and shares the card's scale. */
+.cc-rows li.cr2{grid-template-columns:6.6rem minmax(0,1fr) auto;grid-template-areas:"t n v" ". l l";gap:2px 12px;align-items:center;padding:8px 0}
+/* phone: the first line is too narrow for the tag, so it moves to the line with the range */
+@media (max-width:639px){ .cc-rows li.cr2{grid-template-areas:"n n v" "t l l";row-gap:6px} }
+/* shorter desktops and tablets: tighter rows, so the kitchen (five parts) still fits one screen */
+@media (min-width:1024px) and (max-height:820px), (min-width:640px) and (max-width:1023px) and (max-height:1100px){ .cc-rows li.cr2{padding:6px 0} }
+.cr-rl.rl{height:14px}
+.cr-rl .rl-track,.cr-rl .rl-bar{top:6px}
+.cr-rl .rl-bar::before,.cr-rl .rl-bar::after{top:-5px;height:10px}
+.cc-rows li.cr2 .cr-n{grid-area:n}
+.cc-rows li.cr2 .cr-v{grid-area:v;font-size:.9rem}
+.cr-tag{grid-area:t;justify-self:start;display:inline-flex;align-items:center;gap:5px;padding:2px 8px 2px 6px;border:1px solid transparent;border-radius:var(--r-sm);font-size:.76rem;font-weight:600;line-height:1.5;white-space:nowrap}
+.cr-tag .i{width:14px;height:14px;stroke-width:1.8}
+.cr-rl{grid-area:l}
+/* the work grows from quiet to solid: Keep, Repair, Refinish, Replace; not settled yet is dashed and neutral */
+.v-keep .cr-tag{color:var(--muted);padding-left:0}
+.v-repair .cr-tag{background:var(--sunken);color:var(--text)}
+.v-refinish .cr-tag{border-color:var(--deep-forest);background:var(--raised);color:var(--deep-forest)}
+.v-replace .cr-tag{background:var(--deep-forest);color:var(--on-accent)}
+.v-measure .cr-tag,.v-unverified .cr-tag{border:1px dashed var(--state-line);color:var(--state-ink)}
+.v-guidance .cr-tag{background:var(--info-bg);color:var(--info)}
+.cc-rows li.cr2.is-held .cr-v{font-weight:400;font-size:.82rem;color:var(--muted)}
+/* "Room total" stays on one line: the amount steps down where the panel is narrow (1024 to 1279, and phones under 360) */
+.hx #before-after .cc-tl{white-space:nowrap}
+@media (min-width:1024px) and (max-width:1279px), (max-width:359px){ .hx #before-after .cc-total .cc-big{font-size:1.3rem} }
+
+/* Sign-up account types, grouped by who they are for (client, Nov 27: Investor added, Other removed) */
+.tp-group{margin:6px 0 -2px;font-size:.78rem;font-weight:600;color:var(--muted)}
+
+/* Hero supporting message (business model line 136): no single word left alone on the last line */
+.hx-hero .hx-copy .lede{text-wrap:pretty}

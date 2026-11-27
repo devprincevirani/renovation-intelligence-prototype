@@ -1,5 +1,7 @@
-/* Home page: the hero "house being read" loop, the before and after gallery, goal tiles, what-you-get visuals,
-   scroll reveals, ZIP check and the quick waitlist. Results only: no method words on this page. */
+/* Home page: the hero "house being read" entrance, the before and after gallery, goal tiles, what-you-get visuals,
+   ZIP check and the quick waitlist. Results only: no method words on this page.
+   Motion: the hero's reading loop and Replay, blocks that fade in on scroll, the plan drawing in, hover lift
+   (restored Nov 27 at the user's request: the page looked too plain without them). */
 (function(){
   var RI = window.RI, doc = document;
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -29,7 +31,7 @@
 
   /* ---------- Before and after gallery ---------- */
   var cmpPk = 'S';
-  var cmp = RI.Compare.render(doc.getElementById('cmp'), function(){ return cmpPk; }, {simple:true, beforeAfter:true});
+  var cmp = RI.Compare.render(doc.getElementById('cmp'), function(){ return cmpPk; }, {simple:true, beforeAfter:true, tabs:doc.getElementById('cmp-rooms')});
   var cseg = doc.getElementById('cmp-seg');
   function setCmp(k){ cmpPk = k; cseg.querySelectorAll('[data-pk]').forEach(function(x){ x.setAttribute('aria-selected', x.getAttribute('data-pk') === k); }); RI.syncSeg(cseg); cmp.update(); }
   cseg.addEventListener('click', function(e){ var b = e.target.closest('[data-pk]'); if(b) setCmp(b.getAttribute('data-pk')); });
@@ -38,8 +40,24 @@
     var ks = ['E','S','P'], n = ks[(ks.indexOf(cmpPk) + (e.key === 'ArrowRight' ? 1 : 2)) % 3]; setCmp(n); cseg.querySelector('[data-pk="' + n + '"]').focus();
   });
 
-  /* ---------- Three goals: product tiles ---------- */
-  RI.Materials.render(doc.getElementById('boards'));
+  /* ---------- Three goals: product tiles. On a phone one package at a time, with the package switch (DESIGN.md 6) ---------- */
+  var boards = doc.getElementById('boards');
+  RI.Materials.render(boards);
+  boards.setAttribute('data-show', 'S');
+  boards.insertAdjacentHTML('beforebegin', '<div class="seg pk-phone" role="tablist" aria-label="Package"><span class="seg-thumb"></span>' +
+    RI.PACKAGES.map(function(p){ return '<button type="button" role="tab" data-pk="' + p.key + '" aria-selected="' + (p.key === 'S') + '">' + p.name + '</button>'; }).join('') + '</div>');
+  var pks = boards.previousElementSibling;
+  function showPk(k, focus){
+    boards.setAttribute('data-show', k);
+    pks.querySelectorAll('[data-pk]').forEach(function(b){ var on = b.getAttribute('data-pk') === k; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; if(on && focus) b.focus(); });
+    RI.syncSeg(pks);
+  }
+  pks.addEventListener('click', function(e){ var b = e.target.closest('[data-pk]'); if(b) showPk(b.getAttribute('data-pk')); });
+  pks.addEventListener('keydown', function(e){
+    if(e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    var ks = ['E','S','P'], cur = boards.getAttribute('data-show'); showPk(ks[(ks.indexOf(cur) + (e.key === 'ArrowRight' ? 1 : 2)) % 3], true);
+  });
+  showPk('S');
 
   /* ---------- Floor plan explorer ---------- */
   var st = {pk:'S', off:{}, room:'kitchen'};
@@ -54,12 +72,12 @@
       return '<div class="t-item' + (off ? ' off' : '') + '"><span><span class="nm">' + RI.esc(it.name) + '</span><span class="ac">' + RI.esc(p[0]) + '</span></span>' +
         (keep ? '<span class="keep">No cost</span>' : '<span class="range-txt">' + RI.range(p[1], p[2]) + '</span><label class="switch"><input type="checkbox" data-id="' + it.id + '"' + (off ? '' : ' checked') + '><span class="track"></span><span class="sr">Include ' + RI.esc(it.name) + '</span></label>') + '</div>';
     }).join('');
-    panel.innerHTML = '<div class="ex-head"><p class="label">Selected room</p><h3>' + r.name + '</h3><p class="small muted">' + r.sub + '</p></div>' +
+    panel.innerHTML = '<div class="ex-head"><p class="label">Selected room</p><h3>' + r.name + '</h3><p class="small muted">' + r.sub + '</p>' +
+      '<a class="textlink" href="sample/">Open the full sample presentation ' + RI.icon('arrow','i-sm') + '</a></div>' +
       '<div class="ex-total"><span class="big-range' + (bump ? ' bump' : '') + '">' + (t.high ? RI.range(t.low, t.high) : '<span class="to" style="padding:0">No cost under this goal</span>') + '</span>' +
       (held ? '<span class="state state-partial">Partial</span>' : '') + '</div>' +
       '<div data-scale="0,30000"><div class="rl thick' + (held ? ' partial' : '') + '" data-low="' + t.low + '" data-high="' + t.high + '"></div></div>' +
-      '<div class="tryit-items">' + items + '</div>' +
-      '<a class="textlink" href="sample/">Open the full sample presentation ' + RI.icon('arrow','i-sm') + '</a>';
+      '<div class="tryit-items">' + items + '</div>';
     RI.initRanges(panel); panel.querySelectorAll('.rl').forEach(function(x){ x.classList.add('drawn'); });
   }
   function render(bump){
@@ -118,10 +136,14 @@
     host.innerHTML = card(true) + '<span class="uz-vs" aria-hidden="true">vs</span>' + card(false);
   })();
 
-  /* ---------- Reveal on scroll ---------- */
-  var rv = doc.querySelectorAll('.hx [data-rv]');
+  /* ---------- Questions: on a phone they all start closed, so the section is one screen ---------- */
+  if(window.matchMedia('(max-width:639px)').matches) doc.querySelectorAll('#questions details[open]').forEach(function(d){ d.open = false; });
+
+  /* ---------- Reveal on scroll (restored Nov 27 at the user's request). Hidden only under html.hx-rv, which is set
+     here when motion is allowed, so reduced motion or a failed script shows everything ---------- */
+  var rv = doc.querySelectorAll('.hx [data-rv], .site-foot [data-rv]');
   if(!reduce && 'IntersectionObserver' in window){
-    doc.documentElement.classList.add('hx-js');
+    doc.documentElement.classList.add('hx-rv');
     var rio = new IntersectionObserver(function(es){
       es.forEach(function(e){
         if(!e.isIntersecting) return;

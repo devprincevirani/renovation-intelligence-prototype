@@ -137,7 +137,7 @@
     }
     function verified(){
       render(RI.fxTop('Create your account', '3 of 3', 'check'),
-        '<div class="fx-head"><h1>Your email is confirmed</h1><p class="muted">Your account is ready.' + (u && u.trial ? ' You have 3 invite credits: three full presentations, free, with no expiry.' : '') + '</p></div>' +
+        '<div class="fx-head"><h1>Your email is confirmed</h1><p class="muted">Your account is ready.</p></div>' +
         '<ul class="fx-next"><li><b>About 10 minutes</b><span>to enter your first house</span></li><li><b>Photos first</b><span>room by room</span></li><li><b>Sizes optional</b><span>skip any you do not know</span></li></ul>' +
         '<button type="button" class="btn btn-primary btn-block btn-lg" id="ve-go">Enter my first house ' + RI.icon('arrow','i-sm i-arrow') + '</button><p class="fx-alt"><a href="../login/">Log in later</a></p>', 2);
       $('ve-go').addEventListener('click', function(){

@@ -12,6 +12,7 @@ The sample photos in this prototype come from Wikimedia Commons, Flickr, StockSn
 | `assets/img/ba/bath-after.jpg` | Seasonal employee housing bathroom after renovation, Yellowstone National Park. NPS / Jacob W. Frank, Public domain. [Source](https://commons.wikimedia.org/wiki/File:Seasonal_employee_housing_bathroom_after_renovation_(50014557962).jpg). Resized. |
 | `assets/img/hero-kitchen-remodel.jpg` | White Kitchen, a kitchen remodel, United States, 2017. Mastercraftkitchenandbath, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). [Source](https://commons.wikimedia.org/wiki/File:White_Kitchen.jpg). Resized. |
 | `assets/img/livonia-street.jpg` | Rosedale Gardens Historic District, Livonia, Michigan. Andrew Jameson, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). |
+| `assets/img/questions-painter.jpg` | Guy Man. Michal Jarmoluk, via StockSnap, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) (public domain). [Source](https://stocksnap.io/photo/guy-man-GPENZWC6X4). Resized. |
 | `assets/img/livonia-corner.jpg` | Rosedale Gardens Historic District, Livonia, Michigan. Andrew Jameson, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). |
 | `assets/img/livonia-pines.jpg` | Rosedale Gardens Historic District, Livonia, Michigan. Andrew Jameson, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). |
 | `assets/img/brick-ranch.jpg` | Lake Drive ranches, Bailey Lakes, Ohio. Nyttend, Public domain. |
