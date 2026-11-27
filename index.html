@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Renovation cost for one specific house | Renovation Intelligence</title>
-<meta name="description" content="See what a house could be and what it would cost. A Low and a High for three renovation goals, with the real products. The price is free.">
+<meta name="description" content="See what your home could become and know what it could cost. Explore renovation cost ranges for free, or get a detailed renovation report for $50.">
 <meta name="theme-color" content="#203B38">
 <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Jost:wght@400;500&display=swap">
-<link rel="stylesheet" href="assets/css/styles.css">
+<link rel="stylesheet" href="assets/css/styles.css?v=4">
 <link rel="preload" as="image" href="assets/img/hero-kitchen-remodel.jpg">
-<script defer src="assets/js/data.js?v=145"></script>
-<script defer src="assets/js/site.js"></script>
+<script defer src="assets/js/data.js?v=146"></script>
+<script defer src="assets/js/site.js?v=153"></script>
 <script defer src="assets/js/plan.js"></script>
 <script defer src="assets/js/materials.js"></script>
 <script defer src="assets/js/compare.js"></script>
@@ -27,14 +27,15 @@
   <section class="hero hx-hero" aria-labelledby="h-hero">
     <div class="wrap hero-grid">
       <div class="hero-copy hx-copy">
-        <h1 id="h-hero">See what this house could be. <span class="hx-accent">And what it would cost.</span></h1>
+        <!-- Headline: business model v1.0 (Nov 2026) -->
+        <h1 id="h-hero">See what your home could become. <span class="hx-accent">Know what it could cost.</span></h1>
         <p class="lede">Add your photos. Get a Low and a High for three renovation goals, with the real products.</p>
         <div class="cta-row">
           <a class="btn btn-primary btn-lg" data-cta data-arrow href="waitlist/">Join the waitlist</a>
           <a class="btn btn-secondary btn-lg" href="sample/">See a sample</a>
         </div>
         <ul class="hx-trust" aria-label="At a glance">
-          <li><span class="hx-ti"><i data-i="tag" class="i-sm"></i></span>The price is free</li>
+          <li><span class="hx-ti"><i data-i="tag" class="i-sm"></i></span>Cost ranges are free</li>
           <li><span class="hx-ti"><i data-i="house" class="i-sm"></i></span>Any single-family house</li>
           <li><span class="hx-ti"><i data-i="shield" class="i-sm"></i></span>Unknowns named, never guessed</li>
         </ul>
@@ -226,24 +227,26 @@
           <h3>A PDF and a private link to share</h3>
         </article>
       </div>
-      <p class="hx-more" data-rv><a class="textlink" href="sample/">See a sample presentation <i data-i="arrow" class="i-sm"></i></a></p>
+      <p class="hx-more" data-rv><a class="textlink" href="sample/">See a sample report <i data-i="arrow" class="i-sm"></i></a><a class="textlink" href="pricing/">See pricing <i data-i="arrow" class="i-sm"></i></a></p>
     </div>
   </section>
 
-  <!-- Builders and agents (as on the live site) -->
+  <!-- For professionals: Pro at $99 a month (business model v1.0, Nov 2026) -->
   <section class="band" aria-labelledby="h-builders">
     <div class="wrap band-grid">
       <div class="stack" style="gap:18px">
-        <p class="label">For builders and agents</p>
-        <h2 id="h-builders">Many houses, the same honest method</h2>
-        <p class="lede">Choose a builder or agent account at sign-up. You see the same estimate as a homeowner, plus the task list behind every line and the subcontractor scope documents for each trade.</p>
-        <div><a class="btn btn-ivory" data-cta="builder" href="waitlist/?type=builder">Join the waitlist as a builder</a></div>
+        <p class="label">For professionals</p>
+        <h2 id="h-builders">Help your clients see the potential. Understand the costs.</h2>
+        <p class="lede">Whether you are a real estate agent, a builder or an investor, evaluate renovation opportunities and present detailed planning reports.</p>
+        <p class="pp-price"><b><span data-offer="credits">10</span> properties a month for <span data-offer="pro">$99</span>.</b> Extra properties <span data-offer="extra">$10</span> each.</p>
+        <div class="cta-row"><a class="btn btn-ivory" data-cta="pro" href="waitlist/?type=agent">Join the waitlist as a professional</a><a class="textlink" href="professionals/">For professionals</a></div>
       </div>
-      <div class="band-list" aria-label="What a builder account adds">
-        <div><span>Task lists for each action</span><span>Every trade</span></div>
-        <div><span>Subcontractor scope documents</span><span>Every trade</span></div>
-        <div><span>Quantities with their source</span><span>Net sq ft, linear ft, each</span></div>
-        <div><span>A private share link per house</span><span>For clients</span></div>
+      <div class="band-list" aria-label="What Pro includes">
+        <div><span>Property analyses</span><span><span data-offer="credits">10</span> a month</span></div>
+        <div><span>A full detailed report for each</span><span>All three packages</span></div>
+        <div><span>Client reports to download and share</span><span>PDF and link</span></div>
+        <div><span>Extra properties</span><span><span data-offer="extra">$10</span> each</span></div>
+        <div><span>Task lists and trade scope documents</span><span>Builder and agent accounts</span></div>
       </div>
     </div>
   </section>
@@ -299,7 +302,7 @@
         <details open><summary>How close is the number?</summary><div class="a"><p>It is a range. The Low and the High come from local installed rates and real products for each line. Where our evidence is weaker, the range is wider. Lines we could not confirm are listed apart, never hidden inside the total.</p></div></details>
         <details><summary>Is this a contractor's bid?</summary><div class="a"><p>No. It is an estimate to plan with before you call a contractor. A contractor still needs to see the house, and anything hidden inside walls, floors or systems stays unknown until someone opens them.</p></div></details>
         <details><summary>What do I need to give you?</summary><div class="a"><p>The address, a few facts about your house (year built, size, bedrooms, baths, basement), and a photo of each room. Room sizes help but are optional.</p></div></details>
-        <details><summary>What does it cost me?</summary><div class="a"><p>Seeing the price for each package is free. The full presentation, with rooms, trades and products, is one payment for that house.</p></div></details>
+        <details><summary>What does it cost me?</summary><div class="a"><p>Cost ranges for each package are free. The detailed renovation report, with every room, its products and its costs, is <span data-offer="price">$50</span> for that property. Professionals can choose Pro: <span data-offer="credits">10</span> properties a month for <span data-offer="pro">$99</span>, and extra properties at <span data-offer="extra">$10</span> each. <a href="pricing/">See pricing</a>.</p></div></details>
         <details><summary>What happens to my photos?</summary><div class="a"><p>They are stored privately and used only for your estimate. Location data is removed from every copy we show or share. You confirm that you have the right to use the photos when you submit.</p></div></details>
       </div>
     </div>

@@ -7,7 +7,8 @@
   /* Offers and limits (19 Nov brief, change 4 section 11, and change 8): every one is a setting, in this one place.
      Sam decides the numbers and the dates. Nothing goes live as an offer until he says so. No countdowns, ever. */
   RI.OFFERS = {
-    price:49, priceIsSample:true,                         /* one payment per house, used on every button */
+    price:50, priceIsSample:false,                        /* the detailed report, one payment per property (business model v1.0, Nov 2026) */
+    pro:{price:99, credits:10, extra:10},                 /* Pro: $99 a month, 10 properties a month, extra properties $10 each */
     founding:{on:false, price:29, ends:'2027-04-30'},     /* waitlist members; the end date is shown as a date */
     secondHouse:{on:false, price:35},                     /* the second and later houses on one account */
     inviteCredits:3,                                      /* full presentations free for invited contacts, no clock */

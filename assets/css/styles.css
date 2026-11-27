@@ -2438,3 +2438,106 @@ dialog.tg-dlg{width:min(620px,calc(100vw - 32px))}
   .uz-chips{grid-template-columns:minmax(0,1fr)}
 }
 @media (prefers-reduced-motion:reduce){ .uz-chips li{transition:none} .uz-chips li:hover{transform:none} }
+
+/* ---------- Pricing and For professionals (business model v1.0, Nov 2026) ----------
+   Three plan cards (Free, the $50 report, Pro), the Pro credit rules, and the professionals page.
+   DESIGN.md: 8 px card corners, borders not shadows, Deep Forest as the one accent. */
+.pr-head{border-bottom:0;padding-bottom:0}
+.pr-head .gv-head{margin-bottom:0}
+.pr-sec{padding-top:clamp(24px,3vw,40px)}
+.pr-plans{display:grid;gap:16px;align-items:stretch}
+.pr-plan{display:flex;flex-direction:column;gap:16px;padding:22px;border:1px solid var(--border);border-radius:var(--r-lg);background:var(--raised)}
+.pr-plan.is-main{border-color:var(--accent);box-shadow:inset 0 3px 0 var(--accent)}
+.pr-top{display:grid;gap:4px}
+.pr-who{margin:0;font-size:.8rem;font-weight:600;letter-spacing:.04em;color:var(--hl-text)}
+.pr-top h3{margin:0;font-size:1.3rem}
+.pr-price{display:flex;align-items:baseline;gap:8px;margin:6px 0 0}
+.pr-price b{font-family:var(--display);font-size:2.4rem;font-weight:500;line-height:1;color:var(--text);font-variant-numeric:tabular-nums}
+.pr-price span{font-size:.9rem;color:var(--muted)}
+.pr-vis{height:170px}
+.pr-plan .gv-v3{gap:12px;padding:14px 16px}
+.pr-plan .gv-pres .gv-row:nth-child(n+3){display:none}
+.pr-plan .gv-pres{align-content:center}
+.pr-list{flex:1;align-content:start;list-style:none;margin:0;padding:0;display:grid;gap:9px;font-size:.92rem;line-height:1.4}
+.pr-list li{display:flex;gap:10px;align-items:flex-start}
+.pr-list .i{flex:none;margin-top:3px;color:var(--ok)}
+.pr-list b{font-weight:600}
+.pr-extra{display:flex;align-items:center;gap:8px;margin:0;padding:10px 12px;border-radius:var(--r-md);background:var(--sunken);font-size:.9rem}
+.pr-extra .i{color:var(--hl-text)}
+.pr-btn{margin-top:4px}
+.pr-more{align-self:center;min-height:44px;font-size:.9rem}
+.pr-note{display:flex;gap:10px;align-items:flex-start;max-width:46rem;margin:24px auto 0;font-size:.9rem;color:var(--muted)}
+.pr-note .i{flex:none;margin-top:3px;color:var(--hl-text)}
+/* Pro visual: this month's credits and properties */
+.pr-meter{display:grid;align-content:start;gap:10px;padding:14px 16px;border:1px solid var(--border);border-radius:var(--r-lg);background:var(--raised);overflow:hidden}
+.pr-m-top{display:flex;justify-content:space-between;gap:8px;font-size:.82rem;color:var(--muted)}
+.pr-m-top b{color:var(--text);font-weight:600}
+.pr-m-bar{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px}
+.pr-m-bar i{height:6px;border-radius:2px;background:var(--sunken)}
+.pr-m-bar i.on{background:var(--accent)}
+.pr-m-rows{display:grid;gap:6px}
+.pr-m-rows>span{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:10px;font-size:.84rem;font-weight:500}
+.pr-m-rows img{width:40px;height:28px;object-fit:cover;border-radius:var(--r-sm)}
+.pr-m-rows em,.pp-p-list em{font-style:normal;font-size:.72rem;font-weight:600;padding:2px 7px;border-radius:var(--r-sm);background:var(--sunken);color:var(--muted);white-space:nowrap}
+.pr-m-rows em.ok,.pp-p-list em.ok{background:var(--ok-bg);color:var(--ok)}
+.pp-p-list em.sh{background:#EEF1F0;color:var(--accent)}
+/* credit rules */
+.pr-rules{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.pr-rules li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 14px;padding:16px;border:1px solid var(--border);border-radius:var(--r-lg);background:var(--raised)}
+.pr-rules .ic{grid-row:span 2;display:grid;place-items:center;width:40px;height:40px;border-radius:var(--r-md);background:var(--sunken);color:var(--hl-text)}
+.pr-rules b{font-weight:600}
+.pr-rules li>span:last-child{font-size:.9rem;color:var(--muted)}
+/* For professionals */
+.pp-head{border-bottom:0}
+.pp-hero{display:grid;gap:32px;align-items:center}
+.pp-copy{display:grid;gap:16px;align-content:start}
+.pp-copy h1{max-width:20ch;margin:0}
+.pp-price{margin:0;font-size:1.02rem}
+.pp-price b{font-weight:600}
+.band .pp-price{color:var(--on-inverse)}
+.band .textlink{color:var(--on-inverse)}
+.pp-panel{margin:0;display:grid;gap:12px;padding:16px;border:1px solid var(--border);border-radius:var(--r-lg);background:var(--raised)}
+.pp-p-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px 16px}
+.pp-p-meter{display:grid;gap:5px;min-width:160px}
+.pp-p-n{font-size:.8rem;color:var(--muted);text-align:right}
+.pp-p-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.pp-p-list li{display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:center;gap:12px;padding:8px;border:1px solid var(--border-soft);border-radius:var(--r-md);background:var(--page)}
+.pp-p-list img{width:64px;height:44px;object-fit:cover;border-radius:var(--r-sm)}
+.pp-p-list b{display:block;font-size:.92rem;font-weight:600}
+.pp-p-list small{font-size:.78rem;color:var(--muted)}
+.pp-who{display:grid;gap:16px}
+.pp-who article{display:grid;grid-template-rows:auto 1fr;border:1px solid var(--border);border-radius:var(--r-lg);background:var(--raised);overflow:hidden}
+.pp-who img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block}
+.pp-who article>div{display:grid;gap:8px;align-content:start;padding:18px}
+.pp-who .ic{display:grid;place-items:center;width:40px;height:40px;margin-top:-38px;border:3px solid var(--raised);border-radius:var(--r-md);background:var(--sunken);color:var(--hl-text)}
+.pp-who h3{margin:0;font-size:1.15rem}
+.pp-who p{margin:0;color:var(--muted);font-size:.95rem}
+.pp-inc{display:grid;gap:28px;align-items:start}
+.pp-list{list-style:none;margin:0;padding:0;display:grid;border-top:1px solid var(--border)}
+.pp-list li{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--border)}
+.pp-list .i{flex:none;margin-top:2px;color:var(--hl-text)}
+.pp-list li>span{display:grid;gap:2px;font-size:.9rem;color:var(--muted)}
+.pp-list b{font-size:1rem;font-weight:600;color:var(--text)}
+.pp-card{display:grid;gap:14px;padding:22px;border:1px solid var(--accent);border-radius:var(--r-lg);background:var(--raised);box-shadow:inset 0 3px 0 var(--accent)}
+.pp-card .pr-price{margin:0}
+.pp-card-l{list-style:none;margin:0;padding:0;display:grid;border-top:1px solid var(--border-soft)}
+.pp-card-l li{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-soft);font-size:.92rem}
+.pp-card-l b{font-weight:600}
+/* home additions */
+.hx-more{display:flex;justify-content:center;flex-wrap:wrap;gap:4px 24px}
+@media (min-width:720px){
+  .pr-rules{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pp-who{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (min-width:1024px){
+  .pr-plans{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .pr-rules{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .pp-hero{grid-template-columns:minmax(0,6fr) minmax(0,5fr);gap:56px}
+  .pp-inc{grid-template-columns:minmax(0,1fr) 340px;gap:56px}
+}
+@media (min-width:720px) and (max-width:1023px){
+  /* tablet: the two paid plans side by side under Free would read unevenly; one column, wider cards */
+  .pr-plans{max-width:640px;margin-inline:auto}
+}
+/* The header holds five links from 1280 px; below that, Renovation cost is in the menu and the footer only */
+@media (max-width:1279px){ .mainnav .nav-wide{display:none} }

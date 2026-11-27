@@ -126,9 +126,20 @@
   function ctaFor(variant){
     var pre = RI.mode() === 'prelaunch';
     if(variant === 'builder') return pre ? {t:'Join the waitlist as a builder', h:'waitlist/?type=builder'} : {t:'Create a builder account', h:'signup/?type=builder'};
+    /* Business model v1.0 (Nov 2026): free cost ranges, the $50 detailed report, Pro at $99 a month */
+    var O = RI.OFFERS || {}, P = O.pro || {};
+    if(variant === 'free') return pre ? {t:'Join the waitlist', h:'waitlist/'} : {t:'Explore renovation costs for free', h:'signup/'};
+    if(variant === 'report') return pre ? {t:'See what the $' + O.price + ' report includes', h:'pricing/#report'} : {t:'Get your detailed report, $' + O.price, h:'signup/?next=report'};
+    if(variant === 'pro') return pre ? {t:'Join the waitlist as a professional', h:'waitlist/?type=agent'} : {t:'Get Renovation Intelligence Pro', h:'signup/?plan=pro'};
     return pre ? {t:'Join the waitlist', h:'waitlist/'} : {t:'Start your estimate', h:'signup/'};
   }
+  /* Prices written on public pages follow RI.OFFERS: <span data-offer="price|pro|credits|extra"> */
+  function fillOffers(){
+    var O = RI.OFFERS || {}, P = O.pro || {}, v = {price:'$' + O.price, pro:'$' + P.price, credits:String(P.credits), extra:'$' + P.extra};
+    doc.querySelectorAll('[data-offer]').forEach(function(el){ var k = el.getAttribute('data-offer'); if(v[k] && v[k].indexOf('undefined') < 0) el.textContent = v[k]; });
+  }
   function applyCtas(){
+    fillOffers();
     doc.querySelectorAll('[data-cta]').forEach(function(a){
       var c = ctaFor(a.getAttribute('data-cta'));
       a.setAttribute('href', RI.url(c.h));
@@ -140,13 +151,13 @@
   RI.applyCtas = applyCtas;
 
   /* ---------- Header, drawer, footer ---------- */
-  var NAV = [['how-it-works/','How it works','how'],['renovation-cost/','Renovation cost','cost'],['sample/','Sample estimate','sample']];
+  var NAV = [['how-it-works/','How it works','how'],['pricing/','Pricing','pricing'],['professionals/','For professionals','pro'],['sample/','Sample report','sample'],['renovation-cost/','Renovation cost','cost','nav-wide']];
   function renderHeader(){
     var host = doc.getElementById('site-head'); if(!host) return;
     var s = RI.session();
     var acct = s ? '<a class="navlink" href="' + RI.url(s.role === 'admin' ? 'admin/' : 'app/') + '">' + (s.role === 'admin' ? 'Console' : 'My houses') + '</a>'
                  : '<a class="navlink" href="' + RI.url('login/') + '"' + (PAGE === 'login' ? ' aria-current="page"' : '') + '>Log in</a>';
-    var links = NAV.map(function(n){ return '<a class="navlink" href="' + RI.url(n[0]) + '"' + (PAGE === n[2] ? ' aria-current="page"' : '') + '>' + n[1] + '</a>'; }).join('');
+    var links = NAV.map(function(n){ return '<a class="navlink' + (n[3] ? ' ' + n[3] : '') + '" href="' + RI.url(n[0]) + '"' + (PAGE === n[2] ? ' aria-current="page"' : '') + '>' + n[1] + '</a>'; }).join('');
     host.outerHTML = '<header class="site-head" id="site-head"><div class="wrap">' + brand() +
       '<nav class="mainnav" aria-label="Main">' + links + acct + '<a class="btn btn-ivory" data-cta></a></nav>' +
       '<button class="menu-btn" type="button" aria-expanded="false" aria-controls="drawer">' + RI.icon('menu') + 'Menu</button></div></header>' +
@@ -181,7 +192,7 @@
     var areas = RI.AREAS ? Object.keys(RI.AREAS).map(function(k){ return '<li><a href="' + RI.url('renovation-cost/' + k + '/') + '">' + RI.AREAS[k].name + '</a></li>'; }).join('') : '';
     host.outerHTML = '<footer class="site-foot"><div class="wrap"><div class="foot-grid">' +
       '<div class="foot-brand">' + brand() + '<p>An estimate for one specific house, with a Low and a High under three goals, and every unknown named.</p><div><a class="btn btn-ivory btn-sm" data-cta></a></div></div>' +
-      '<div><h4>Product</h4><ul><li><a href="' + RI.url('how-it-works/') + '">How it works</a></li><li><a href="' + RI.url('sample/') + '">Sample estimate</a></li><li><a href="' + RI.url('renovation-cost/') + '">Renovation cost</a></li><li><a href="' + RI.url('waitlist/') + '">Waitlist</a></li><li><a href="' + RI.url('login/') + '">Log in</a></li></ul></div>' +
+      '<div><h4>Product</h4><ul><li><a href="' + RI.url('how-it-works/') + '">How it works</a></li><li><a href="' + RI.url('pricing/') + '">Pricing</a></li><li><a href="' + RI.url('professionals/') + '">For professionals</a></li><li><a href="' + RI.url('sample/') + '">Sample report</a></li><li><a href="' + RI.url('renovation-cost/') + '">Renovation cost</a></li><li><a href="' + RI.url('waitlist/') + '">Waitlist</a></li><li><a href="' + RI.url('login/') + '">Log in</a></li></ul></div>' +
       '<div><h4>Renovation cost by area</h4><p class="xsmall" style="margin:0 0 6px;opacity:.75">Michigan</p><ul>' + areas + '</ul></div>' +
       '<div><h4>Legal</h4><ul><li><a href="' + RI.url('terms/') + '">Terms of use</a></li><li><a href="' + RI.url('privacy/') + '">Privacy</a></li><li><a href="' + RI.url('disclaimer/') + '">Estimate disclaimer</a></li><li><a href="' + RI.url('contact/') + '">Contact</a></li></ul></div>' +
       '</div><div class="foot-bottom"><div class="disc"><p>Every figure is an estimate for planning, not a contractor\'s bid or a fixed price. Items we could not confirm are labeled and left out of the total. The roof, heating and cooling, water heater and electrical panel get guidance only, never a price.</p><p>Sample houses and figures shown on this site are sample data.</p></div>' +
@@ -228,6 +239,18 @@
   })();
   if(RI.devTools) document.documentElement.classList.add('team');
 
+  /* ---------- Team only: Fill sample data (user, Nov 2026) ----------
+     A button beside Pages that fills the screen in front of you with sample data, so a demo needs no typing. A screen
+     offers it with RI.setDevFill(fn, label, el); the button hides once that screen is gone. */
+  var devFill = null;
+  function fillBtn(){
+    var b = doc.getElementById('pb-fill'); if(!b) return;
+    var on = !!(devFill && (!devFill.el || devFill.el.isConnected));
+    b.hidden = !on; if(on) b.querySelector('span').textContent = devFill.label || 'Fill sample data';
+  }
+  RI.setDevFill = function(fn, label, el){ devFill = fn ? {fn:fn, label:label, el:el} : null; fillBtn(); };
+  addEventListener('hashchange', function(){ setTimeout(fillBtn, 80); });
+
   /* ---------- Prototype ribbon and demo panel ---------- */
   /* The prototype ribbon shows only in developer mode, because it holds the shortcuts. */
   function renderProtoBar(){
@@ -235,9 +258,12 @@
     if(dev){
       var bar = doc.createElement('div'); bar.className = 'proto-bar';
       bar.innerHTML = '<div class="wrap"><span class="tag-proto">Prototype</span><span class="pb-long">A design prototype for review. Houses, prices and text are <b>sample data</b>.</span><span class="pb-short">Sample data only.</span>' +
-        '<button type="button" data-open-demo>Demo access</button><button type="button" class="pb-pages" id="pb-pages" aria-haspopup="true" aria-expanded="false" aria-controls="pages-menu">Pages<svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 4.5L6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button></div>';
+        '<button type="button" data-open-demo>Demo access</button><button type="button" class="pb-pages" id="pb-pages" aria-haspopup="true" aria-expanded="false" aria-controls="pages-menu">Pages<svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 4.5L6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>' +
+        '<button type="button" class="pb-pages pb-fill" id="pb-fill" hidden>' + RI.icon('pencil','i-sm') + '<span>Fill sample data</span></button></div>';
       doc.body.insertBefore(bar, doc.body.firstChild);
       pagesMenu(bar);
+      bar.querySelector('#pb-fill').addEventListener('click', function(){ if(devFill && (!devFill.el || devFill.el.isConnected)) devFill.fn(); else fillBtn(); });
+      fillBtn();
     }
     var skip = doc.createElement('a'); skip.className = 'skip'; skip.href = '#main'; skip.textContent = 'Skip to content';
     doc.body.insertBefore(skip, doc.body.firstChild);
@@ -255,7 +281,7 @@
      open a demo house in that state (the app resolves them). */
   var PM = [
     {key:'public', name:'Public site', icon:'house', sections:[
-      ['Main pages', [['Home', '', 'The first screen a visitor sees', 'house'], ['How it works', 'how-it-works/', 'Three steps, from photos to price', 'list'], ['Sample estimate', 'sample/', 'A full presentation for one house', 'file'], ['Renovation cost', 'renovation-cost/', 'Costs by area and house type', 'sliders']]],
+      ['Main pages', [['Home', '', 'The first screen a visitor sees', 'house'], ['How it works', 'how-it-works/', 'Three steps, from photos to price', 'list'], ['Pricing', 'pricing/', 'Free, the $50 report and Pro at $99 a month', 'tag'], ['For professionals', 'professionals/', 'Pro for agents, builders and investors', 'hammer'], ['Sample report', 'sample/', 'A full presentation for one house', 'file'], ['Renovation cost', 'renovation-cost/', 'Costs by area and house type', 'sliders']]],
       ['Area and house type', [['Area page: Livonia', 'renovation-cost/livonia/', 'Typical costs for one area', 'pin'], ['House type: brick ranch', 'renovation-cost/house-types/brick-ranch/', 'Typical costs for one house type', 'house']]],
       ['Waitlist and contact', [['Waitlist', 'waitlist/', 'Email and account type, before launch', 'mail'], ['Contact', 'contact/', 'A message form', 'mail']]],
       ['Legal and other', [['Terms', 'terms/', 'Terms of use', 'file'], ['Privacy', 'privacy/', 'How data is handled', 'shield'], ['Disclaimer', 'disclaimer/', 'An estimate, not a bid', 'info'], ['Page not found', '404.html', 'The 404 screen', 'warn']]]
