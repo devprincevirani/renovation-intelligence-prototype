@@ -308,7 +308,7 @@
     ['Pricing', [['regions', 'Regions', '#/regions', 'pin', 'rulebook.view'], ['rates', 'Rates', '#/rates', 'file', 'rulebook.view'], ['products', 'Products', '#/products', 'tag', 'rulebook.view']]],
     ['Content', [['guidance', 'Guidance', '#/guidance', 'info', 'rulebook.view'], ['resources', 'Builder documents', '#/resources', 'file', 'content.edit']]],
     ['Changes', [['publish', 'Publish queue', '#/publish', 'refresh', ['rulebook.edit', 'pricing.edit', 'content.edit']], ['backtests', 'Back-tests', '#/backtests', 'clock', 'backtests.run']]],
-    ['Customers', [['feedback', 'Contacts and feedback', '#/feedback', 'mail', 'contacts.export'], ['funnel', 'Funnel', '#/funnel', 'sliders', 'funnel.view']]],
+    ['Customers', [['feedback', 'Contacts and feedback', '#/feedback', 'mail', 'contacts.export'], ['funnel', 'Funnel', '#/funnel', 'sliders', 'funnel.view'], ['referrals', 'Referrals', '#/referrals', 'share', 'users.view']]],
     ['Admin', [['users', 'Users and staff', '#/users', 'user', 'users.view'], ['audit', 'Audit log', '#/audit', 'console', 'audit.view']]]
   ];
   function shell(active, bare){

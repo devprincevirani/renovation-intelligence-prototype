@@ -39,7 +39,7 @@
     {key:'kitchen', eyebrow:'Kitchen', before:'ba/kitchen-before.jpg', after:'ba/kitchen-after.jpg', pos:'50% 50%',
      altB:'A 1980 kitchen with wood cabinets, laminate counters and a white range', altA:'The same kitchen after a remodel: flat-panel cabinets, quartz counters and an apron-front sink',
      anns:[{n:1, item:'k1'}, {n:2, item:'k2'}, {n:3, item:'k3'}, {n:4, item:'k4'}, {n:5, item:'k5'}]},
-    {key:'cabinets', eyebrow:'Cabinets up close', before:'ba/cab-before.jpg', after:'ba/cab-after.jpg', pos:'50% 50%',
+    {key:'cabinets', eyebrow:'Cabinets up close', tab:'Cabinets', before:'ba/cab-before.jpg', after:'ba/cab-after.jpg', pos:'50% 50%',
      altB:'Wood cabinets, a white range and a white fridge before the remodel', altA:'The same wall after: flat-panel cabinet columns, a stainless fridge and wall ovens',
      anns:[{n:1, item:'k1'}, {n:2, item:'k2'}, {n:3, name:'Pulls, 18 positions', text:{E:'Kept, tightened', S:'New satin brass pulls', P:'Come with the new cabinets'}, note:'In the cabinet line'}]},
     {key:'bath', eyebrow:'Bathroom', before:'ba/bath-before.jpg', after:'ba/bath-after.jpg', pos:'50% 50%',
@@ -78,19 +78,40 @@
     }).join('');
   }
 
-  /* Simple mode (home page): short names, short prices, one status colour each. The full sentence shows on demand. */
+  /* Simple mode (home page): one row per part, read in one go: the part, what the chosen goal does with it, its price.
+     The room total closes the list, like a receipt (Nov 27: the tiles and the three-goal box were too much at once).
+     Rows show full dollars, the same as the total, so the lines add up to it on sight (make-ui, Nov 27). */
   var SHORT = {k1:'Cabinets', k2:'Countertop', k3:'Sink and faucet', k4:'Backsplash', k5:'Kitchen floor', x1:'Front door', x2:'Trim paint', h1:'Tub and surround', h2:'Vanity and top', h3:'Toilet'};
-  function k(n){ return n >= 1000 ? '$' + (Math.round(n / 100) / 10).toString().replace(/\.0$/, '') + 'k' : '$' + n; }
+  /* Read at a glance (make-ui, Nov 27): each part says what happens to it in one word with an icon, and its Low and High
+     sit on a range line that shares one scale with the other parts, so the costly work shows by length, not by reading.
+     The tags grow with the work: Keep is quiet, Replace is solid. The full sentence stays in the title and for screen readers. */
+  var VERB = {k1:{E:'Repair', S:'Refinish', P:'Replace'}, k2:{E:'Keep', S:'Replace', P:'Replace'}, k3:{E:'Replace', S:'Replace', P:'Replace'},
+              k4:{E:'Keep', S:'Replace', P:'Replace'}, h2:{E:'Repair', S:'Replace', P:'Replace'}, h3:{E:'Repair', S:'Replace', P:'Replace'}};
+  var VICON = {Keep:'check', Repair:'tool', Refinish:'refresh', Replace:'hammer', Measure:'ruler', Unverified:'eye', Guidance:'info'};
+  function verbOf(id, pk, act){
+    if(id && VERB[id] && VERB[id][pk]) return VERB[id][pk];
+    var w = String(act || '').toLowerCase();
+    if(/^(keep|kept)/.test(w)) return 'Keep';
+    if(/^(clean|tighten|adjust|reseal|repair|fix)/.test(w)) return 'Repair';
+    if(/^(refinish|reglaze|paint|refresh)/.test(w)) return 'Refinish';
+    return 'Replace';
+  }
   function chips(c, pk){
+    var max = 0;
+    c.anns.forEach(function(a){ var it = a.item && item(a.item); if(it && !RI.isHeld(it) && it.pk[pk][2] != null) max = Math.max(max, it.pk[pk][2]); });
     return c.anns.map(function(a){
-      var it = a.item && item(a.item), name = SHORT[a.item] || (a.name || it.name).split(',')[0], cls, val, act;
-      if(it && RI.isHeld(it)){ cls = 'is-held'; val = it.state === 'measure' ? 'Needs measurement' : 'Unverified'; act = it.fix + ' would settle it.'; }
-      else if(it){ var p = it.pk[pk]; act = p[0] + '.'; if(p[1] == null){ cls = 'is-kept'; val = 'No cost'; } else { cls = 'is-priced'; val = k(p[1]) + ' to ' + k(p[2]); } }
-      else { act = a.text[pk] + '.'; cls = a.guidance ? 'is-guide' : 'is-kept'; val = a.guidance ? 'Guidance only' : a.note; }
-      return '<li data-n="' + a.n + '" class="' + cls + '" tabindex="0" data-act="' + RI.esc(name + ': ' + act) + '"><span class="cmp-n">' + a.n + '</span><span class="cc-t"><b>' + RI.esc(name) + '</b><span class="cc-v">' + RI.esc(val) + '</span></span></li>';
+      var it = a.item && item(a.item), name = SHORT[a.item] || (a.name || it.name).split(',')[0], cls, val, act, verb, p = it && it.pk[pk];
+      if(it && RI.isHeld(it)){ cls = 'is-held'; verb = it.state === 'measure' ? 'Measure' : 'Unverified'; val = 'Not in the total'; act = p[0] + '. ' + (it.state === 'measure' ? 'Needs measurement' : 'Unverified') + ', so it is not in the total yet.'; }
+      else if(it){ act = p[0] + '.'; verb = verbOf(a.item, pk, p[0]); if(p[1] == null){ cls = 'is-kept'; val = 'No cost'; } else { cls = 'is-priced'; val = RI.range(p[1], p[2]); } }
+      else { act = a.text[pk] + '.'; cls = a.guidance ? 'is-guide' : 'is-kept'; verb = a.guidance ? 'Guidance' : verbOf(null, pk, a.text[pk]); val = a.note; }
+      var v = cls === 'is-priced' ? '<span class="range-txt">' + val + '</span>' : RI.esc(val);
+      return '<li data-n="' + a.n + '" class="cr2 ' + cls + ' v-' + verb.toLowerCase() + '" title="' + RI.esc(act) + '">' +
+        '<b class="cr-n">' + RI.esc(name) + '</b><span class="cr-v">' + v + '</span>' +
+        '<span class="cr-tag">' + RI.icon(VICON[verb] || 'dot', 'i-sm') + verb + '</span>' +
+        (cls === 'is-priced' && max ? '<span class="rl cr-rl" data-scale="0,' + max + '" data-low="' + p[1] + '" data-high="' + p[2] + '"></span>' : '') +
+        '<span class="sr">' + RI.esc(act) + '</span></li>';
     }).join('');
   }
-  var HINT = 'Tap a part to see what changes.';
 
   function place(fig, c){
     /* Fit the annotation layer to the image as drawn with object-fit: cover */
@@ -103,9 +124,11 @@
   RI.Compare = {
     render:function(host, getPk, opts){
       var simple = !!(opts && opts.simple), ba = !!(opts && opts.beforeAfter), LIST = ba ? BA_CARDS : CARDS;
-      host.innerHTML = LIST.map(function(c){
+      /* Room tabs (home page, Nov 2026): one comparison at a time, so the section fits one screen */
+      var tabsHost = opts && opts.tabs;
+      host.innerHTML = LIST.map(function(c, i){
         var src = RI.img(ba ? c.before : c.img);
-        return '<article class="cmp-card" data-card="' + c.key + '">' +
+        return '<article class="cmp-card" data-card="' + c.key + '"' + (tabsHost ? ' id="cmp-card-' + c.key + '" role="tabpanel" aria-labelledby="cmp-tab-' + c.key + '"' + (i ? ' hidden' : '') : '') + '>' +
           '<figure class="cmp' + (ba ? ' cmp-ba' : '') + '" style="--pos:' + (ba ? 50 : 45) + '%">' +
             '<img class="cmp-img" src="' + src + '" alt="' + (ba ? c.altB : c.alt) + '" loading="lazy" style="object-position:' + c.pos + '">' +
             (ba ? '<div class="cmp-after"><img class="cmp-img" src="' + RI.img(c.after) + '" alt="' + c.altA + '" loading="lazy" style="object-position:' + c.pos + '"></div>'
@@ -114,7 +137,7 @@
             '<span class="cmp-line" aria-hidden="true"></span>' +
             '<span class="cmp-knob" role="slider" tabindex="0" aria-label="' + (ba ? 'Compare before and after for the ' : 'Compare your photo with your estimate for the ') + c.eyebrow.toLowerCase() + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="45" aria-valuetext="55 percent estimate">' + RI.icon('arrow','i-sm cmp-l') + RI.icon('arrow','i-sm') + '</span>' +
           '</figure>' +
-          (simple ? '<div class="cmp-body cmp-simple"><div class="cc-head"><p class="label">' + c.eyebrow + '</p><p class="cmp-total"></p></div><ol class="cmp-list cc-list"></ol><p class="cc-detail" aria-live="polite">' + HINT + '</p></div></article>'
+          (simple ? '<div class="cmp-body cmp-simple"><ul class="cmp-list cc-rows"></ul><p class="cmp-total cc-total" aria-live="polite" aria-atomic="true"></p></div></article>'
             : '<div class="cmp-body"><p class="label">' + c.eyebrow + '</p><h3>' + c.title + '</h3><ol class="cmp-list"></ol>' +
           '<p class="cmp-total"></p></div></article>');
       }).join('');
@@ -143,15 +166,11 @@
           if(e.key === 'Home'){ e.preventDefault(); set(0, true); }
           if(e.key === 'End'){ e.preventDefault(); set(100, true); }
         });
-        /* Pin, box and row light up together */
-        function hl(n){ card.querySelectorAll('[data-n]').forEach(function(el){ el.classList.toggle('on', el.getAttribute('data-n') === n); }); }
-        card.addEventListener('mouseover', function(e){ var t = e.target.closest('.cmp-list li'); hl(t ? t.getAttribute('data-n') : null); });
-        card.addEventListener('mouseleave', function(){ hl(null); if(simple) detail(null); });
-        function detail(li){ var d = card.querySelector('.cc-detail'); if(d) d.textContent = li ? li.getAttribute('data-act') : HINT; }
-        if(simple){
-          card.addEventListener('mouseover', function(e){ var t = e.target.closest('.cc-list li'); if(t) detail(t); });
-          card.addEventListener('focusin', function(e){ var t = e.target.closest('.cc-list li'); if(t){ hl(t.getAttribute('data-n')); detail(t); } });
-          card.addEventListener('click', function(e){ var t = e.target.closest('.cc-list li'); if(t){ hl(t.getAttribute('data-n')); detail(t); } });
+        /* Pin, box and row light up together (full mode only: simple mode has no pins) */
+        if(!simple){
+          function hl(n){ card.querySelectorAll('[data-n]').forEach(function(el){ el.classList.toggle('on', el.getAttribute('data-n') === n); }); }
+          card.addEventListener('mouseover', function(e){ var t = e.target.closest('.cmp-list li'); hl(t ? t.getAttribute('data-n') : null); });
+          card.addEventListener('mouseleave', function(){ hl(null); });
         }
         place(fig, c);
         if('ResizeObserver' in window) new ResizeObserver(function(){ place(fig, c); }).observe(fig);
@@ -174,14 +193,31 @@
           var c = LIST[i], t = cardTotal(c, pk), name = RI.PACKAGES.filter(function(p){ return p.key === pk; })[0].name;
           card.querySelector('.cmp-list').innerHTML = simple ? chips(c, pk) : rows(c, pk);
           if(simple){
-            card.querySelector('.cmp-total').innerHTML = '<span class="range-txt cc-big">' + (t.high ? RI.range(t.low, t.high) : 'No cost') + '</span><span class="cc-sub">' + name + (t.held ? ' <span class="state state-partial">Partial</span>' : '') + '</span>';
-            var d = card.querySelector('.cc-detail'); if(d) d.textContent = HINT;
+            if(RI.initRanges) RI.initRanges(card.querySelector('.cmp-list'));
+            card.querySelector('.cmp-total').innerHTML = '<span class="cc-tl">Room total<span class="cc-pk">' + name + '</span></span><span class="range-txt cc-big">' + (t.high ? RI.range(t.low, t.high) : 'No cost') + '</span>' + (t.held ? '<span class="state state-partial">Partial</span>' : '');
             return;
           }
           card.querySelector('.cmp-total').innerHTML = '<span class="small muted">This photo, ' + name + '</span><span class="range-txt">' + (t.high ? RI.range(t.low, t.high) : 'No cost') + '</span>' + (t.held ? '<span class="state state-partial">Partial</span>' : '');
         });
       }
       update();
+      if(tabsHost){
+        tabsHost.innerHTML = '<div class="cmp-rtabs" role="tablist" aria-label="Room">' + LIST.map(function(c, i){
+          return '<button type="button" class="cmp-rtab" role="tab" id="cmp-tab-' + c.key + '" aria-controls="cmp-card-' + c.key + '" aria-selected="' + (i === 0) + '" tabindex="' + (i ? -1 : 0) + '"><img src="' + RI.img(ba ? c.before : c.img) + '" alt=""><span>' + (c.tab || c.eyebrow) + '</span></button>';
+        }).join('') + '</div>';
+        var tl = tabsHost.querySelector('[role="tablist"]'), tabs = [].slice.call(tl.querySelectorAll('[role="tab"]'));
+        function show(i, focus){
+          tabs.forEach(function(t, j){ t.setAttribute('aria-selected', String(i === j)); t.tabIndex = i === j ? 0 : -1; });
+          host.querySelectorAll('.cmp-card').forEach(function(card, j){ card.hidden = i !== j; if(i === j) place(card.querySelector('.cmp'), LIST[j]); });
+          if(focus) tabs[i].focus();
+        }
+        tl.addEventListener('click', function(e){ var t = e.target.closest('[role="tab"]'); if(t) show(tabs.indexOf(t)); });
+        tl.addEventListener('keydown', function(e){
+          var i = tabs.indexOf(doc.activeElement); if(i < 0) return;
+          var n = e.key === 'ArrowRight' ? (i + 1) % tabs.length : e.key === 'ArrowLeft' ? (i + tabs.length - 1) % tabs.length : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : -1;
+          if(n < 0) return; e.preventDefault(); show(n, true);
+        });
+      }
       return {update:update};
     }
   };

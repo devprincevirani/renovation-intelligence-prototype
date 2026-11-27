@@ -30,7 +30,7 @@
     var st = {q:'', f:'all', sort:'updated'};
     view.innerHTML = '<div class="app-wrap">' +
       '<header class="app-head"><div><p class="label">' + (pro ? 'Builder account' : 'Your account') + '</p><h1>' + (pro ? 'Client houses' : 'My houses') + '</h1><p class="muted" id="h-count"></p></div>' +
-      '<a class="btn btn-primary" href="#/houses/new">' + RI.icon('house','i-sm') + 'Add a house</a></header>' +
+      (A.proOn() ? '<div class="pro-head-r">' + A.proMeterHtml('box') + '<a class="btn btn-primary" href="#/houses/new">' + RI.icon('house','i-sm') + 'Add a house</a></div>' : '<a class="btn btn-primary" href="#/houses/new">' + RI.icon('house','i-sm') + 'Add a house</a>') + '</header>' +
       '<div class="toolbar"><label class="search">' + RI.icon('search','i-sm') + '<span class="sr">Search</span><input type="search" id="q" placeholder="Search by address' + (pro ? ' or client' : '') + '" autocomplete="off"></label>' +
       '<div class="chips-f" role="tablist" aria-label="Filter by status" id="filters">' + FILTERS.map(function(f){ return '<button type="button" role="tab" data-f="' + f[0] + '" aria-selected="' + (f[0] === 'all') + '">' + f[1] + ' <span class="n"></span></button>'; }).join('') + '</div>' +
       '<label class="sort"><span class="xsmall muted">Sort</span><select class="select" id="sort"><option value="updated">Recently updated</option><option value="addr">Address</option>' + (pro ? '<option value="client">Client</option>' : '') + '</select></label></div>' +
@@ -84,35 +84,30 @@
 
   /* ---------- Account ---------- */
   A.route('/account', function(view){
-    var s = A.me(), u = RI.users.get(s.email) || {}, pro = A.isPro();
-    var credits = A.hasCredits(), left = A.creditsLeft();
+    var s = A.me(), u = RI.users.get(s.email) || {}, pro = A.isPro(), proOn = A.proOn(), proOk = A.proEligible();
     var houses = A.mine(), used = houses.filter(function(h){ return h.run; }).length;
-    var types = ['homeowner','buyer','seller','builder','agent','other'];
     view.innerHTML = '<div class="app-wrap narrow-wrap"><header class="app-head"><div><p class="label">Settings</p><h1>Account</h1></div></header>' +
       '<div class="acc-grid">' +
       '<section class="acc-card-s"><h2>Profile</h2><form class="form-grid" id="prof" novalidate>' +
         '<div class="field"><label for="ac-email">Email</label><input class="input" id="ac-email" type="email" value="' + RI.esc(s.email) + '" autocomplete="email"><span class="err"></span></div>' +
-        '<div class="field"><label for="ac-type">Account type</label><select class="select" id="ac-type">' + types.map(function(t){ return '<option value="' + t + '"' + ((u.type || s.type || '').toLowerCase() === t ? ' selected' : '') + '>' + t[0].toUpperCase() + t.slice(1) + '</option>'; }).join('') + '</select><span class="help">Builder and agent accounts also see task lists and scope documents.</span></div>' +
         '<label class="switch"><input type="checkbox" id="ac-news"' + (u.news ? ' checked' : '') + '><span class="track"></span><span>Send me product updates</span></label>' +
         '<div><button class="btn btn-primary" type="submit">Save changes</button></div></form></section>' +
       '<section class="acc-card-s"><h2>Password</h2><form class="form-grid" id="pw" novalidate>' +
         '<div class="field"><label for="ac-p1">New password</label><div class="pw-wrap"><input class="input" id="ac-p1" type="password" autocomplete="new-password"><button type="button">Show</button></div><span class="err"></span></div>' +
         '<div class="field"><label for="ac-p2">Type it again</label><div class="pw-wrap"><input class="input" id="ac-p2" type="password" autocomplete="new-password"><button type="button">Show</button></div><span class="err"></span></div>' +
         '<div><button class="btn btn-secondary" type="submit">Change password</button></div></form></section>' +
-      '<section class="acc-card-s"><h2>Your plan</h2>' +
-        (credits ? '<div class="trial"><div class="trial-top"><b>Invite credits</b><span class="st st-ready">' + left + ' of ' + A.CREDITS_START + ' left</span></div><span class="bar"><i style="width:' + ((A.CREDITS_START - left) / A.CREDITS_START * 100) + '%"></i></span><p class="small muted">Each credit opens one full presentation for free. They never expire. After the last one, each house is one payment.</p></div>' : '<p class="small muted">The price by package is free. Each full presentation is one payment.</p>') +
-        '<dl class="kv"><div><dt>Houses</dt><dd>' + houses.length + '</dd></div><div><dt>Estimates run</dt><dd>' + used + '</dd></div><div><dt>Free runs left</dt><dd>' + (pro ? 'Builder accounts are not limited in this demo' : Math.max(0, A.freeRuns() - used) + ' of ' + A.freeRuns() + ' <span class="state state-sample">Sample limit</span>') + '</dd></div></dl></section>' +
+      '<section class="acc-card-s"><h2>Your plan</h2>' + (proOn ? A.proPlanHtml() : (proOk ? A.proOfferHtml() : '') +
+        '<p class="small muted">The price by package is free. Each full presentation is one payment.</p>' +
+        '<dl class="kv"><div><dt>Houses</dt><dd>' + houses.length + '</dd></div><div><dt>Estimates run</dt><dd>' + used + '</dd></div></dl>') + '</section>' +
       '<section class="acc-card-s"><h2>Session</h2><div class="cta-row">' + (RI.devTools ? '<button type="button" class="btn btn-secondary" id="reseed">' + RI.icon('refresh','i-sm') + 'Reset my demo houses</button>' : '') + '<button type="button" class="btn btn-secondary" data-logout>Log out</button></div>' +
-        (RI.devTools ? '<div class="cta-row demo-links"><span class="xsmall muted">Team screens:</span><button type="button" class="linkbtn small" id="show-limit">Free-run limit reached</button><a class="textlink small" href="#/demo-error">A screen that fails to load</a></div>' : '') + '</section>' +
+        (RI.devTools ? '<div class="cta-row demo-links"><span class="xsmall muted">Team screens:</span><a class="textlink small" href="#/demo-error">A screen that fails to load</a>' + (proOn ? A.proDevHtml() : '') + '</div>' : '') + '</section>' +
       '</div></div>';
-    RI.form.pwToggle(view);
+    RI.form.pwToggle(view); A.proWire(view);
     view.querySelector('#prof').addEventListener('submit', function(e){
       e.preventDefault(); var em = view.querySelector('#ac-email');
       if(!RI.form.emailOk(em.value)){ RI.form.setInvalid(em, 'Check the email address, for example name@example.com.'); return; }
       RI.form.setInvalid(em, null);
-      var t = view.querySelector('#ac-type').value; s.type = t[0].toUpperCase() + t.slice(1);
-      if(!s.demo){ s.role = (t === 'builder' || t === 'agent') ? 'builder' : 'homeowner'; }
-      RI.store.set('session', s); if(u.email){ u.type = t; u.news = view.querySelector('#ac-news').checked; RI.users.put(u); }
+      if(u.email){ u.news = view.querySelector('#ac-news').checked; RI.users.put(u); }
       RI.toast('Your changes are saved.'); A.render();
     });
     view.querySelector('#pw').addEventListener('submit', function(e){
@@ -122,7 +117,6 @@
       if(u.email){ u.pw = RI.form.hash(p1.value); RI.users.put(u); }
       p1.value = p2.value = ''; RI.toast('Your password is changed.');
     });
-    var sl = view.querySelector('#show-limit'); if(sl) sl.addEventListener('click', function(){ A.limitDialog(); });
     var rs = view.querySelector('#reseed'); if(rs) rs.addEventListener('click', function(){
       A.confirm('Reset your demo houses?', 'Your houses go back to the starting set. Houses you added are removed.', 'Reset', function(){
         A.saveAll(A.all().filter(function(h){ return h.owner !== s.email; })); RI.store.del('seeded.' + s.email); A.seed(); RI.toast('Demo houses reset.'); A.go('#/houses');
@@ -132,8 +126,9 @@
 
   /* ---------- Builder resources ---------- */
   A.route('/resources', function(view){
-    if(!A.isPro()){ view.innerHTML = '<div class="app-wrap"><div class="empty"><div class="mark bronze">' + RI.icon('lock') + '</div><h1>For builder and agent accounts</h1><p class="muted">Scope documents and task lists are part of builder and agent accounts. You can change your account type in Account.</p><a class="btn btn-primary" href="#/account">Open account</a></div></div>'; return; }
-    view.innerHTML = '<div class="app-wrap"><header class="app-head"><div><p class="label">Builder resources</p><h1>Scope of work documents</h1><p class="muted">Sam\'s scope documents for each trade, to read and to share with subcontractors. <span class="state state-sample">Sample documents</span></p></div></header>' +
+    /* Scope documents and task lists come with Pro (Sam, Nov 27) */
+    if(!A.proOn()){ view.innerHTML = '<div class="app-wrap"><div class="empty"><div class="mark bronze">' + RI.icon('lock') + '</div><h1>Part of Pro</h1><p class="muted">Scope documents and task lists come with Renovation Intelligence Pro, $' + RI.OFFERS.pro.price + '&nbsp;a&nbsp;month.</p>' + (A.proEligible() ? '<div class="cta-row" style="justify-content:center"><a class="btn btn-primary" href="#/pro">Start Pro, $' + RI.OFFERS.pro.price + ' a month</a></div>' : '') + '</div></div>'; return; }
+    view.innerHTML = '<div class="app-wrap"><header class="app-head"><div><p class="label">Pro resources</p><h1>Scope of work documents</h1><p class="muted">Sam\'s scope documents for each trade, to read and to share with subcontractors. <span class="state state-sample">Sample documents</span></p></div></header>' +
       '<div class="docs">' + RI.SCOPE_DOCS.map(function(d, i){
         return '<article class="docc" style="--i:' + i + '"><div class="doc-ic">' + RI.icon('file','i-lg') + '<span>' + d.pages + ' pages</span></div><div class="doc-b"><h2>' + d.t + '</h2><p class="xsmall label">' + d.trade + '</p><p class="small muted">' + d.d + '</p></div>' +
           '<div class="doc-a"><button type="button" class="btn btn-secondary btn-sm" data-read="' + i + '">Read</button><button type="button" class="btn btn-primary btn-sm" data-dl="' + i + '">Download</button></div></article>';

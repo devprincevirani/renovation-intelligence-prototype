@@ -82,13 +82,19 @@
     var se = $('su-email'), sp = $('su-pw');
     /* Before launch only the contacts Sam invites can sign up (APP_FLOW 3). His "Trial invite" email links here
        (APP_FLOW 10); the link carries a token. How he invites is still open (APP_FLOW 13, point 8) */
-    var TRIAL = {'demo-trial':{email:'contact@demo.ri'}}, inv = P.invite ? TRIAL[P.invite] : null, pre = RI.mode() === 'prelaunch';
+    /* demo-trial: the full form with invite credits. trial-invite: Sam's Invite to trial (console, Trial invites tab),
+       which fixes the email and account type and gives a 15-day trial from sign up */
+    var TRIAL = {'demo-trial':{email:'contact@demo.ri'}, 'trial-invite':{email:'priya.shah@example.com', type:'builder', days:15}}, inv = P.invite ? TRIAL[P.invite] : null, pre = RI.mode() === 'prelaunch';
     if(pre && !inv){
       $('su-form').hidden = true; $('su-closed').hidden = false; doc.querySelector('.auth-steps').hidden = true;
       doc.querySelector('.auth-inner > .stack').hidden = true;
       if(P.invite){ $('su-closed-t').textContent = 'This invite link does not work'; $('su-closed-b').textContent = 'It may be mistyped or too old. Ask Sam for a new one, or join the waitlist and we will write when sign up opens.'; }
     }
-    if(pre && inv){ $('su-invited').hidden = false; if(!P.email) P.email = inv.email; }
+    if(pre && inv){ $('su-invited').hidden = false; if(!P.email) P.email = inv.email; if(inv.days) trialForm(); }
+    /* A referral link (?ref=CODE, business model 3): say who shared it; the new account is linked to them when it is made.
+       Before launch sign up is closed, so the link shows the closed screen like any other visit */
+    var refBy = !inv && P.ref && RI.Ref && RI.Ref.settings().on ? RI.Ref.ownerOf(P.ref) : null;
+    if(refBy && !pre){ $('su-invited').innerHTML = RI.icon('share') + '<span><b>' + RI.esc(RI.Ref.nameOf(refBy)) + ' sent you this link.</b> Create your account to explore renovation costs for free.</span>'; $('su-invited').hidden = false; }
     if(P.type){ var r = doc.querySelector('input[name="su-type"][value="' + P.type + '"]'); if(r) r.checked = true; }
     if(P.email) se.value = P.email;
     blurEmail(se); meter(sp, $('su-pw-meter'));
@@ -111,10 +117,49 @@
       wait(900).then(function(){
         var email = se.value.trim().toLowerCase();
         RI.users.put({email:email, pw:F.hash(sp.value), type:type, verified:false, trial:!!(pre && inv), news:$('su-news').checked, at:Date.now()});
+        if(refBy) RI.Ref.attach(P.ref, email);
         RI.track('signup_completed', {type:type});
         location.href = '../verify-email/?email=' + encodeURIComponent(email);
       });
     });
+
+    /* The 15-day trial view: email locked, a password typed twice. The invite link went to this address, so it
+       counts as confirmed and there is no email step (as with a staff invite). The trial runs from sign up */
+    function trialForm(){
+      var NAMES = {homeowner:'a homeowner', buyer:'a buyer', seller:'a seller', builder:'a builder', agent:'an agent'};
+      var DAY = 86400000, te = $('st-email'), p1 = $('st-pw'), p2 = $('st-pw2');
+      var ends = new Date(Date.now() + inv.days * DAY).toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+      $('su-form').hidden = true; $('su-trial').hidden = false;
+      $('su-invited').innerHTML = RI.icon('mail') + '<span><b>Sam invited you' + (NAMES[inv.type] ? ' as ' + NAMES[inv.type] : '') + '.</b> Your ' + inv.days + '-day trial starts when you create your account and ends on <b>' + ends + '</b>.</span>';
+      doc.querySelector('.auth-inner > .stack h1').textContent = 'Start your ' + inv.days + '-day trial';
+      doc.querySelector('.auth-inner > .stack p').textContent = 'Choose a password. Your email comes from the invite.';
+      var steps = doc.querySelectorAll('.auth-steps li'); steps[1].hidden = true; steps[2].querySelector('span').textContent = '2';
+      te.value = inv.email;
+      meter(p1, $('st-pw-meter'));
+      function rules(){ $('st-r-len').classList.toggle('ok', p1.value.length >= 8); $('st-r-match').classList.toggle('ok', !!p1.value && p1.value === p2.value); }
+      p1.addEventListener('input', rules);
+      p2.addEventListener('input', function(){ rules(); if(p2.value === p1.value) F.setInvalid(p2, null); });
+      p1.addEventListener('blur', function(){ if(p1.value && p1.value.length < 8) F.setInvalid(p1, 'Use at least 8 characters.'); });
+      $('st-disc').addEventListener('change', function(){ if(this.checked) $('st-disc-err').closest('.field').classList.remove('invalid'); });
+      $('su-trial').addEventListener('submit', function(e){
+        e.preventDefault();
+        var ok = true;
+        if(p1.value.length < 8){ F.setInvalid(p1, p1.value ? 'Use at least 8 characters.' : 'Choose a password.'); ok = false; } else F.setInvalid(p1, null);
+        if(!p2.value){ F.setInvalid(p2, 'Type the password again.'); ok = false; }
+        else if(p2.value !== p1.value){ F.setInvalid(p2, 'The two passwords do not match.'); ok = false; } else F.setInvalid(p2, null);
+        var disc = $('st-disc');
+        if(!disc.checked){ disc.closest('.field').classList.add('invalid'); $('st-disc-err').innerHTML = RI.icon('warn','i-sm') + '<span>Please confirm you have read this to continue.</span>'; ok = false; }
+        if(RI.users.get(inv.email)){ F.setInvalid(te, 'This invite was already used: the account exists. Log in instead.'); ok = false; }
+        if(!ok){ var first = doc.querySelector('#su-trial .field.invalid input:not([readonly])'); if(first) first.focus(); return; }
+        var btn = this.querySelector('[type=submit]'); F.busy(btn, true, 'Starting your trial');
+        wait(900).then(function(){
+          var at = Date.now();
+          RI.users.put({email:inv.email, pw:F.hash(p1.value), type:inv.type, verified:true, trial:true, trialEnds:at + inv.days * DAY, news:false, at:at});
+          RI.track('signup_completed', {type:inv.type, trial:inv.days});
+          location.href = '../verify-email/?email=' + encodeURIComponent(inv.email);
+        });
+      });
+    }
   }
 
   /* ---------- Verify email ---------- */
@@ -136,8 +181,10 @@
       cooldown($('ve-resend'), 'Send it again', function(){ RI.toast('We sent a new link to ' + (email || 'your email') + '.', 'mail'); });
     }
     function verified(){
-      render(RI.fxTop('Create your account', '3 of 3', 'check'),
-        '<div class="fx-head"><h1>Your email is confirmed</h1><p class="muted">Your account is ready.' + (u && u.trial ? ' You have 3 invite credits: three full presentations, free, with no expiry.' : '') + '</p></div>' +
+      var ends = u && u.trialEnds ? new Date(u.trialEnds).toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'}) : '';
+      render(RI.fxTop('Create your account', ends ? '2 of 2' : '3 of 3', 'check'),
+        (ends ? '<div class="fx-head"><h1>Your 15-day trial has started</h1><p class="muted">Your account is ready. The invite confirmed your email, so there is no email step. Your trial ends on <b>' + ends + '</b>.</p></div>' :
+        '<div class="fx-head"><h1>Your email is confirmed</h1><p class="muted">Your account is ready.</p></div>') +
         '<ul class="fx-next"><li><b>About 10 minutes</b><span>to enter your first house</span></li><li><b>Photos first</b><span>room by room</span></li><li><b>Sizes optional</b><span>skip any you do not know</span></li></ul>' +
         '<button type="button" class="btn btn-primary btn-block btn-lg" id="ve-go">Enter my first house ' + RI.icon('arrow','i-sm i-arrow') + '</button><p class="fx-alt"><a href="../login/">Log in later</a></p>', 2);
       $('ve-go').addEventListener('click', function(){

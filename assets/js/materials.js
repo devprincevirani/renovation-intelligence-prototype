@@ -91,13 +91,13 @@
 
       host.innerHTML = RI.PACKAGES.map(function(p){
         return '<article class="board' + (p.key === 'S' ? ' is-default' : '') + '" data-pk="' + p.key + '" aria-label="' + p.name + ' finishes">' +
-          '<header class="board-head"><div><h3>' + p.name + (p.key === 'S' ? ' <span class="default">Default view</span>' : '') + '</h3><p>' + p.goal + '</p></div><span class="board-pin" aria-hidden="true"></span></header>' +
+          '<header class="board-head"><div><h3>' + p.name + '</h3><p>' + p.goal + '</p></div><span class="board-pin" aria-hidden="true"></span></header>' +
           '<ul class="board-grid"></ul>' +
           '<footer class="board-foot"><div class="board-range" data-scale="0,40000"><div class="rl partial" data-low="0" data-high="0"></div></div>' +
           '<div class="row"><span class="range-txt board-total"></span><span class="small muted board-count"></span></div>' +
           '<p class="board-note" aria-live="polite"></p><button type="button" class="linkbtn small board-reset" hidden>Back to the ' + p.name + ' picks</button></footer></article>';
       }).join('');
-      if(!host.nextElementSibling || !host.nextElementSibling.classList.contains('mt-src')) host.insertAdjacentHTML('afterend', '<p class="xsmall muted mt-src">Select a finish to see its options. Sample options and prices; in the product, each one comes from the product library.</p>');
+      /* No caption under the boards (home polish, Nov 2026): the footer says the figures are sample data */
 
       /* ---------- The popup: one dialog for every board and finish ---------- */
       var dlg = document.getElementById('mt-dlg');
