@@ -582,6 +582,13 @@
     /* Which view: no photos yet; the first photos being sorted; or checking the rooms. Once a house has been sorted it
        stays on the check view, and new photos sort in the strip above the rooms. */
     function working(){ return Object.keys(reading).length > 0 || Object.keys(pending).some(function(k){ return pending[k].some(function(p){ return p.state === 'up'; }); }); }
+    /* While the AI uploads, reads, measures or shows photos on the board, Save draft and Review (or Submit) wait (user, Nov 27) */
+    function scanning(){ return working() || Object.keys(measuring).length > 0 || !!(stg && stg.el && stg.el.isConnected && !h.sortedOnce && (stg.busy || stg.queue.length || stg.playing)); }
+    function syncBusy(){
+      var on = scanning(), nb = doc.getElementById('next'), sd = doc.getElementById('save-draft');
+      if(nb && nb.getAttribute('aria-busy') !== 'true' && nb.disabled !== on){ nb.disabled = on; nb.title = on ? 'Wait while we read your photos' : ''; }
+      if(sd && sd.classList.contains('is-off') !== on){ sd.classList.toggle('is-off', on); if(on){ sd.setAttribute('aria-disabled', 'true'); sd.setAttribute('tabindex', '-1'); } else { sd.removeAttribute('aria-disabled'); sd.removeAttribute('tabindex'); } }
+    }
     function phase(){
       var any = A.photoCount(h) + (h.photos.unsorted || []).length + Object.keys(pending).reduce(function(n, k){ return n + pending[k].length; }, 0);
       if(!any && !h.sortedOnce) return 'empty';
@@ -602,6 +609,10 @@
       if(ph !== 'check'){ if(sub.innerHTML !== LEADH) sub.innerHTML = LEADH; } else sub.textContent = un ? 'We sorted ' + inR + ' of ' + all + ' photos. Place the ' + (un === 1 ? 'one' : un) + ' we were not sure about, then check each room.' : 'Every photo is in a room. Check each room and its size, then submit.';
       if(ph === 'empty') drawWant();
       if(ph === 'sorting') drawSorting();
+      /* While the sorting board is open the bottom button is Review: it does what Place them later does, so the
+         rooms (and their sizes) are seen before Submit (user, Nov 27) */
+      var nb = doc.getElementById('next'), rv = ph === 'sorting';
+      if(nb && nb.getAttribute('data-rv') !== String(rv)){ nb.setAttribute('data-rv', String(rv)); nb.innerHTML = rv ? '<span>Review</span>' + RI.icon('arrow','i-sm i-arrow') : '<span>Submit my house</span>' + RI.icon('check','i-sm'); }
       if(ph !== lastPhase){ if(lastPhase === 'sorting' && ph === 'check') RI.toast('Your photos are sorted. Check each room.', 'check'); lastPhase = ph; }
     }
     function drawWant(){
@@ -1231,6 +1242,7 @@
       });
     }
     plans(); all(); rooms.forEach(function(r){ maybeMeasure(r[0]); });
+    syncBusy(); A.every(syncBusy, 250);
     /* Team only: Fill sample data in the ribbon adds the sample photos */
     RI.setDevFill(function(){ var sb = main.querySelector('#sample'); if(sb) sb.click(); }, 'Add sample photos', main);
     (h.photos.unsorted || []).forEach(function(p){ if(p.state === 'done') read(p); });
@@ -1246,6 +1258,13 @@
       });
     }
     return function(){
+      /* Review: leave the sorting board for the room cards, like Place them later */
+      if(phase() === 'sorting'){
+        if(working()){ RI.toast('A few photos are still being read. One moment.', 'clock'); return false; }
+        h.sortedOnce = true; A.put(h); drawPhase();
+        var bkEl = main.querySelector('#bk'); if(bkEl) bkEl.scrollIntoView({behavior:A.reduce ? 'auto' : 'smooth', block:'start'});
+        return false;
+      }
       if(A.regionBlocked(h)) return false;
       var up = Object.keys(pending).some(function(k){ return pending[k].some(function(p){ return p.state === 'up'; }); });
       if(up){ RI.toast('A few photos are still uploading. One moment.', 'clock'); return false; }
