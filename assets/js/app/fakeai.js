@@ -1,7 +1,9 @@
 /* App: the pretend photo reading for the prototype (Sam's meeting, Nov 2026).
    Every answer is worked out from the house and the room, never at random, so a rehearsal and the live demo
    give the same result. The product replaces this one file with the real photo service, keeping these calls:
-     A.AI.readPhoto(p, rooms, h) ->  {room, conf, alts}: the room a photo shows, or null when not sure
+     A.AI.readPhoto(p, rooms, h) ->  {room, conf, alts, newType}: the room a photo shows, or null when not sure;
+                                     newType when it shows a kind of room the house does not have yet;
+                                     sees: a few plain words for what it shows (sink, stove), when the service gives them
      A.AI.sizeFor(h, key, type)  ->  {l, w} in feet, or null when the photos cannot size the room
    Nothing on screen knows the answers are made up; the screens label them as estimates. */
 (function(){
@@ -30,6 +32,8 @@
   var NAME = [[/kitchen|cabinet|counter|backsplash|pantry|fridge|stove/i,'kitchen'],[/half/i,'halfbath'],[/bath|vanity|toilet|tub|shower/i,'hallbath'],
     [/bed/i,'bedrooms'],[/living|family|lounge|sofa/i,'living'],[/dining/i,'dining'],[/basement|cellar/i,'basement'],[/laundry|washer|dryer/i,'laundry'],
     [/office|study/i,'office'],[/garage/i,'garage'],[/exterior|front|street|yard|outside|porch|roof|house/i,'exterior']];
+  /* Kinds the photo names point to, as the room type a new room gets */
+  var NEW = {office:'office', laundry:'laundry', dining:'dining', garage:'garage'};
   A.AI.readMs = function(p){ return 700 + seed(String(p.name || '') + (p.hash || '')) % 800; };
   /* The room of that kind with the fewest photos, so three bedroom photos spread over the bedrooms */
   function roomOfType(type, rooms, h){
@@ -40,8 +44,11 @@
   A.AI.readPhoto = function(p, rooms, h){
     var cand = rooms.filter(function(r){ return r[0] !== 'other'; }), sd = seed(String(p.name || '') + (p.hash || '') + (p.demo || ''));
     var guess = null, i;
+    var seen = null;
     if(p.demo) guess = p.demo === '?' ? null : roomOfType(p.demo, cand, h);
-    else for(i = 0; i < NAME.length && !guess; i++){ if(NAME[i][0].test(p.name || '')) guess = roomOfType(NAME[i][1], cand, h); }
+    else for(i = 0; i < NAME.length && !guess; i++){ if(NAME[i][0].test(p.name || '')){ seen = seen || NAME[i][1]; guess = roomOfType(NAME[i][1], cand, h); } }
+    /* A kind of room the house does not have yet (an office, a laundry): the screen asks before adding it */
+    if(!guess && seen && NEW[seen]) return {room:null, conf:.5, alts:[], newType:NEW[seen]};
     var alts = [];
     function add(k){ if(k && alts.indexOf(k) < 0 && alts.length < 3) alts.push(k); }
     add(guess); (p.demoAlts || []).forEach(function(t){ add(roomOfType(t, cand, h)); });
@@ -51,6 +58,10 @@
     var fb = cand[sd % cand.length][0];
     return {room:fb, conf:.6, alts:[fb].concat(alts.filter(function(x){ return x !== fb; })).slice(0, 3)};
   };
+
+  /* What the photo shows, in a few plain words (sink, stove), for the AI core to say. The team sample photos carry them */
+  var read0 = A.AI.readPhoto;
+  A.AI.readPhoto = function(p, rooms, h){ var r = read0(p, rooms, h); if(p.demoSees) r.sees = p.demoSees.slice(); return r; };
 
   A.AI.sizeFor = function(h, key, type){
     type = type || key;

@@ -11,12 +11,12 @@
   /* Team only: a mixed set of real room photos for the bulk upload demo, named the way a phone names them. Most come from
      one dated house (the Coolidge Street house, like the kitchen photos), so the set reads as one home; credits in CREDITS.md.
      Each carries the room it shows, so the pretend reading sorts them the same way every time ('?' = not sure on purpose). */
-  var SAMPLE_BULK = [['kitchen-dated.jpg','kitchen'],['cabinet-run.jpg','kitchen'],['kitchen-dated-wide.jpg','kitchen'],
-    ['rooms/living-arches.jpg','living'],['rooms/living-stair-wall.jpg','living'],
-    ['rooms/bedroom-front.jpg','bedrooms'],['rooms/bedroom-closet.jpg','bedrooms'],['rooms/bedroom-back.jpg','bedrooms'],
-    ['rooms/bath-pedestal.jpg','hallbath'],['rooms/bath-tub.jpg','hallbath'],
-    ['rooms/basement-finished.jpg','basement'],['rooms/basement-utility.jpg','basement'],
-    ['rooms/exterior-front.jpg','exterior'],['rooms/stairs.jpg','?']];
+  var SAMPLE_BULK = [['kitchen-dated.jpg','kitchen',['sink','cabinets','stove']],['cabinet-run.jpg','kitchen',['windows','cabinets']],['kitchen-dated-wide.jpg','kitchen',['oven','cabinets','tile floor']],
+    ['rooms/living-arches.jpg','living',['archway','wood floor']],['rooms/living-stair-wall.jpg','living',['staircase','window','wood floor']],
+    ['rooms/bedroom-front.jpg','bedrooms',['ceiling light','window','wood floor']],['rooms/bedroom-closet.jpg','bedrooms',['closet door','window']],['rooms/bedroom-back.jpg','bedrooms',['window','wood floor']],
+    ['rooms/bath-pedestal.jpg','hallbath',['sink','bathtub']],['rooms/bath-tub.jpg','hallbath',['bathtub','sink','tile walls']],
+    ['rooms/basement-finished.jpg','basement',['fireplace','wood floor']],['rooms/basement-utility.jpg','basement',['shelving','water heater','washer and dryer']],
+    ['rooms/exterior-front.jpg','exterior',['house','front walk','lawn']],['rooms/stairs.jpg','?',['stairs']]];
   var MAX_MB = 25, MAX_PHOTOS = 150, MAX_PLAN_KEEP = 1.5;            /* SECURITY 7; plan size kept in this demo */
   var TYPES_OK = /\.(jpe?g|png|webp|heic|heif)$/i;
   var RIGHTS = {version:'Draft 1, November 2026', text:'I took these photos or have the right to use them.'};
@@ -330,6 +330,29 @@
       i.addEventListener('blur', function(){ if(i.value) check(i.id); });
       i.addEventListener('input', function(){ if(i.closest('.field.invalid')) check(i.id); });
     });
+    /* Team only: Fill sample data in the ribbon fills this whole screen, with a new address each time (no duplicate) */
+    RI.setDevFill(function(){
+      function any(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+      function rnd(a, b){ return a + Math.floor(Math.random() * (b - a + 1)); }
+      var taken = A.mine().map(function(x){ return norm((x.addr || {}).street); }), pickA, tries = 0;
+      do { var sa = any(SAMPLES.slice(0, 12)); pickA = [rnd(1100, 48900) + ' ' + sa[0].replace(/^\d+\s+/, ''), sa[1], sa[2]]; } while(taken.indexOf(norm(pickA[0])) > -1 && ++tries < 20);
+      $('street').value = pickA[0]; $('unit').value = ''; $('city').value = pickA[1]; $('state').value = 'MI'; $('zip').value = pickA[2];
+      $('year').value = rnd(1925, 1998); $('sqft').value = Math.round(rnd(1050, 2400) / 10) * 10;
+      main.querySelector('input[name=stories][value="' + any([1,1,2]) + '"]').checked = true;
+      $('beds').textContent = rnd(2, 4); $('baths').textContent = rnd(1, 2); $('halfBaths').textContent = rnd(0, 1);
+      var bsm = main.querySelector('input[name=bsmt][value="' + any(['finished','partly','unfinished']) + '"]'); bsm.checked = true;
+      $('btot').value = Math.round(rnd(800, 1400) / 10) * 10; $('bsqft').value = bsm.value === 'unfinished' ? '' : Math.round(rnd(300, 700) / 10) * 10;
+      $('m-lot').value = rnd(5200, 9800); $('fire').textContent = rnd(0, 1);
+      var gar = main.querySelector('input[name=garage][value="' + any(['attached','detached']) + '"]'); gar.checked = true;
+      main.querySelectorAll('input[name=floor]').forEach(function(c){ c.checked = c.value === 'Hardwood' || c.value === 'Tile' || (c.value === 'Carpet' && Math.random() < .5); });
+      $('m-heat').value = 'Forced air, gas'; $('m-heaty').value = rnd(2004, 2019); $('m-cool').value = 'Central air'; $('m-wh').value = rnd(2012, 2022);
+      $('m-ext').value = any(['Brick, asphalt shingle roof, poured basement','Vinyl siding, asphalt shingle roof, block basement','Brick and siding, asphalt shingle roof']);
+      $('m-upd').value = 'Roof ' + rnd(2010, 2020) + ', windows ' + rnd(2000, 2015);
+      bsm.dispatchEvent(new Event('change', {bubbles:true})); gar.dispatchEvent(new Event('change', {bubbles:true}));
+      main.querySelectorAll('.field.invalid .input').forEach(function(el){ RI.form.setInvalid(el, null); });
+      regionNote(); dupCheck(); collect();
+      RI.toast('Sample house filled in. Change anything you like.', 'check');
+    }, 'Fill sample house', main);
     return function(){ collect(); return check(); };
   }
 
@@ -341,26 +364,66 @@
     var ACCEPT = 'image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif';
     function nameOf(k){ var r = rooms.filter(function(x){ return x[0] === k; })[0]; return r ? r[1] : k; }
     function sizeable(r){ return r[0] !== 'exterior' && r[0] !== 'other' && !/^x-(ext|deck|patio|porch|driveway|pool|accessory)/.test(r[0]); }
-    main.innerHTML = '<header class="wiz-head rp3-head"><div><p class="label">Screen 2 of 2</p><h1>Rooms and photos</h1><p class="muted">Add all your photos at once. We put each one in its room, and you check. Sizes are optional.</p></div>' +
+    var LEAD = 'Add every photo at once. We sort them into rooms and measure each room. You check.';
+    /* The floor plan box, the same before and after sorting (make-ui, Nov 2026): what it is, Add a plan, then each plan
+       added with a thumbnail, View and Remove. Plans are kept with the house, not read (APP_FLOW). */
+    var PLANBOX = '<section class="pl-box" aria-label="Floor plan"><div class="pl-head"><span class="pl-ic" aria-hidden="true">' + RI.icon('file') + '</span>' +
+      '<span class="pl-t"><b>Floor plan <span class="opt">(optional)</span></b><small class="pl-help">If you have one. We keep it with your house; rooms are still measured from your photos.</small></span>' +
+      '<label class="btn btn-secondary btn-sm file-btn pl-add">' + RI.icon('plus','i-sm') + '<span class="pl-add-t">Add a plan</span><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple data-plans aria-label="Add a floor plan"></label></div>' +
+      '<ul class="pl-list" aria-label="Floor plans added"></ul><p class="pl-err" role="alert"></p></section>';
+    /* Phones get the short line, so the first button is on the first screen (make-ui, Nov 2026) */
+    var LEADH = '<span class="ld-l">' + LEAD + '</span><span class="ld-s">Add every photo. We sort them into rooms.</span>';
+    /* Photo tips as small drawings, picture-first (Sam's rule): whole room from a corner, lights on, a close-up */
+    var TIPS = [
+      ['Whole room, from a corner', '<path d="M4 4l26 14h36L92 4M4 60l26-18h36l26 18M30 18v24M66 18v24"/><rect x="40" y="22" width="16" height="12"/><circle class="ac" cx="9" cy="54" r="3"/>'],
+      ['Lights on, blinds open', '<rect x="34" y="14" width="40" height="34"/><path d="M34 31h40M54 14v34M34 18h40M34 22h40"/><path class="ac" d="M16 8v8M8 22h6M24 18l4-4M8 12l4 4M16 26a6 6 0 1 0 0-.1"/>'],
+      ['Close-up of damage', '<rect x="6" y="8" width="84" height="48"/><path d="M30 14l6 10-5 6 7 9-4 9"/><circle class="ac" cx="36" cy="30" r="12"/><path class="ac" d="M45 39l9 9"/>']
+    ];
+    main.innerHTML = '<header class="wiz-head rp3-head"><div><p class="label">Screen 2 of 2</p><h1>Rooms and photos</h1><p class="muted" id="rp3-sub">' + LEADH + '</p></div>' +
         '<div class="rp3-prog" id="rp3-prog" aria-live="polite"></div></header>' +
-      '<div class="rp2">' +
-        '<aside class="rp2-tray up3" aria-label="Your photos">' +
-          '<div class="up3-hero"><input type="file" accept="' + ACCEPT + '" multiple data-room="unsorted" tabindex="-1" aria-hidden="true">' +
-            '<span class="up3-ic">' + RI.icon('image','i-lg') + '<span class="up3-plus">' + RI.icon('plus') + '</span></span>' +
-            '<span class="up3-t"><b>Add your photos</b><span>Drag and drop, or browse</span></span></div>' +
-          '<div class="up3-btns"><label class="btn btn-primary file-btn">' + RI.icon('upload') + 'Choose photos<input type="file" accept="' + ACCEPT + '" multiple data-room="unsorted"></label>' +
-            '<label class="btn btn-secondary file-btn up3-cam" title="Use camera">' + RI.icon('camera') + '<span class="up3-bt">Use camera</span><input type="file" accept="image/*" capture="environment" data-room="unsorted"></label>' +
-            (RI.devTools ? '<button type="button" class="btn btn-secondary btn-sm" id="sample">Team: sample photos</button>' : '') + '</div>' +
-          '<p class="up3-fmt">JPG, PNG, WebP or HEIC · up to ' + MAX_PHOTOS + ' photos</p>' +
-          '<div id="flags-sum"></div>' +
-          '<section class="rp2-unsorted" id="unsorted" aria-live="polite"></section>' +
-          '<p class="up3-total" id="ph-total"></p>' +
-        '</aside>' +
-        '<div class="rp2-rooms">' +
+      /* Bulk upload first (user, Nov 2026, after Sam's meeting): one place for every photo; the rooms appear once the
+         photos are sorted, already filled in and measured. Only the photos we could not place ask for a tap. */
+      '<div class="bk" id="bk">' +
+        /* Before any photo (make-ui, Nov 2026): the drop area on the left; your rooms and photo tips beside it on a
+           computer, under it on a tablet or phone. The rights tick comes before the buttons and is asked only here. */
+        '<div class="bk-start"><div class="bk-main">' +
+        '<section class="bk-drop" id="bk-drop" aria-labelledby="bk-drop-h"><input type="file" accept="' + ACCEPT + '" multiple data-room="unsorted" tabindex="-1" aria-hidden="true" class="bk-drop-in">' +
+          '<span class="bk-ic">' + RI.icon('image','i-lg') + '<span class="bk-plus">' + RI.icon('plus','i-sm') + '</span></span>' +
+          '<h2 id="bk-drop-h"><span class="bk-desk">Drop all your photos here</span><span class="bk-ph">Add all your photos</span></h2>' +
+          '<p>Every room, inside and out, in any order. Two or three photos a room is enough.</p>' +
+          '<div class="bk-ok-w"><span class="bk-ok-h">Before you add photos</span><label class="bk-ok" id="bk-ok"><input type="checkbox" id="bk-rights" aria-describedby="bk-ok-err"' + (h.rights ? ' checked' : '') + '><span>' + RIGHTS.text + '</span></label><span class="bk-ok-err" id="bk-ok-err" role="alert"></span></div>' +
+          '<div class="bk-btns bk-desk"><label class="btn btn-primary file-btn">' + RI.icon('upload') + 'Choose photos<input type="file" accept="' + ACCEPT + '" multiple data-room="unsorted"></label>' +
+            '<label class="btn btn-secondary file-btn bk-cam">' + RI.icon('camera') + 'Use camera<input type="file" accept="image/*" capture="environment" data-room="unsorted"></label><span class="bk-drag">or drag them here</span></div>' +
+          '<div class="bk-btns bk-ph"><label class="btn btn-primary file-btn">' + RI.icon('camera') + 'Take photos<input type="file" accept="image/*" capture="environment" data-room="unsorted"></label>' +
+            '<label class="btn btn-secondary file-btn">' + RI.icon('image') + 'From my photos<input type="file" accept="' + ACCEPT + '" multiple data-room="unsorted"></label></div>' +
+          '<p class="bk-fmt">JPG, PNG, WebP or HEIC · up to ' + MAX_PHOTOS + ' photos' + (RI.devTools ? ' · <button type="button" class="linkbtn small" id="sample">Team: sample photos</button>' : '') + '</p>' +
+        '</section>' +
+        PLANBOX +
+        '</div>' +
+        '<aside class="bk-aside" aria-label="Before you start">' +
+          '<section class="bk-box bk-rbox" id="bk-rbox"><h2>Your <span id="bk-want-n"></span> rooms</h2><p class="bk-rsub">From your answers. Photograph each one.</p>' +
+            '<p class="bk-rsum"><span id="bk-rsum"></span> <button type="button" class="linkbtn small" id="bk-rmore" aria-expanded="false" aria-controls="bk-want">Show all</button></p><ul class="bk-chips" id="bk-want"></ul></section>' +
+          '<section class="bk-box bk-tbox"><h2>Good photos</h2><ul class="bk-tips2">' + TIPS.map(function(t){ return '<li><svg viewBox="0 0 96 64" aria-hidden="true">' + t[1] + '</svg><span>' + t[0] + '</span></li>'; }).join('') + '</ul></section>' +
+        '</aside></div>' +
+        /* While the first photos are sorted: Spatial intelligence (user, Nov 2026). Your photos -> the orb -> Your rooms */
+        '<section class="bk-stage" id="bk-stage" aria-label="Reading your photos">' +
+          '<div class="bk-sh"><div><b id="bk-sh-b" aria-live="polite">Reading your photos</b><small id="bk-sh-s"></small></div><span class="bk-sh-a" id="bk-sh-a"></span></div>' +
+          '<span class="bk-col bk-c1">Your photos</span><span class="bk-col bk-c2">Spatial intelligence</span><span class="bk-col bk-c3">Your rooms</span>' +
+          '<div class="bk-now" id="bk-now" aria-hidden="true"><span>Next photo</span></div>' +
+          '<div class="bk-pile" id="bk-pile" aria-hidden="true"></div><p class="bk-pile-l" id="bk-pile-l"></p>' +
+          '<div class="bk-core" id="bk-core"></div>' +
+          '<ul class="bk-tiles" id="bk-tiles" aria-label="Your rooms"></ul></section>' +
+        /* Then: new photos being sorted, the ones we could not place, and every room */
+        '<section class="bk-prog" id="bk-prog" aria-live="polite" hidden></section>' +
+        '<div id="flags-sum"></div>' +
+        '<section class="bk-need" id="unsorted" aria-live="polite" hidden></section>' +
+        '<div class="rp2-rooms bk-rooms">' +
+          '<div class="bk-roomsh"><h2>Your rooms</h2><p>Move a photo if we got it wrong: open the room and pick where it belongs.</p></div>' +
           '<div class="rc2-nav" aria-hidden="false"><span class="rc2-dots" id="rc2-dots"></span><button type="button" class="btn btn-secondary btn-sm" id="rc2-next">Next room ' + RI.icon('arrow','i-sm') + '</button></div>' +
           '<div class="rc2-grid" id="rc2-grid">' + rooms.map(roomCard).join('') + '</div>' +
-          '<button type="button" class="add-room3" id="add-room">' + RI.icon('plus') + '<b>Add a room</b><span>Office, laundry, attic, porch and more</span></button>' +
-          '<details class="plans-f"><summary>Floor plans <span class="opt">(optional)</span></summary><p class="small muted">An image or a PDF, if you have one.</p><label class="btn btn-secondary btn-sm file-btn">' + RI.icon('file','i-sm') + 'Add a plan<input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple id="plans"></label><ul class="plan-files" id="plan-files"></ul></details>' +
+          '<div class="bk-more"><span><b>Forgot a room?</b> Add more photos any time. We sort them the same way.</span><span class="bk-more-b"><label class="btn btn-secondary btn-sm file-btn">' + RI.icon('plus','i-sm') + 'Add more photos<input type="file" accept="' + ACCEPT + '" multiple data-room="unsorted"></label>' +
+            '<button type="button" class="btn btn-secondary btn-sm" id="add-room">' + RI.icon('plus','i-sm') + 'Add a room</button></span></div>' +
+          '<div class="plans-f2">' + PLANBOX + '</div>' +
         '</div>' +
       '</div>';
     /* One icon per kind of room, on the card and in the edit sheet */
@@ -378,21 +441,19 @@
       var s = h.sizes[r[0]] || {}, nm = RI.esc(r[1]);
       return '<section class="rc2 rc3" data-room="' + r[0] + '" aria-labelledby="rc2-' + r[0] + '">' +
         '<div class="rc3-media"></div>' +
-        '<div class="rc3-body"><span class="rc3-ic">' + RI.icon(iconFor(r)) + '</span><div class="rc3-t"><h2 id="rc2-' + r[0] + '">' + nm + '</h2><p>' + A.hintFor(r[2] || r[0]) + '</p></div>' +
+        '<div class="rc3-body"><span class="rc3-ic">' + RI.icon(iconFor(r)) + '</span><div class="rc3-t"><h2 id="rc2-' + r[0] + '">' + nm + '</h2><p class="rc3-hint">' + A.hintFor(r[2] || r[0]) + '</p></div>' +
           (r[3] ? '<button type="button" class="icon-btn ru-del" data-delroom="' + r[0] + '" aria-label="Remove ' + nm + '">' + RI.icon('x','i-sm') + '</button>' : '') + '</div>' +
+        '<p class="bk-dup" hidden>' + RI.icon('info','i-sm') + '<span>Two photos show the same view. We count it once.</span></p>' +
         '<div class="ps" data-ps="' + r[0] + '" aria-live="polite" hidden></div>' +
         (sizeable(r) ? '<div class="sz" data-sz="' + r[0] + '" aria-live="polite" hidden></div>' : '') +
-        '<details class="rc3-foot"><summary><span class="rc3-sum"></span><span class="rc3-state"></span></summary><div class="rc2-meta">' +
-          (sizeable(r) ? '<div class="rc2-size"><span class="xsmall muted">Size <span class="opt">(optional)</span></span><span class="lw"><label class="sr" for="l-' + r[0] + '">Length in feet</label><input class="input" id="l-' + r[0] + '" data-l="' + r[0] + '" inputmode="decimal" placeholder="L" value="' + (s.l || '') + '"><span aria-hidden="true">×</span><label class="sr" for="w-' + r[0] + '">Width in feet</label><input class="input" id="w-' + r[0] + '" data-w="' + r[0] + '" inputmode="decimal" placeholder="W" value="' + (s.w || '') + '"><span class="xsmall muted">ft</span></span></div>' : '') +
-          '<label class="sr" for="n-' + r[0] + '">Note for ' + nm + '</label><input class="input rc2-note" id="n-' + r[0] + '" data-note="' + r[0] + '" maxlength="140" placeholder="A note, if anything matters here" value="' + RI.esc(h.notes[r[0]] || '') + '"></div></details></section>';
+        '<p class="rc3-note" hidden></p></section>';
     }
-    /* The card's bottom strip: the size once it is in, else an invitation; and whether a note is there */
+    /* The card under the photo: a note shows as one line; size and sorting have their own strips (make-ui, Nov 2026:
+       the form under each card is gone, Edit opens the room window) */
     function foot(k){
       var sec = main.querySelector('.rc2[data-room="' + k + '"]'); if(!sec) return;
-      var s = h.sizes[k], r = roomOf(k), n = A.photoCount(h, k), est = s && s.src === 'photo' && !s.ok;
-      /* An estimate still waiting for a yes shows in the strip above, so the footer does not repeat it */
-      sec.querySelector('.rc3-sum').innerHTML = s && s.l && !est ? RI.icon('ruler','i-sm') + '<b>' + s.l + ' × ' + s.w + ' ft</b>' : RI.icon('chev','i-sm rc3-chev') + (est ? 'Edit the size or add a note' : (r && sizeable(r) ? 'Add size' : 'Add a note') + ' <span class="opt">(optional)</span>');
-      sec.querySelector('.rc3-state').textContent = h.notes[k] ? 'Note added' : s && s.src === 'photo' && s.ok ? 'Confirmed' : n ? '' : 'No photos yet';
+      var nEl = sec.querySelector('.rc3-note'), nt = h.notes[k];
+      if(nEl){ nEl.hidden = !nt; nEl.innerHTML = nt ? RI.icon('chat','i-sm') + '<span>' + RI.esc(nt) + '</span>' : ''; }
       drawSort(k); drawSize(k);
     }
     /* ---------- Suggested room size (Sam's meeting, Nov 2026): once a room has photos, a size is measured from
@@ -407,7 +468,9 @@
         html = '<span class="sz-v">' + RI.icon('ruler','i-sm') + '<span><span class="sz-top"><b>About ' + s.l + ' × ' + s.w + ' ft</b><span class="state state-sample">Sample</span></span><span class="sz-from">Measured from your photos</span></span></span>' +
           '<span class="sz-ask"><span class="sz-q">Roughly right?</span><button type="button" class="btn btn-secondary btn-sm" data-szok="' + k + '" aria-label="Yes, ' + nm + ' is about ' + s.l + ' by ' + s.w + ' feet">' + RI.icon('check','i-sm') + 'Yes</button><button type="button" class="btn btn-secondary btn-sm" data-szedit="' + k + '" aria-label="Edit the size of ' + nm + '">' + RI.icon('pencil','i-sm') + 'Edit</button></span>';
       }
+      else if(s && s.l){ cls += ' is-ok'; html = '<span class="sz-v">' + RI.icon('ruler','i-sm') + '<span><b>' + s.l + ' × ' + s.w + ' ft</b><span class="sz-from">' + (s.src === 'user' ? 'Your size' : 'Confirmed') + '</span></span></span>'; }
       else if(!s && h.measured[k] === 'none' && A.photoCount(h, k)){ cls += ' is-none'; html = RI.icon('ruler','i-sm') + '<span>We could not size this room from the photos. Add a wider photo, or <button type="button" class="linkbtn" data-szedit="' + k + '">type the size</button>.</span>'; }
+      else if(!s && A.photoCount(h, k)){ cls += ' is-add'; html = RI.icon('ruler','i-sm') + '<span>No size yet. <button type="button" class="linkbtn" data-szedit="' + k + '">Add the size</button> <span class="opt">(optional)</span></span>'; }
       el.className = cls; el.innerHTML = html; el.hidden = !html;
     }
     /* The card's own length and width boxes follow the saved size, so Edit opens them filled in */
@@ -439,14 +502,16 @@
     function sugIn(k){ return (h.photos[k] || []).filter(function(p){ return p.state === 'done' && p.sug; }).length; }
     function read(p){
       if(reading[p.id] || p.unsure) return;
-      reading[p.id] = true; readQ++; drawUnsorted();
+      reading[p.id] = true; readQ++; drawUnsorted(); totals();
       setTimeout(function(){
         delete reading[p.id]; readQ = Math.max(0, readQ - 1);
         if(!doc.body.contains(main)) return;              /* left the screen: read next time */
         if(!(h.photos.unsorted || []).some(function(x){ return x.id === p.id; })){ drawUnsorted(); return; }
         var res = A.AI.readPhoto(p, rooms, h); delete p.suggest;
-        if(res.room){ p.sug = true; move('unsorted', p.id, res.room, true); }
-        else { p.unsure = true; p.alts = res.alts; saved(h); drawUnsorted(); }
+        /* Sorted photos count as placed (the preview the user approved): the room asks about its size, not about each photo */
+        if(res.sees) p.sees = res.sees;
+        if(res.room){ p.auto = true; move('unsorted', p.id, res.room); }
+        else { p.unsure = true; p.alts = res.alts; if(res.newType) p.newType = res.newType; saved(h); drawUnsorted(); }
       }, A.AI.readMs(p) + (readQ - 1) * 160);
     }
     function drawSort(k){
@@ -484,39 +549,282 @@
         (p.state === 'fail' ? '<span class="th-fail">' + RI.icon('warn','i-sm') + 'Did not upload<button type="button" data-retry="' + p.id + '" data-room="' + room + '">Retry</button></span>' : '') +
         '<button type="button" class="th-x" data-del="' + p.id + '" data-room="' + room + '" aria-label="Remove photo">' + RI.icon('x','i-sm') + '</button></figure>';
     }
-    /* An unsorted photo: being read; not sure, with its three best rooms one tap away; or plain, tap to select it */
-    function unsortedItem(p){
-      if(p.state !== 'done') return '<li class="us-item">' + thumb(p, 'unsorted') + '</li>';
-      if(reading[p.id]) return '<li class="us-item is-reading"><div class="us-ph">' + thumb(p, 'unsorted') + '<span class="us-read">' + RI.icon('eye','i-sm') + 'Reading…</span></div></li>';
-      var on = !!picked[p.id], alts = (p.alts || (p.suggest ? [p.suggest] : [])).filter(function(k){ return roomOf(k); });
-      return '<li class="us-item' + (on ? ' is-picked' : '') + (alts.length ? ' is-unsure' : '') + '">' +
-        '<div class="us-ph">' + thumb(p, 'unsorted') +
-          '<button type="button" class="us-tick" data-pick="' + p.id + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Unselect' : 'Select') + ' this photo">' + RI.icon('check','i-sm') + '</button></div>' +
-        (alts.length ? '<div class="us-alts"><span class="us-q">Which room?</span>' + alts.map(function(k){ return '<button type="button" class="us-chip" data-accept="' + p.id + '" data-to="' + k + '">' + RI.esc(nameOf(k)) + '</button>'; }).join('') + '</div>' : '') + '</li>';
+    /* A photo we could not place: one tap on a room. Our best guess comes first, outlined; a kind of room the house does
+       not have yet is offered as a new room ("ask first"); Not a room takes it out. */
+    function typeName(t){ var all = RI.ROOM_TYPES.inside.concat(RI.ROOM_TYPES.outside), x = all.filter(function(a){ return a[0] === t; })[0]; return x ? x[1] : t; }
+    function pickParts(p){
+      var opts = rooms.filter(function(r){ return r[0] !== 'other'; }), guess = p.newType ? null : (p.alts || []).filter(function(k){ return roomOf(k); })[0];
+      var order = guess ? [roomOf(guess)].concat(opts.filter(function(r){ return r[0] !== guess; })) : opts;
+      return {q:p.newType ? 'Looks like a room you did not list' : guess ? 'Our best guess is outlined' : 'Pick the room it shows',
+        html:'<div class="bk-pick" role="group" aria-label="Room for this photo">' +
+          (p.newType ? '<button type="button" class="bk-chip is-guess" data-newtype="' + p.newType + '" data-p="' + p.id + '">' + RI.icon('plus','i-sm') + 'New room: ' + RI.esc(typeName(p.newType)) + '<em>Best guess</em></button>' : '') +
+          order.map(function(r){ var g = r[0] === guess; return '<button type="button" class="bk-chip' + (g ? ' is-guess' : '') + '" data-accept="' + p.id + '" data-to="' + r[0] + '">' + RI.icon(iconFor(r),'i-sm') + RI.esc(r[1]) + (g ? '<em>Best guess</em>' : '') + '</button>'; }).join('') +
+          '<button type="button" class="bk-chip ghost" data-newroom="' + p.id + '">' + RI.icon('plus','i-sm') + 'New room</button><button type="button" class="bk-chip ghost" data-notroom="' + p.id + '">Not a room</button></div>'};
     }
-    var bulkTo = '';
+    function placeItem(p){ var k = pickParts(p); return '<li class="bk-pl"><div class="bk-pl-ph">' + thumb(p, 'unsorted') + '</div><div class="bk-pl-b"><p class="bk-pl-q">' + k.q + '</p>' + k.html + '</div></li>'; }
     function drawUnsorted(){
-      var list = (h.photos.unsorted || []).concat(pending.unsorted || []), u = main.querySelector('#unsorted'), sug = list.filter(function(p){ return p.state === 'done' && p.suggest; }).length;
-      Object.keys(picked).forEach(function(id){ if(!list.some(function(p){ return p.id === id; })) delete picked[id]; });
-      var ids = Object.keys(picked), n = ids.length, done = list.filter(function(p){ return p.state === 'done'; }).length;
-      /* The room picker starts on the room the picked photos have in common, or the last room used */
-      var common = ids.map(function(id){ return (list.filter(function(p){ return p.id === id; })[0] || {}).suggest || ''; }).reduce(function(a, b){ return a === null ? b : a === b ? a : ''; }, null) || '';
-      var to = bulkTo || common;
-      u.innerHTML = sortHtml() + (list.length ? '<header><h2>Not sorted yet <span class="n">' + list.length + '</span></h2>' +
-          '<span class="us-hacts">' + (sug > 1 ? '<button type="button" class="linkbtn small" id="accept-all">Accept suggestions</button>' : '') + (done > 1 && n < done ? '<button type="button" class="linkbtn small" id="pick-all">Select all</button>' : '') + '</span></header>' +
-        '<p class="us-help">' + RI.icon('info','i-sm') + '<span>Tap the room under a photo, or tap photos and pick the room once. You can also drag a photo onto a room.</span></p>' +
-        '<ul class="us-list">' + list.map(unsortedItem).join('') + '</ul>' +
-        (n ? '<div class="us-bulk" role="region" aria-label="Put selected photos in a room"><div class="us-bulk-h"><b>' + n + ' selected</b><button type="button" class="linkbtn small" id="pick-clear">Clear</button></div>' +
-          '<div class="us-bulk-r"><label class="us-sel-w"><span class="sr">Room for the selected photos</span><select class="us-sel" id="bulk-to"><option value="">Choose a room</option>' +
-            rooms.map(function(r){ return '<option value="' + r[0] + '"' + (r[0] === to ? ' selected' : '') + '>' + RI.esc(r[1]) + '</option>'; }).join('') + '</select></label>' +
-          '<button type="button" class="btn btn-primary btn-sm" id="bulk-go">' + RI.icon('arrow','i-sm') + 'Move ' + (n === 1 ? 'it' : 'them') + '</button></div></div>' : '')
-        : '<p class="xsmall muted rp2-empty">' + (A.photoCount(h) ? RI.icon('check','i-sm') + 'Every photo is in a room.' : 'Photos you add land here first.') + '</p>');
+      var un = h.photos.unsorted || [], u = main.querySelector('#unsorted');
+      var place = un.filter(function(p){ return p.state === 'done' && !reading[p.id]; });
+      u.hidden = !place.length;
+      u.innerHTML = place.length ? '<header class="bk-need-h"><h2>Which room is this? <span class="n">' + place.length + ' photo' + (place.length === 1 ? '' : 's') + '</span></h2><p>We could not tell. Tap the room it shows.</p></header><ul class="bk-pl-list">' + place.map(placeItem).join('') + '</ul>' : '';
       RI.fillIcons(u);
-      /* While photos wait to be sorted, the upload area shrinks so they stay in view */
-      main.querySelector('.up3').classList.toggle('busy', list.length > 0);
-      /* Below desktop the page scrolls, so the Move bar sticks just above the submit dock */
-      var dk = doc.querySelector('.wb-dock'); if(dk){ var top = dk.getBoundingClientRect().top; if(top > 0 && top < innerHeight) u.style.setProperty('--dock', Math.round(innerHeight - top + 8) + 'px'); }
+      drawProg(); drawPhase();
     }
+    /* After the first sort: new photos uploading or being read, and any that did not upload, in one strip */
+    function drawProg(){
+      var el = main.querySelector('#bk-prog'), un = h.photos.unsorted || [];
+      var list = (pending.unsorted || []).concat(un.filter(function(p){ return reading[p.id]; }));
+      if(!list.length){ el.hidden = true; el.innerHTML = ''; return; }
+      var work = list.filter(function(p){ return p.state !== 'fail'; }).length, fl = list.length - work;
+      el.innerHTML = '<div class="bk-prog-t">' + (work ? '<span class="bk-sp" aria-hidden="true"></span><span><b>Sorting ' + work + ' new photo' + (work === 1 ? '' : 's') + ' into rooms</b><small>They go to the room they show.</small></span>' : '<span><b>' + fl + ' photo' + (fl === 1 ? '' : 's') + ' did not upload</b><small>Try again, or remove ' + (fl === 1 ? 'it' : 'them') + '.</small></span>') + '</div>' +
+        '<ul class="bk-mini">' + list.map(function(p){ return '<li>' + thumb(p, 'unsorted') + '</li>'; }).join('') + '</ul>';
+      el.hidden = false; RI.fillIcons(el);
+    }
+    /* Which view: no photos yet; the first photos being sorted; or checking the rooms. Once a house has been sorted it
+       stays on the check view, and new photos sort in the strip above the rooms. */
+    function working(){ return Object.keys(reading).length > 0 || Object.keys(pending).some(function(k){ return pending[k].some(function(p){ return p.state === 'up'; }); }); }
+    function phase(){
+      var any = A.photoCount(h) + (h.photos.unsorted || []).length + Object.keys(pending).reduce(function(n, k){ return n + pending[k].length; }, 0);
+      if(!any && !h.sortedOnce) return 'empty';
+      if(!h.sortedOnce){
+        /* Opened with every photo already read and placed (an older draft): straight to the rooms */
+        if(!lastPhase && !working() && !(h.photos.unsorted || []).some(function(p){ return p.state === 'done'; })){ h.sortedOnce = true; A.put(h); return 'check'; }
+        /* Otherwise the AI core stays until it has shown every result and the unsure ones have a room (or "later") */
+        return 'sorting';
+      }
+      return 'check';
+    }
+    var lastPhase = '';
+    function drawPhase(){
+      var ph = phase(), bk = main.querySelector('#bk');
+      bk.className = 'bk bk-' + ph;
+      var c = counts(), un = c.unsorted, inR = A.photoCount(h), all = inR + un;
+      var sub = main.querySelector('#rp3-sub');
+      if(ph !== 'check'){ if(sub.innerHTML !== LEADH) sub.innerHTML = LEADH; } else sub.textContent = un ? 'We sorted ' + inR + ' of ' + all + ' photos. Place the ' + (un === 1 ? 'one' : un) + ' we were not sure about, then check each room.' : 'Every photo is in a room. Check each room and its size, then submit.';
+      if(ph === 'empty') drawWant();
+      if(ph === 'sorting') drawSorting();
+      if(ph !== lastPhase){ if(lastPhase === 'sorting' && ph === 'check') RI.toast('Your photos are sorted. Check each room.', 'check'); lastPhase = ph; }
+    }
+    function drawWant(){
+      var rs = rooms.filter(function(r){ return r[0] !== 'other'; });
+      main.querySelector('#bk-want-n').textContent = rs.length;
+      main.querySelector('#bk-want').innerHTML = rs.map(function(r){ return '<li>' + RI.icon(iconFor(r),'i-sm') + RI.esc(r[1]) + '</li>'; }).join('');
+      /* Phones: one line instead of every chip, "Kitchen, living room, 4 bedrooms, full bath, basement and outside" */
+      var grp = [], seen = {};
+      rs.forEach(function(r){
+        var t = r[2] || r[0], n = rs.filter(function(x){ return (x[2] || x[0]) === t; }).length; if(seen[t]) return; seen[t] = 1;
+        var w = {kitchen:'kitchen', living:'living room', bedrooms:'bedroom', hallbath:'full bath', halfbath:'half bath', basement:'basement', exterior:'outside'}[t] || r[1].toLowerCase().replace(/ \d+$/, '');
+        grp.push(n > 1 ? n + ' ' + w + (/s$/.test(w) ? '' : 's') : w);
+      });
+      var line = grp.length > 1 ? grp.slice(0, -1).join(', ') + ' and ' + grp[grp.length - 1] : grp.join('');
+      main.querySelector('#bk-rsum').textContent = line.charAt(0).toUpperCase() + line.slice(1) + '.';
+    }
+    /* ---------- Spatial intelligence (user, Nov 2026) ----------
+       Your photos -> the orb -> Your rooms. The photo being read sits highlighted on the left; the orb
+       (RI.SpatialIntelligenceCore, sicore.js) walks through the steps for it: scanning, structure, room type, size; then the
+       photo moves to its room tile. What it shows comes from the reading (room, what it saw, the rooms it could be) and the
+       size measured for that room, marked Estimate until the owner confirms it; nothing is made up for show. Results play
+       in order, a little behind the real reading, faster when many wait. Photos it could not place collect in "Needs you"
+       and come back as questions. Reduced motion: nothing moves; the steps and tiles update. */
+    var stg = null, EIN = 'cubic-bezier(.45,0,.2,1)';
+    function T(x, y, sc){ return 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)' + (sc != null ? ' scale(' + sc + ')' : ''); }
+    function sleep(ms){ return new Promise(function(ok){ setTimeout(ok, A.reduce ? 0 : ms); }); }
+    function stage(){
+      var el = main.querySelector('#bk-stage');
+      if(!stg || stg.el !== el){
+        stg = {el:el, seen:{}, landed:{}, src:{}, queue:[], busy:false, cards:{}, first:true, finishing:false, act:'',
+          core:RI.SpatialIntelligenceCore.create(el.querySelector('#bk-core'), {reduce:A.reduce})};
+      }
+      return stg;
+    }
+    function rel(el){ var s0 = stg.el.getBoundingClientRect(), r = el.getBoundingClientRect(); return {x:r.left - s0.left, y:r.top - s0.top, w:r.width, h:r.height}; }
+    function place(sel, x, y, w){ var e = stg.el.querySelector(sel); e.style.left = Math.round(x) + 'px'; e.style.top = Math.round(y) + 'px'; if(w) e.style.width = Math.round(w) + 'px'; }
+    /* Three columns on a computer. On a tablet or phone: your photos, then the orb, then your rooms */
+    function geo(){
+      var S = stg, W = S.el.clientWidth, narrow = W < 960, tab = narrow && W >= 600, g = {W:W, narrow:narrow};
+      var tl = S.el.querySelector('#bk-tiles'), core = S.el.querySelector('#bk-core'), sh = S.el.querySelector('.bk-sh'), top0 = sh.offsetTop + sh.offsetHeight + 16;
+      S.el.classList.toggle('is-narrow', narrow);
+      if(!narrow){
+        var tw = Math.min(470, Math.round(W * .38)), left = W - 20 - tw, cl = 248, cw = left - 28 - cl;
+        g.now = {x:26, y:top0 + 26, w:196, h:147}; g.pw = 96; g.ph = 72; g.pile = {x:26, y:g.now.y + g.now.h + 30};
+        place('.bk-c1', 16, top0, 220); place('.bk-c2', cl, top0, cw); place('.bk-c3', left, top0, tw);
+        place('#bk-pile-l', g.pile.x + g.pw + 16, g.pile.y + 12, 110);
+        place('#bk-core', cl, top0 + 20, cw);
+        tl.style.left = left + 'px'; tl.style.top = (top0 + 26) + 'px'; tl.style.width = tw + 'px'; tl.style.gridTemplateColumns = 'repeat(' + (tw > 400 ? 3 : 2) + ',minmax(0,1fr))';
+      } else {
+        var nw = tab ? 168 : 124;
+        g.now = {x:16, y:top0 + 22, w:nw, h:Math.round(nw * .75)}; g.pw = tab ? 80 : 60; g.ph = Math.round(g.pw * .75);
+        g.pile = {x:16 + nw + 18, y:g.now.y + g.now.h - g.ph - 4};
+        place('.bk-c1', 16, top0, 200); place('#bk-pile-l', g.pile.x + g.pw + 16, g.pile.y + g.ph / 2 - 14, 110);
+        var ct = g.now.y + g.now.h + 22; place('#bk-core', 12, ct, W - 24);
+        var tt = ct + core.offsetHeight + 40; place('.bk-c3', 12, tt - 24, W - 24);
+        tl.style.left = '12px'; tl.style.top = tt + 'px'; tl.style.width = (W - 24) + 'px'; tl.style.gridTemplateColumns = 'repeat(' + (tab ? 4 : 3) + ',minmax(0,1fr))';
+      }
+      var nowEl = S.el.querySelector('#bk-now'); place('#bk-now', g.now.x, g.now.y, g.now.w); nowEl.style.height = g.now.h + 'px';
+      var H = Math.max(core.offsetTop + core.offsetHeight + 24, tl.offsetTop + tl.offsetHeight + 20, g.pile.y + g.ph + 40);
+      if(S.el.style.height !== H + 'px') S.el.style.height = H + 'px';
+      S.g = g; return g;
+    }
+    /* Every photo of this house and what is happening to it, in the order it was added */
+    function batch(){
+      var out = [];
+      rooms.forEach(function(r){ (h.photos[r[0]] || []).forEach(function(p){ out.push({p:p, k:r[0], s:'placed'}); }); });
+      (h.photos.unsorted || []).forEach(function(p){ out.push({p:p, k:'unsorted', s:p.state !== 'done' ? p.state : p.unsure && !reading[p.id] ? 'unsure' : 'reading'}); });
+      Object.keys(pending).forEach(function(k){ pending[k].forEach(function(p){ out.push({p:p, k:k, s:p.state}); }); });
+      return out.sort(function(a, b){ return (a.p.n || 0) - (b.p.n || 0); });
+    }
+    function drawPile(list){
+      var S = stg, g = S.g, wait = list.filter(function(x){ return x.p.id !== S.playing && !S.landed[x.p.id] && x.s !== 'fail' && x.s !== 'unsure' && x.s !== 'placed'; })
+        .concat(S.queue.filter(function(it){ return it.id !== S.playing; }).map(function(it){ return {p:it.p}; }));
+      var el = S.el.querySelector('#bk-pile');
+      el.style.transform = T(g.pile.x, g.pile.y);
+      el.innerHTML = wait.slice(0, 4).map(function(x, i){ return '<img src="' + x.p.src + '" alt="" style="width:' + g.pw + 'px;height:' + g.ph + 'px;transform:translate(' + (i * 2) + 'px,' + (-i * 3) + 'px) rotate(' + ([-4, 3, -2, 5][i]) + 'deg);z-index:' + (10 - i) + '">'; }).join('');
+      S.el.querySelector('#bk-pile-l').innerHTML = wait.length ? '<b>' + wait.length + '</b> waiting' : (S.playing ? 'Last photo' : '');
+    }
+    /* A room's size for its tile: the estimate from the photos until the owner confirms it */
+    function tileSize(k){ var s0 = h.sizes[k]; if(!s0 || !s0.l) return ''; var est = s0.src === 'photo' && !s0.ok; return '<em class="bk-tsz"' + (est ? ' title="Estimate from your photos"' : '') + '>' + (est ? '≈ ' : '') + s0.l + ' × ' + s0.w + ' ft' + (est ? '' : ' ✓') + '</em>'; }
+    function drawTiles(fresh){
+      var S = stg, by = {};
+      Object.keys(S.landed).forEach(function(id){ (by[S.landed[id]] = by[S.landed[id]] || []).push(id); });
+      var rs = rooms.filter(function(r){ return r[0] !== 'other' || (by.other || []).length; });
+      function stack(ids){ return ids.slice(-3).map(function(id){ return '<img src="' + (S.src[id] || '') + '" alt=""' + (id === fresh ? ' class="new"' : '') + '>'; }).join(''); }
+      var hl = by.help || [];
+      S.el.querySelector('#bk-tiles').innerHTML = rs.map(function(r){
+        var ids = by[r[0]] || [], n = ids.length;
+        return '<li class="bk-tile' + (n ? ' on' : '') + '" data-k="' + r[0] + '"><span class="bk-stack">' + (n ? stack(ids) : RI.icon(iconFor(r))) + '</span><b>' + RI.esc(r[1]) + '</b><small>' + (n ? n + ' photo' + (n === 1 ? '' : 's') : 'Waiting') + '</small>' + (n ? tileSize(r[0]) : '') + '</li>';
+      }).join('') + '<li class="bk-tile help' + (hl.length ? ' has' : '') + '" data-k="help"><span class="bk-stack">' + (hl.length ? stack(hl) : '<span class="q">?</span>') + '</span><b>Needs your input</b><small>' + (hl.length ? hl.length + ' to check' : 'Not sure ones') + '</small></li>';
+      geo();
+    }
+    function hit(k){ var b = stg.el.querySelector('.bk-tile[data-k="' + k + '"]'); if(b && !A.reduce){ b.classList.remove('hit'); void b.offsetWidth; b.classList.add('hit'); } }
+    function tileAt(k){ var e = stg.el.querySelector('.bk-tile[data-k="' + k + '"] .bk-stack') || stg.el.querySelector('.bk-tile[data-k="help"] .bk-stack'), r = rel(e); return {x:r.x + r.w / 2, y:r.y + r.h / 2, r:r}; }
+    function fly(el, to, ms, ease){ var from = el.style.transform; el.style.transform = to; if(A.reduce) return Promise.resolve(); return el.animate([{transform:from}, {transform:to}], {duration:ms, easing:ease || EIN, fill:'forwards'}).finished.catch(function(){}); }
+    function land(it, fresh){ var S = stg; S.landed[it.id] = it.k; drawTiles(fresh ? it.id : null); hit(it.k); }
+    /* ---- one photo, read: it comes up highlighted, the orb goes through the real steps for it, then it goes to its room ---- */
+    async function play(it, slow, f){
+      var S = stg, g = geo(), p = it.p, c = S.core, sp = function(a, b){ return (slow ? a : b) * f; }, n = Object.keys(S.landed).length + 1;
+      S.playing = it.id; drawPile(batch());
+      var el = doc.createElement('div'); el.className = 'bk-fl'; el.style.width = g.now.w + 'px'; el.style.height = g.now.h + 'px';
+      el.innerHTML = '<img src="' + p.src + '" alt=""><span class="bk-fl-tag">Analysing</span><i class="bk-fl-scan"></i>';
+      el.style.transform = T(g.pile.x, g.pile.y, (g.pw / g.now.w).toFixed(3)); S.el.appendChild(el);
+      await fly(el, T(g.now.x, g.now.y, 1), sp(420, 260));
+      el.classList.add('is-now');
+      var sees = p.sees && p.sees.length ? p.sees.slice() : null, of = [n, S.total];
+      c.set('scan', {step:0, of:of});
+      await sleep(sp(700, 240));
+      c.set('structure', {step:1, of:of, sees:sees});
+      await sleep(sp(900, 280));
+      if(it.k !== 'help'){
+        var room = nameOf(it.k), r = roomOf(it.k), size = null, note = '', skip = !(r && sizeable(r));
+        c.set('identify', {step:2, room:room, sees:sees});
+        await sleep(sp(700, 260));
+        if(!skip){
+          c.set('dims', {step:3, room:room, sees:sees});
+          /* The size is measured for the room from its photos; wait for it briefly, show it only when it is real */
+          var t0 = Date.now(); while(measuring[it.k] && Date.now() - t0 < 2200) await sleep(120);
+          var s0 = h.sizes[it.k];
+          if(s0 && s0.l) size = {l:s0.l, w:s0.w, verified:!(s0.src === 'photo' && !s0.ok)};
+          else note = h.measured[it.k] === 'none' ? 'Could not estimate it from these photos' : 'Not estimated yet';
+          c.set('dims', {step:3, room:room, sees:sees, size:size, note:note});
+          await sleep(sp(900, 300));
+        }
+        c.set('done', {room:room, sees:sees, size:size, note:skip ? 'Not measured outside' : note, skipDims:skip});
+      } else {
+        c.set('unsure', {step:2, alts:(p.alts || []).filter(function(k){ return roomOf(k); }).slice(0, 2).map(nameOf), newType:p.newType ? typeName(p.newType) : '', sees:sees});
+      }
+      await sleep(sp(700, 220));
+      el.classList.remove('is-now');
+      var b = tileAt(it.k).r, sc = Math.min(b.w / g.now.w, b.h / g.now.h);
+      await fly(el, T(b.x + (b.w - g.now.w * sc) / 2, b.y + (b.h - g.now.h * sc) / 2, sc.toFixed(3)), sp(520, 340));
+      el.remove(); S.playing = null; land(it, true); header();
+      await sleep(sp(200, 60));
+    }
+    async function pump(){
+      var S = stg; if(S.busy) return; S.busy = true;
+      while(S.queue.length && S.el.isConnected){
+        var it = S.queue.shift(), n = Object.keys(S.landed).length, now = batch().filter(function(x){ return x.p.id === it.id; })[0];
+        if(!now || (now.s !== 'placed' && now.s !== 'unsure')) continue;
+        it.k = now.s === 'placed' ? now.k : 'help';
+        if(A.reduce || !S.el.offsetWidth){ land(it); continue; }
+        await play(it, n < 2, S.queue.length > 8 ? .4 : S.queue.length > 4 ? .5 : S.queue.length > 1 ? .75 : 1);
+      }
+      S.busy = false; S.playing = null;
+      if(S.el.isConnected && !h.sortedOnce) drawSorting();
+    }
+    /* ---- questions on the stage, for the photos it could not place ---- */
+    function cardXY(c){ var g = stg.g, cw = c.offsetWidth; return T(g.narrow ? (g.W - cw) / 2 : 20 + (+c.dataset.slot) * (cw + 16), g.now.y - 6); }
+    function popCard(p){
+      var S = stg, used = Object.keys(S.cards).map(function(id){ return +S.cards[id].dataset.slot; }), slot = used.indexOf(0) < 0 ? 0 : 1, k = pickParts(p);
+      var c = doc.createElement('div'); c.className = 'bk-fc'; c.dataset.slot = slot; c.setAttribute('role', 'group'); c.setAttribute('aria-label', 'Which room is this photo?');
+      c.innerHTML = '<div class="bk-fc-in"><img src="' + p.src + '" alt="' + RI.esc(p.name || 'Photo') + '"><b>Which room is this?</b><small>' + k.q + '</small>' + k.html + '</div>';
+      S.el.appendChild(c); RI.fillIcons(c); S.cards[p.id] = c;
+      var hb = tileAt('help').r; c.style.transform = cardXY(c);
+      if(!A.reduce) c.animate([{transform:T(hb.x, hb.y, .2), opacity:0}, {transform:c.style.transform, opacity:1}], {duration:620, delay:slot * 160, easing:'cubic-bezier(.2,.7,.2,1.15)', fill:'backwards'});
+    }
+    function unCard(id, k){
+      var S = stg, c = S.cards[id]; delete S.cards[id];
+      function done(){ c.remove(); if(k) land({id:id, k:k}, true); else { delete S.landed[id]; drawTiles(); } if(S.el.isConnected && !h.sortedOnce) drawSorting(); }
+      if(A.reduce || !k){ if(!k && !A.reduce) c.animate([{opacity:1}, {opacity:0}], {duration:240, fill:'forwards'}).onfinish = done; else done(); return; }
+      var b = tileAt(k).r, cw = c.offsetWidth, chh = c.offsetHeight;
+      c.animate([{transform:c.style.transform, opacity:1}, {transform:T(b.x + b.w / 2 - cw / 2, b.y + b.h / 2 - chh / 2, (b.h / chh).toFixed(3)), opacity:0}], {duration:560, easing:EIN, fill:'forwards'}).onfinish = done;
+    }
+    function fadeCard(id){ var c = stg.cards[id]; delete stg.cards[id]; if(A.reduce) c.remove(); else c.animate([{opacity:1}, {opacity:0}], {duration:200, fill:'forwards'}).onfinish = function(){ c.remove(); }; }
+    function header(){
+      var S = stg, list = S.list || [], tot = S.total || 0, read = Object.keys(S.landed).length, left = Math.max(0, tot - read), b, sm, act;
+      var fails = list.filter(function(x){ return x.s === 'fail'; }).length, up = list.filter(function(x){ return x.s === 'up'; }).length, nU = Object.keys(S.landed).filter(function(id){ return S.landed[id] === 'help'; }).length;
+      if(S.finishing){ b = 'All sorted'; sm = 'Every photo is in a room'; act = ''; }
+      else if(S.asking){ b = nU + ' photo' + (nU === 1 ? ' needs' : 's need') + ' your input'; sm = 'Tap the room ' + (nU === 1 ? 'it' : 'each one') + ' shows'; act = 'later'; }
+      else { b = 'Reading your photos'; sm = read + ' of ' + tot + ' read' + (left ? ' · about ' + Math.max(5, Math.round(left * 1.6 / 5) * 5) + ' seconds left' : '') + (up ? ' · ' + up + ' uploading' : ''); act = 'add'; }
+      var hb = S.el.querySelector('#bk-sh-b'); if(hb.textContent !== b) hb.textContent = b;
+      S.el.querySelector('#bk-sh-s').innerHTML = RI.esc(sm) + (fails ? ' · ' + fails + ' did not upload <button type="button" class="linkbtn small" data-retryall="unsorted">Retry</button>' : '');
+      if(S.act !== act){
+        S.act = act;
+        S.el.querySelector('#bk-sh-a').innerHTML = act === 'add' ? '<label class="btn btn-secondary btn-sm file-btn">' + RI.icon('plus','i-sm') + 'Add more<input type="file" accept="' + ACCEPT + '" multiple data-room="unsorted"></label>' :
+          act === 'later' ? '<button type="button" class="linkbtn small" id="bk-later">Place them later</button>' : '';
+        RI.fillIcons(S.el.querySelector('#bk-sh-a'));
+      }
+    }
+    /* ---- called on every change: new results join the queue, answers go to their room, then questions or done ---- */
+    function drawSorting(){
+      var S = stage(); if(!S.el || !S.el.offsetWidth) return;
+      if(!S.g) geo();
+      var list = batch(), by = {};
+      list.forEach(function(x){ by[x.p.id] = x; if(x.p.src) S.src[x.p.id] = x.p.src; });
+      S.list = list; S.total = list.filter(function(x){ return x.s !== 'fail'; }).length;
+      function kOf(x){ return !x ? null : x.s === 'placed' ? x.k : x.s === 'unsure' ? 'help' : null; }
+      /* Opened with results already in (a reload): they count, without playing again */
+      if(S.first){ list.forEach(function(x){ var k = kOf(x); if(k){ S.seen[x.p.id] = true; S.landed[x.p.id] = k; } }); S.first = false; drawTiles(); }
+      list.forEach(function(x){ var k = kOf(x); if(k && !S.seen[x.p.id]){ S.seen[x.p.id] = true; S.queue.push({id:x.p.id, p:x.p, k:k}); } });
+      S.queue = S.queue.filter(function(it){ return by[it.id]; });
+      /* A photo that changed after it landed: answered (Needs your input -> a room), or taken out */
+      Object.keys(S.landed).forEach(function(id){
+        var k = kOf(by[id]); if(k === S.landed[id]) return;
+        if(S.cards[id]) unCard(id, k); else { if(k) S.landed[id] = k; else delete S.landed[id]; drawTiles(); }
+      });
+      var busy = working() || S.queue.length > 0 || S.busy || list.some(function(x){ return x.s === 'up' || x.s === 'reading'; }), unsure = list.filter(function(x){ return x.s === 'unsure'; });
+      S.asking = !busy && unsure.length > 0 && !S.finishing;
+      if(!S.asking) Object.keys(S.cards).forEach(function(id){ if(by[id] && by[id].s === 'unsure') fadeCard(id); });
+      else unsure.forEach(function(x){ if(!S.cards[x.p.id] && Object.keys(S.cards).length < (S.g.narrow ? 1 : 2)) popCard(x.p); });
+      S.el.classList.toggle('asking', !!S.asking); S.core.dim(!!S.asking);
+      drawPile(list);
+      if(!S.busy && !S.finishing){
+        if(S.asking) S.core.set('ask', {count:unsure.length});
+        else S.core.set('idle', {});
+      }
+      /* Everything has a room: the orb settles with a check, then the rooms */
+      if(!busy && !unsure.length && S.total && !S.finishing){
+        S.finishing = true; S.core.set('all', {});
+        setTimeout(function(){ if(!S.el.isConnected) return; h.sortedOnce = true; A.put(h); drawPhase(); }, A.reduce ? 0 : 1600);
+      }
+      header();
+      if(S.queue.length && !S.busy) pump();
+    }
+    function relayout(){
+      if(!main.isConnected){ removeEventListener('resize', relayout); return; }
+      if(!stg || !stg.el.offsetWidth) return;
+      geo(); drawPile(stg.list || []);
+      Object.keys(stg.cards).forEach(function(id){ stg.cards[id].style.transform = cardXY(stg.cards[id]); });
+    }
+    addEventListener('resize', relayout);
     /* A room card: the cover photo with the count, or a drop area when it has none */
     function drawRoom(key){
       if(key === 'unsorted'){ drawUnsorted(); return; }
@@ -532,11 +840,16 @@
           (rest.length ? '<span class="rc3-mini" aria-hidden="true">' + rest.slice(0, 2).map(function(p){ return '<span><img src="' + p.src + '" alt=""></span>'; }).join('') + (more > 0 ? '<span class="more">+' + more + '</span>' : '') + '</span>' : '') +
           (up.length ? '<span class="rc3-up" data-p="' + up[0].id + '"><span>Uploading ' + up.length + ' photo' + (up.length === 1 ? '' : 's') + '</span><span class="th-bar"><i style="width:' + (up[0].pct || 0) + '%"></i></span></span>' : '');
       } else {
+        var r0 = roomOf(key), gone = noRoomOk(key);
         m.innerHTML = '<div class="rc3-empty"><input type="file" accept="' + ACCEPT + '" multiple data-room="' + key + '" tabindex="-1" aria-hidden="true">' +
-          '<span class="rc3-e-ic">' + RI.icon('camera') + '</span><span class="rc3-e-t"><b>Add photos</b><span>Drop here or tap to browse</span></span>' +
+          '<span class="rc3-e-ic">' + RI.icon(r0 ? iconFor(r0) : 'camera') + '</span><span class="rc3-e-t"><b class="bk-none">No photos yet</b><span>Without photos this room shows as unverified.</span></span>' +
           '<span class="rc3-e-btns"><label class="rc3-chip">' + RI.icon('upload','i-sm') + 'Upload<input type="file" accept="' + ACCEPT + '" multiple data-room="' + key + '" aria-label="Upload photos of ' + nm + '"></label>' +
-            '<label class="rc3-chip">' + RI.icon('camera','i-sm') + 'Camera<input type="file" accept="image/*" capture="environment" data-room="' + key + '" aria-label="Take a photo of ' + nm + '"></label></span></div>';
+            '<label class="rc3-chip">' + RI.icon('camera','i-sm') + 'Camera<input type="file" accept="image/*" capture="environment" data-room="' + key + '" aria-label="Take a photo of ' + nm + '"></label></span>' +
+          (gone ? '<button type="button" class="linkbtn small bk-noroom" data-noroom="' + key + '">There is no ' + nm + '</button>' : '') + '</div>';
       }
+      var auto = done.some(function(p){ return p.auto; }), hint = sec.querySelector('.rc3-hint');
+      if(hint) hint.innerHTML = n ? n + ' photo' + (n === 1 ? '' : 's') + (auto ? ' · sorted for you' : '') : A.hintFor((roomOf(key) || [])[2] || key);
+      var dup = sec.querySelector('.bk-dup'); if(dup) dup.hidden = !done.some(function(p){ return (p.flags || []).indexOf('near') > -1; });
       if(fl.length) m.insertAdjacentHTML('beforeend', '<span class="rc3-fail">' + RI.icon('warn','i-sm') + '<span>' + fl.length + ' did not upload</span><button type="button" data-retryall="' + key + '">Retry</button><button type="button" data-dropfail="' + key + '">Remove</button></span>');
       sec.classList.toggle('has', !!(n || up.length));
       foot(key);
@@ -548,27 +861,30 @@
       var rs = rooms.filter(function(r){ return r[0] !== 'other' || A.photoCount(h, 'other'); });
       var withP = rs.filter(function(r){ return A.photoCount(h, r[0]); }).length, sz = Object.keys(h.sizes).filter(function(k){ return h.sizes[k] && h.sizes[k].l; }).length;
       var est = Object.keys(h.sizes).filter(function(k){ return h.sizes[k] && h.sizes[k].src === 'photo' && !h.sizes[k].ok; }).length;
-      return {rooms:rs.length, withP:withP, sizes:sz, est:est, unver:rs.length - withP, unsorted:(h.photos.unsorted || []).length};
+      return {rooms:rs.length, withP:withP, sizes:sz, est:est, unver:rs.length - withP, unsorted:(h.photos.unsorted || []).filter(function(p){ return p.state === 'done' && !reading[p.id]; }).length};
     }
     function totals(){
       var c = counts();
       var inRooms = A.photoCount(h), added = inRooms + c.unsorted;
-      main.querySelector('#ph-total').innerHTML = added ? '<span class="up3-ok"><span class="c">' + RI.icon('check') + '</span>' + added + ' photo' + (added === 1 ? '' : 's') + ' added · ' + (c.unsorted ? inRooms + ' in rooms' : 'all in rooms') + '</span>' : '';
+      if(main.querySelector('#ph-total')) main.querySelector('#ph-total').innerHTML = added ? '<span class="up3-ok"><span class="c">' + RI.icon('check') + '</span>' + added + ' photo' + (added === 1 ? '' : 's') + ' added · ' + (c.unsorted ? inRooms + ' in rooms' : 'all in rooms') + '</span>' : '';
       var rs = rooms.filter(function(r){ return r[0] !== 'other' || A.photoCount(h, 'other'); });
-      main.querySelector('#rp3-prog').innerHTML = '<p><b>' + c.withP + ' of ' + c.rooms + ' rooms</b> have photos</p><span class="rp3-seg" aria-hidden="true">' + rs.map(function(r, i){ return '<i' + (i < c.withP ? ' class="on"' : '') + '></i>'; }).join('') + '</span>';
+      var none = !added && !Object.keys(pending).some(function(k){ return pending[k].length; });
+      var wb = doc.querySelector('.wiz-bar'); if(wb) wb.classList.toggle('wb-empty', none);
+      main.querySelector('#rp3-prog').innerHTML = none ? '' : '<p><b>' + c.withP + ' of ' + c.rooms + ' rooms</b> have photos</p><span class="rp3-seg" aria-hidden="true">' + rs.map(function(r, i){ return '<i' + (i < c.withP ? ' class="on"' : '') + '></i>'; }).join('') + '</span>';
       var fl = {small:0, blurry:0, near:0}; Object.keys(h.photos).forEach(function(k){ (h.photos[k] || []).forEach(function(p){ (p.flags || []).forEach(function(x){ if(fl[x] != null) fl[x]++; }); }); });
       var parts = []; if(fl.blurry) parts.push(fl.blurry + ' may be blurry'); if(fl.small) parts.push(fl.small + ' too small'); if(fl.near) parts.push(fl.near + ' look' + (fl.near > 1 ? '' : 's') + ' like another photo');
       main.querySelector('#flags-sum').innerHTML = parts.length ? '<p class="rp2-flags">' + RI.icon('eye','i-sm') + '<span><b>' + parts.join(', ') + '.</b> They are kept. ' + (fl.near && !fl.blurry && !fl.small ? 'You can remove extras.' : 'A sharper photo helps.') + '</span></p>' : '';
       RI.fillIcons(main.querySelector('#flags-sum'));
       var bar = doc.getElementById('sub-sum');
-      if(bar) bar.innerHTML = '<span class="sb-short"><b>' + c.withP + '/' + c.rooms + '</b> rooms with photos</span><span class="sb-long"><b>' + c.withP + ' of ' + c.rooms + '</b> rooms have photos<span class="sb-dot">·</span>' + c.sizes + ' size' + (c.sizes === 1 ? '' : 's') + (c.est ? ', ' + c.est + ' to confirm' : '') + (c.unver ? '<span class="sb-dot">·</span><span class="sb-un">' + c.unver + ' will show as unverified</span>' : '') + '</span>';
-      metaRefresh(h);
+      if(bar && none) bar.innerHTML = '<span class="sb-short"><b>Add photos</b> to start</span><span class="sb-long"><b>Add your photos to start.</b> We sort them into rooms for you.</span>';
+      else if(bar) bar.innerHTML = '<span class="sb-short"><b>' + c.withP + '/' + c.rooms + '</b> rooms with photos</span><span class="sb-long"><b>' + c.withP + ' of ' + c.rooms + '</b> rooms have photos<span class="sb-dot">·</span>' + c.sizes + ' size' + (c.sizes === 1 ? '' : 's') + (c.est ? ', ' + c.est + ' to confirm' : '') + (c.unsorted ? '<span class="sb-dot">·</span>' + c.unsorted + ' photo' + (c.unsorted === 1 ? '' : 's') + ' to place' : '') + (c.unver ? '<span class="sb-dot">·</span><span class="sb-un">' + c.unver + ' will show as unverified</span>' : '') + '</span>';
+      metaRefresh(h); drawPhase();
     }
-    function all(){ drawUnsorted(); rooms.forEach(function(r){ drawRoom(r[0]); }); totals(); dots(); }
+    function all(){ rooms.forEach(function(r){ drawRoom(r[0]); }); drawUnsorted(); totals(); dots(); }
     function upload(p, key){
-      p.state = 'up'; p.pct = 0; (pending[key] = pending[key] || []).push(p);
+      p.state = 'up'; p.pct = 0; if(!p.n){ h.seq = (h.seq || 0) + 1; p.n = h.seq; } (pending[key] = pending[key] || []).push(p);
       var fail = !p.retried && Math.random() < .09, dur = 700 + Math.random() * 900, t0 = performance.now();
-      drawRoom(key);
+      drawRoom(key); if(!pending[key].some(function(x){ return x !== p; })) totals();
       (function tick(now){
         var k = Math.min(1, (now - t0) / dur); p.pct = Math.round(k * (fail ? 62 : 100));
         doc.querySelectorAll('[data-p="' + p.id + '"] .th-bar i').forEach(function(bar){ bar.style.width = p.pct + '%'; });
@@ -577,7 +893,7 @@
         if(p.drop){ drawRoom(key); totals(); return; }
         if(fail){ p.state = 'fail'; (pending[key] = pending[key] || []).push(p); }
         else { p.state = 'done'; delete p.pct; (h.photos[key] = h.photos[key] || []).push(p); if(p.fp) h.fps.push(p.fp); saved(h); }
-        drawRoom(key); totals(); if(p.state === 'done') (key === 'unsorted' ? read(p) : maybeMeasure(key));
+        drawRoom(key); totals(); if(p.state === 'done') (key === 'unsorted' ? read(p) : maybeMeasure(key)); else if(key === 'unsorted') drawUnsorted();
       })(t0);
     }
     function existingHashes(){ var out = []; Object.keys(h.photos).forEach(function(k){ (h.photos[k] || []).forEach(function(p){ if(p.hash) out.push(p.hash); }); }); Object.keys(pending).forEach(function(k){ pending[k].forEach(function(p){ if(p.hash) out.push(p.hash); }); }); return out; }
@@ -626,27 +942,37 @@
       dropEstimate(k); saved(h); drawRoom(k); totals();
     }
     function retry(k, id){ var p = (pending[k] || []).filter(function(x){ return x.id === id; })[0]; if(p){ pending[k] = pending[k].filter(function(x){ return x !== p; }); p.retried = true; upload(p, k); } }
-    /* ---------- The edit sheet for one room: add, remove, move, pick the cover, size and note.
-       Remove, move, cover, size and note wait for Save changes; Cancel also takes back photos added in the sheet. */
+    /* ---------- The room window (make-ui, Nov 2026): one place to change a room. Photos (cover, move, remove, add), Size
+       (with whether it is our estimate, confirmed, or yours, and Looks right), Note. Nothing changes until Save changes;
+       the footer says what will change. Cancel also takes back photos added here. A full-screen sheet on a phone. ---------- */
     var editing = null;
-    function editRoom(key){
+    function sizeState(key, l, w, ok){
+      var s0 = h.sizes[key];
+      if(!l && !w) return s0 ? ['off', 'Will be cleared'] : ['none', 'No size yet'];
+      if(s0 && s0.l === l && s0.w === w){ if(s0.src === 'user') return ['ok', 'Your size']; return ok || s0.ok ? ['ok', 'Confirmed'] : ['est', 'Estimate from your photos']; }
+      return ['ok', 'Your size'];
+    }
+    function editRoom(key, focusTo){
       var r = roomOf(key); if(!r) return;
       var before = {}; (h.photos[key] || []).concat(pending[key] || []).forEach(function(p){ before[p.id] = true; });
-      var s = h.sizes[key] || {}, nm = RI.esc(r[1]);
-      var ed = editing = {key:key, rm:{}, mv:{}, cover:(coverOf(key) || {}).id || null, before:before, saved:false};
-      var d = A.dialog(nm + ' photos',
-        '<div id="ed-grid"></div>' +
-        '<p class="ed-note" id="ed-note" aria-live="polite"></p>' +
-        '<div class="ed-up"><label class="ed-up-b">' + RI.icon('upload','i-lg') + '<span><b>Upload photos</b><span>JPG, PNG, WebP or HEIC</span></span><input type="file" accept="' + ACCEPT + '" multiple data-edroom="' + key + '"></label>' +
-          '<label class="ed-up-b">' + RI.icon('camera','i-lg') + '<span><b>Take a photo</b><span>Use your camera</span></span><input type="file" accept="image/*" capture="environment" data-edroom="' + key + '"></label></div>' +
-        '<details class="ed-det"' + (s.l || h.notes[key] ? ' open' : '') + '><summary>' + RI.icon('chev','i-sm') + nm + ' details <span class="opt">(optional)</span></summary><div class="ed-det-g">' +
-          (sizeable(r) ? '<div><span class="ed-lbl">Size</span><span class="lw ed-lw"><label class="sr" for="ed-l">Length in feet</label><input class="input" id="ed-l" inputmode="decimal" placeholder="Length" value="' + (s.l || '') + '"><span aria-hidden="true">×</span><label class="sr" for="ed-w">Width in feet</label><input class="input" id="ed-w" inputmode="decimal" placeholder="Width" value="' + (s.w || '') + '"><span class="xsmall muted">ft</span></span><span class="err" id="ed-err"></span></div>' : '') +
-          '<div class="ed-n"><label class="ed-lbl" for="ed-t">Note</label><textarea class="input" id="ed-t" maxlength="140" rows="2" placeholder="A note, if anything matters here">' + RI.esc(h.notes[key] || '') + '</textarea></div></div></details>' +
-        '<div class="ed-foot"><button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="button" class="btn btn-primary" id="ed-save">' + RI.icon('check') + 'Save changes</button></div>',
+      var s0 = h.sizes[key] || {}, nm = RI.esc(r[1]), canSize = sizeable(r);
+      var ed = editing = {key:key, rm:{}, mv:{}, cover:(coverOf(key) || {}).id || null, cover0:(coverOf(key) || {}).id || null, before:before, saved:false, szOk:false, note0:h.notes[key] || ''};
+      var d = A.dialog(nm,
+        '<section class="ed-sec" aria-labelledby="ed-h-ph"><div class="ed-sh"><h3 id="ed-h-ph">Photos</h3><small>Tap a photo to make it the cover.</small></div><div id="ed-grid"></div></section>' +
+        /* Size (Nov 2026 redesign): labelled Length and Width with ft inside the box, the floor area beside the heading,
+           and one status strip under the boxes (our estimate with Looks right, confirmed, yours, none, or cleared) */
+        (canSize ? '<section class="ed-sec" id="ed-s-size" aria-labelledby="ed-h-sz"><div class="ed-sh"><h3 id="ed-h-sz">Size</h3><span class="ed-area" id="ed-area"></span></div>' +
+          '<div class="ed-szr"><label class="ed-fld"><span>Length</span><span class="ed-in"><input class="input" id="ed-l" inputmode="decimal" autocomplete="off" aria-describedby="ed-err" value="' + (s0.l || '') + '"><i aria-hidden="true">ft</i></span></label>' +
+          '<span class="ed-x" aria-hidden="true">×</span>' +
+          '<label class="ed-fld"><span>Width</span><span class="ed-in"><input class="input" id="ed-w" inputmode="decimal" autocomplete="off" aria-describedby="ed-err" value="' + (s0.w || '') + '"><i aria-hidden="true">ft</i></span></label></div>' +
+          '<p class="err" id="ed-err"></p><div class="ed-stat" id="ed-stat" aria-live="polite"></div></section>' : '') +
+        '<section class="ed-sec" aria-labelledby="ed-h-n"><div class="ed-sh"><h3 id="ed-h-n"><label for="ed-t">Note</label></h3><small>Optional</small></div>' +
+          '<textarea class="input" id="ed-t" maxlength="140" rows="2" placeholder="For example: a water stain on the ceiling" aria-describedby="ed-ncnt">' + RI.esc(h.notes[key] || '') + '</textarea><span class="ed-ncnt" id="ed-ncnt"></span></section>' +
+        '<div class="ed-foot"><p class="ed-chg" id="ed-chg" aria-live="polite"></p><span class="ed-btns"><button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="button" class="btn btn-primary" id="ed-save">' + RI.icon('check','i-sm') + 'Save changes</button></span></div>',
         {wide:true, onClose:function(){ if(!ed.saved) edRevert(ed); if(editing === ed) editing = null; }});
       d.classList.add('ed-dlg');
-      d.querySelector('.dlg-head').innerHTML = '<span class="ed-ic">' + RI.icon(iconFor(r)) + '</span><div class="ed-ht"><h2>' + nm + ' photos</h2><p class="small muted">Add, remove or move photos. Tap a photo to make it the cover.</p></div>' +
-        '<span class="ed-cnt" id="ed-cnt"></span><button class="icon-btn" type="button" data-dlg-close aria-label="Close">' + RI.icon('x') + '</button>';
+      d.querySelector('.dlg-head').innerHTML = '<span class="ed-ic" aria-hidden="true">' + RI.icon(iconFor(r)) + '</span><div class="ed-ht"><h2>' + nm + '</h2><p class="ed-sub" id="ed-sub"></p></div>' +
+        '<button class="icon-btn" type="button" data-dlg-close aria-label="Close">' + RI.icon('x') + '</button>';
       d.appendChild(d.querySelector('.ed-foot'));
       ed.d = d;
       d.addEventListener('change', function(e){
@@ -654,10 +980,12 @@
         if(t.matches('[data-edroom]')){ addFiles(t.files, key); t.value = ''; return; }
         if(t.matches('[data-edmove]') && t.value){ ed.mv[t.getAttribute('data-edmove')] = t.value; drawEd(); }
       });
+      d.addEventListener('input', function(e){ if(e.target.matches('#ed-l, #ed-w')){ ed.szOk = false; var er = d.querySelector('#ed-err'); if(er) er.textContent = ''; d.querySelectorAll('#ed-l, #ed-w').forEach(function(x){ x.removeAttribute('aria-invalid'); }); } if(e.target.matches('#ed-l, #ed-w, #ed-t')) drawEd(); });
       d.addEventListener('click', function(e){
         var c = e.target.closest('[data-cover]'); if(c){ ed.cover = c.getAttribute('data-cover'); drawEd(); return; }
         var rm = e.target.closest('[data-edrm]'); if(rm){ ed.rm[rm.getAttribute('data-edrm')] = true; drawEd(); return; }
-        if(e.target.closest('#ed-undo')){ ed.rm = {}; ed.mv = {}; drawEd(); return; }
+        if(e.target.closest('#ed-undo')){ ed.rm = {}; ed.mv = {}; ed.cover = ed.cover0; drawEd(); return; }
+        if(e.target.closest('#ed-szok')){ ed.szOk = true; drawEd(); d.querySelector('#ed-save').focus(); return; }
         var dl = e.target.closest('[data-del]'); if(dl){ delPhoto(key, dl.getAttribute('data-del')); return; }
         var rt = e.target.closest('[data-retry]'); if(rt){ retry(key, rt.getAttribute('data-retry')); return; }
         if(e.target.closest('#ed-save')) edSave(ed);
@@ -666,6 +994,8 @@
       d.addEventListener('dragleave', function(e){ if(!d.contains(e.relatedTarget)) d.classList.remove('over'); });
       d.addEventListener('drop', function(e){ e.preventDefault(); d.classList.remove('over'); if(e.dataTransfer.files.length) addFiles(e.dataTransfer.files, key); });
       drawEd();
+      /* From the size Edit on the card: straight to Size, the first box selected */
+      if(focusTo === 'size' && canSize) setTimeout(function(){ var sz = d.querySelector('#ed-s-size'), li = d.querySelector('#ed-l'); sz.scrollIntoView({block:'center'}); li.focus({preventScroll:true}); var n = li.value.length; li.setSelectionRange(n, n); }, 60);
     }
     function drawEd(){
       var ed = editing; if(!ed || !ed.d) return;
@@ -677,38 +1007,62 @@
         var isC = p === cv, flags = isC ? '' : (p.flags || []).map(function(k){ return '<span class="th-flag' + (k === 'heic' ? ' info' : '') + '">' + FLAG[k] + '</span>'; }).join('');
         return '<li class="ed-ph' + (isC ? ' is-cover' : '') + '"><button type="button" class="ed-pick" data-cover="' + p.id + '" aria-label="' + (isC ? 'The cover photo' : 'Make this the cover photo') + '"><img src="' + p.src + '" alt="' + RI.esc(p.name) + '"></button>' +
           (isC ? '<span class="ed-tag">Cover</span>' : flags ? '<span class="th-flags">' + flags + '</span>' : '') +
-          '<span class="ed-acts"><label class="ed-mv">' + RI.icon('arrow','i-sm') + 'Move<select data-edmove="' + p.id + '" aria-label="Move this photo to another room"><option value="">Move to</option>' +
+          '<span class="ed-acts"><label class="ed-mv">' + RI.icon('arrow','i-sm') + '<span class="ed-mv-t">Move</span><select data-edmove="' + p.id + '" aria-label="Move this photo to another room"><option value="">Move to</option>' +
             rooms.filter(function(r){ return r[0] !== key; }).map(function(r){ return '<option value="' + r[0] + '">' + RI.esc(r[1]) + '</option>'; }).join('') + '<option value="unsorted">Back to not sorted</option></select></label>' +
           '<button type="button" class="ed-del" data-edrm="' + p.id + '" aria-label="Remove this photo">' + RI.icon('trash','i-sm') + '</button></span></li>';
       }
-      d.querySelector('#ed-grid').innerHTML = '<ul class="ed-list">' + order.map(tile).join('') + pd.map(function(p){ return '<li class="ed-ph">' + thumb(p, key) + '</li>'; }).join('') +
-        '<li class="ed-add"><label>' + RI.icon('upload','i-lg') + '<b>Add more</b><span>or drag here</span><input type="file" accept="' + ACCEPT + '" multiple data-edroom="' + key + '" aria-label="Add more photos"></label></li></ul>';
-      var parts = [], rmN = Object.keys(ed.rm).length, mvTo = {};
+      var grid = d.querySelector('#ed-grid'), had = grid.contains(doc.activeElement) && doc.activeElement.matches('[data-edroom]');
+      grid.innerHTML = '<ul class="ed-list">' + order.map(tile).join('') + pd.map(function(p){ return '<li class="ed-ph">' + thumb(p, key) + '</li>'; }).join('') +
+        '<li class="ed-add"><label class="ed-add-up">' + RI.icon('upload') + '<b>Add photos</b><span class="ed-drag">or drag here</span><input type="file" accept="' + ACCEPT + '" multiple data-edroom="' + key + '" aria-label="Add photos"></label>' +
+          '<label class="ed-add-cam">' + RI.icon('camera','i-sm') + 'Camera<input type="file" accept="image/*" capture="environment" data-edroom="' + key + '" aria-label="Take a photo"></label></li></ul>';
+      RI.fillIcons(grid);
+      if(had){ var fi = grid.querySelector('.ed-add-up input'); if(fi) fi.focus(); }
+      /* Size: what it is now, and whether Looks right is still a question */
+      var li = d.querySelector('#ed-l'), wi = d.querySelector('#ed-w'), l = li ? parseFloat(li.value) || 0 : 0, w = wi ? parseFloat(wi.value) || 0 : 0;
+      if(li){
+        var st = sizeState(key, l, w, ed.szOk), sb = d.querySelector('#ed-stat');
+        sb.className = 'ed-stat is-' + st[0];
+        sb.innerHTML = st[0] === 'est' ? RI.icon('ruler','i-sm') + '<span><b>Our estimate</b> from your photos. Change it if it is off.</span><button type="button" class="btn btn-secondary btn-sm" id="ed-szok">' + RI.icon('check','i-sm') + 'Looks right</button>'
+          : st[0] === 'ok' ? RI.icon('check','i-sm') + '<span><b>' + st[1] + '</b>' + (st[1] === 'Confirmed' ? ', you said it looks right.' : ', as you typed it.') + '</span>'
+          : st[0] === 'off' ? RI.icon('info','i-sm') + '<span>The size will be cleared when you save.</span>'
+          : RI.icon('ruler','i-sm') + '<span>No size yet. Add it if you know it.</span>';
+        RI.fillIcons(sb);
+        d.querySelector('#ed-area').textContent = l > 2 && w > 2 ? (st[0] === 'est' ? 'About ' : '') + Math.round(l * w).toLocaleString() + ' sq ft' : '';
+      }
+      var nt = d.querySelector('#ed-t'); d.querySelector('#ed-ncnt').textContent = nt.value.length + ' / 140';
+      /* The header line and what Save will do */
+      var added = done.concat(pd).filter(function(p){ return !ed.before[p.id]; }).length, rmN = Object.keys(ed.rm).length, mvTo = {}, parts = [];
       Object.keys(ed.mv).forEach(function(id){ var t = ed.mv[id]; mvTo[t] = (mvTo[t] || 0) + 1; });
+      if(added) parts.push(added + ' added');
       if(rmN) parts.push(rmN + ' removed');
-      Object.keys(mvTo).forEach(function(t){ parts.push(mvTo[t] + ' moved to ' + (t === 'unsorted' ? 'Not sorted yet' : RI.esc(nameOf(t)))); });
-      d.querySelector('#ed-note').innerHTML = parts.length ? RI.icon('info','i-sm') + '<span>When you save: ' + parts.join(', ') + '.</span><button type="button" class="linkbtn" id="ed-undo">Undo</button>' : '';
-      d.querySelector('#ed-cnt').innerHTML = RI.icon('image','i-sm') + done.length + ' photo' + (done.length === 1 ? '' : 's');
+      Object.keys(mvTo).forEach(function(t){ parts.push(mvTo[t] + ' moved to ' + (t === 'unsorted' ? 'not sorted' : RI.esc(nameOf(t)))); });
+      if(ed.cover !== ed.cover0 && cv) parts.push('new cover');
+      var s0 = h.sizes[key] || {};
+      if(li){ if(l !== (s0.l || 0) || w !== (s0.w || 0)) parts.push(l || w ? 'size changed' : 'size cleared'); else if(ed.szOk && s0.l && !s0.ok) parts.push('size confirmed'); }
+      if(d.querySelector('#ed-t').value.trim() !== ed.note0) parts.push('note changed');
+      var photoUndo = rmN || Object.keys(ed.mv).length || ed.cover !== ed.cover0;
+      d.querySelector('#ed-chg').innerHTML = parts.length ? '<span>' + parts.join(' · ').replace(/^./, function(c){ return c.toUpperCase(); }) + '</span>' + (photoUndo ? '<button type="button" class="linkbtn small" id="ed-undo">Undo photo changes</button>' : '') : '<span class="ed-none">No changes yet</span>';
+      d.querySelector('#ed-sub').textContent = done.length + ' photo' + (done.length === 1 ? '' : 's') + (li && l && w ? ' · ' + (sizeState(key, l, w, ed.szOk)[0] === 'est' ? 'about ' : '') + l + ' × ' + w + ' ft' : '');
     }
     function edSave(ed){
       var key = ed.key, d = ed.d, r = roomOf(key);
       var li = d.querySelector('#ed-l'), wi = d.querySelector('#ed-w');
       if(li && sizeable(r)){
         var l = parseFloat(li.value), w = parseFloat(wi.value), any = li.value.trim() || wi.value.trim();
-        if(any && !(l > 2 && l < 80 && w > 2 && w < 80)){ d.querySelector('#ed-err').textContent = 'Use feet, from 3 to 79, for both.'; d.querySelector('.ed-det').open = true; li.focus(); return; }
-        var prev = h.sizes[key], same = prev && prev.src === 'photo' && prev.l === l && prev.w === w;
-        if(any && !same){ h.sizes[key] = {l:l, w:w, src:'user', ok:true}; h.measured[key] = 'user'; } else if(!any && prev){ delete h.sizes[key]; h.measured[key] = 'cleared'; }
+        if(any && !(l > 2 && l < 80 && w > 2 && w < 80)){ d.querySelector('#ed-err').textContent = 'Use feet, from 3 to 79, for both.'; li.setAttribute('aria-invalid', 'true'); wi.setAttribute('aria-invalid', 'true'); li.focus(); return; }
+        var prev = h.sizes[key], same = prev && prev.l === l && prev.w === w;
+        if(any && !same){ h.sizes[key] = {l:l, w:w, src:'user', ok:true}; h.measured[key] = 'user'; }
+        else if(any && same && ed.szOk){ prev.ok = true; }
+        else if(!any && prev){ delete h.sizes[key]; h.measured[key] = 'cleared'; }
       }
       var note = d.querySelector('#ed-t').value.trim(); if(note) h.notes[key] = note; else delete h.notes[key];
       ed.saved = true; editing = null;
       Object.keys(ed.rm).forEach(function(id){ delPhoto(key, id); });
       Object.keys(ed.mv).forEach(function(id){ move(key, id, ed.mv[id]); });
       if(ed.cover && (h.photos[key] || []).some(function(p){ return p.id === ed.cover; })){ h.covers = h.covers || {}; h.covers[key] = ed.cover; }
-      confirmRoom(key); /* saving the sheet means the room was checked */
-      /* the card's own size and note fields follow */
-      var sec = main.querySelector('.rc2[data-room="' + key + '"]'), sz = h.sizes[key] || {};
-      if(sec){ var cl = sec.querySelector('[data-l]'), cw = sec.querySelector('[data-w]'), cn = sec.querySelector('[data-note]'); if(cl){ cl.value = sz.l || ''; cw.value = sz.w || ''; } if(cn) cn.value = h.notes[key] || ''; }
+      confirmRoom(key); /* saving the window means the room was checked */
       saved(h); drawRoom(key); drawUnsorted(); totals(); d.close(); RI.toast(nameOf(key) + ' saved.', 'check'); maybeMeasure(key);
+      var eb = main.querySelector('.rc2[data-room="' + key + '"] .rc3-edit'); if(eb) eb.focus();
     }
     function edRevert(ed){
       var key = ed.key, n = 0;
@@ -728,11 +1082,23 @@
     });
     main.addEventListener('change', function(e){
       var t = e.target;
-      if(t.id === 'plans'){ addPlans(t.files); t.value = ''; return; }
+      if(t.id === 'plans' || t.hasAttribute('data-plans')){ addPlans(t.files); t.value = ''; return; }
       if(t.type === 'file' && t.getAttribute('data-room')){ addFiles(t.files, t.getAttribute('data-room')); t.value = ''; return; }
       if(t.id === 'bulk-to') bulkTo = t.value;
+      if(t.id === 'bk-rights'){ main.querySelector('#bk-ok').classList.remove('is-err'); main.querySelector('#bk-ok-err').textContent = ''; }
+      if(t.id === 'bk-rights'){ if(t.checked){ h.rights = true; h.consents.rights = {at:Date.now(), version:RIGHTS.version, text:RIGHTS.text}; } else h.rights = false; saved(h); }
     });
     main.addEventListener('click', function(e){
+      /* No tick, no upload (APP_FLOW): the file picker does not open; the tick says so and takes the focus */
+      if(e.target.matches && e.target.matches('#bk-drop input[type=file]') && !h.rights){
+        e.preventDefault();
+        var okl = main.querySelector('#bk-ok'), cb = main.querySelector('#bk-rights');
+        okl.classList.remove('is-err'); void okl.offsetWidth; okl.classList.add('is-err');
+        main.querySelector('#bk-ok-err').textContent = 'Tick this first to add your photos.';
+        cb.focus({preventScroll:true}); if(okl.getBoundingClientRect().top < 80) okl.scrollIntoView({block:'center', behavior:A.reduce ? 'auto' : 'smooth'});
+        return;
+      }
+      if(e.target.closest('#bk-rmore')){ var rb = main.querySelector('#bk-rbox'), op = !rb.classList.contains('is-open'); rb.classList.toggle('is-open', op); e.target.closest('#bk-rmore').setAttribute('aria-expanded', String(op)); e.target.closest('#bk-rmore').textContent = op ? 'Show less' : 'Show all'; return; }
       var tk = e.target.closest('[data-pick]');
       if(!tk){ var ph = e.target.closest('.us-ph'); if(ph && !e.target.closest('.th-x,[data-retry]')) tk = ph.querySelector('[data-pick]'); }
       if(tk){ var pid = tk.getAttribute('data-pick'); if(picked[pid]) delete picked[pid]; else picked[pid] = true; drawUnsorted(); return; }
@@ -747,28 +1113,33 @@
       var ra = e.target.closest('[data-retryall]'); if(ra){ var rk = ra.getAttribute('data-retryall'); (pending[rk] || []).filter(function(x){ return x.state === 'fail'; }).forEach(function(x){ retry(rk, x.id); }); return; }
       var df = e.target.closest('[data-dropfail]'); if(df){ var dk = df.getAttribute('data-dropfail'); (pending[dk] || []).filter(function(x){ return x.state === 'fail'; }).forEach(function(x){ delPhoto(dk, x.id); }); return; }
       var del = e.target.closest('[data-del]'), re = e.target.closest('[data-retry]'), acc = e.target.closest('[data-accept]');
-      if(acc){ move('unsorted', acc.getAttribute('data-accept'), acc.getAttribute('data-to')); return; }
+      if(acc){ var an = nameOf(acc.getAttribute('data-to')); move('unsorted', acc.getAttribute('data-accept'), acc.getAttribute('data-to')); RI.toast('Moved to ' + an + '.', 'check'); var nxt = main.querySelector('#unsorted .bk-chip'); if(nxt) nxt.focus(); return; }
       if(e.target.closest('#accept-all')){ (h.photos.unsorted || []).slice().forEach(function(p){ if(p.suggest) move('unsorted', p.id, p.suggest); }); RI.toast('Suggestions accepted.'); return; }
       if(del) delPhoto(del.getAttribute('data-room'), del.getAttribute('data-del'));
       if(re) retry(re.getAttribute('data-room'), re.getAttribute('data-retry'));
-      var pok = e.target.closest('[data-psok]'); if(pok){ var pk = pok.getAttribute('data-psok'), pn = sugIn(pk); confirmRoom(pk); saved(h); drawRoom(pk); drawUnsorted(); totals(); maybeMeasure(pk); var ps2 = main.querySelector('.rc2[data-room="' + pk + '"] .rc3-foot>summary'); if(ps2) ps2.focus(); RI.toast(nameOf(pk) + ': ' + pn + ' photo' + (pn === 1 ? '' : 's') + ' confirmed.', 'check'); return; }
+      var pok = e.target.closest('[data-psok]'); if(pok){ var pk = pok.getAttribute('data-psok'), pn = sugIn(pk); confirmRoom(pk); saved(h); drawRoom(pk); drawUnsorted(); totals(); maybeMeasure(pk); var ps2 = main.querySelector('.rc2[data-room="' + pk + '"] .rc3-edit'); if(ps2) ps2.focus(); RI.toast(nameOf(pk) + ': ' + pn + ' photo' + (pn === 1 ? '' : 's') + ' confirmed.', 'check'); return; }
       var pfx = e.target.closest('[data-psfix]'); if(pfx){ editRoom(pfx.getAttribute('data-psfix')); return; }
       if(e.target.closest('[data-psall]')){ var cn = 0; rooms.forEach(function(r){ var x = sugIn(r[0]); if(x){ cn += x; confirmRoom(r[0]); } }); saved(h); all(); rooms.forEach(function(r){ maybeMeasure(r[0]); }); RI.toast(cn + ' photo' + (cn === 1 ? '' : 's') + ' confirmed in their rooms.', 'check'); return; }
-      var szok = e.target.closest('[data-szok]'); if(szok){ var sk = szok.getAttribute('data-szok'); if(h.sizes[sk]){ h.sizes[sk].ok = true; saved(h); foot(sk); totals(); var sm = main.querySelector('.rc2[data-room="' + sk + '"] .rc3-foot>summary'); if(sm) sm.focus(); RI.toast(nameOf(sk) + ': ' + h.sizes[sk].l + ' × ' + h.sizes[sk].w + ' ft confirmed.', 'check'); } return; }
-      var sze = e.target.closest('[data-szedit]'); if(sze){ var ek = sze.getAttribute('data-szedit'), esec = main.querySelector('.rc2[data-room="' + ek + '"]'); setInputs(ek); esec.querySelector('.rc3-foot').open = true; var li = esec.querySelector('[data-l]'); if(li){ li.focus(); li.select(); } return; }
+      var szok = e.target.closest('[data-szok]'); if(szok){ var sk = szok.getAttribute('data-szok'); if(h.sizes[sk]){ h.sizes[sk].ok = true; saved(h); foot(sk); totals(); var sm = main.querySelector('.rc2[data-room="' + sk + '"] .rc3-edit'); if(sm) sm.focus(); RI.toast(nameOf(sk) + ': ' + h.sizes[sk].l + ' × ' + h.sizes[sk].w + ' ft confirmed.', 'check'); } return; }
+      var sze = e.target.closest('[data-szedit]'); if(sze){ editRoom(sze.getAttribute('data-szedit'), 'size'); return; }
       if(e.target.closest('#sample')){
         /* Team only: a mixed bulk set lands in the tray, is read, and each photo moves to its room */
         if(!h.rights){ h.rights = true; h.consents.rights = {at:Date.now(), version:RIGHTS.version, text:RIGHTS.text}; }
         var added = 0, types = {}; rooms.forEach(function(r){ if(!A.photoCount(h, r[0])) types[r[2] || r[0]] = true; });
         SAMPLE_BULK.forEach(function(x, i){
           var fp = 'sample|' + x[0]; if(x[1] !== '?' && !types[x[1]]) return; if(h.fps.indexOf(fp) > -1) return;
-          upload({id:A.uid('p'), name:'IMG_' + (4101 + i) + '.jpg', src:RI.img(x[0]), fp:fp, retried:true, demo:x[1], demoAlts:x[1] === '?' ? ['living','basement','bedrooms'] : null}, 'unsorted'); added++;
+          upload({id:A.uid('p'), name:'IMG_' + (4101 + i) + '.jpg', src:RI.img(x[0]), fp:fp, retried:true, demo:x[1], demoSees:x[2], demoAlts:x[1] === '?' ? ['living','basement','bedrooms'] : null}, 'unsorted'); added++;
         });
         RI.toast(added ? added + ' sample photos added. Watch them sort themselves.' : 'The sample photos are already in.');
       }
       if(e.target.closest('#add-room')) roomPicker();
+      var nr = e.target.closest('[data-newroom]'); if(nr){ roomPicker(nr.getAttribute('data-newroom')); return; }
+      var nt = e.target.closest('[data-newtype]'); if(nt){ addRoomFor(nt.getAttribute('data-newtype'), typeName(nt.getAttribute('data-newtype')), nt.getAttribute('data-p')); return; }
+      var nx = e.target.closest('[data-notroom]'); if(nx){ delPhoto('unsorted', nx.getAttribute('data-notroom')); RI.toast('Photo taken out. It is not used.'); return; }
+      var nb = e.target.closest('[data-noroom]'); if(nb){ noRoom(nb.getAttribute('data-noroom')); return; }
+      if(e.target.closest('#bk-later')){ h.sortedOnce = true; A.put(h); drawPhase(); return; }
       var vp = e.target.closest('[data-viewplan]'); if(vp) viewPlan(+vp.getAttribute('data-viewplan'));
-      var rp = e.target.closest('[data-rmplan]'); if(rp){ h.plans.splice(+rp.getAttribute('data-rmplan'), 1); saved(h); plans(); }
+      var rp = e.target.closest('[data-rmplan]'); if(rp){ var box = rp.closest('.pl-box'), nm = h.plans[+rp.getAttribute('data-rmplan')].name; h.plans.splice(+rp.getAttribute('data-rmplan'), 1); saved(h); plans(); planErr(''); var ad = box.querySelector('.pl-add input'); if(ad) ad.focus(); RI.toast(nm + ' removed.'); }
       var dr = e.target.closest('[data-delroom]'); if(dr){ var key = dr.getAttribute('data-delroom'), n = A.photoCount(h, key);
         var go = function(){ h.extraRooms = (h.extraRooms || []).filter(function(x){ return x.key !== key; }); delete h.photos[key]; delete h.sizes[key]; delete h.notes[key]; saved(h); A.render(); };
         if(n) A.confirm('Remove this room?', 'Its ' + n + ' photo' + (n > 1 ? 's are' : ' is') + ' removed too.', 'Remove room', go, true); else go(); }
@@ -777,7 +1148,7 @@
     });
     /* Drag and drop: files from the computer onto the tray or a room; sorted photos from the tray onto a room */
     main.addEventListener('dragstart', function(e){ var th = e.target.closest('[data-drag]'); if(th){ e.dataTransfer.setData('text/plain', 'ri:' + th.getAttribute('data-drag')); e.dataTransfer.effectAllowed = 'move'; } });
-    function dropTarget(e){ return e.target.closest('.rc2, .rp2-tray'); }
+    function dropTarget(e){ return e.target.closest('.rc2') || e.target.closest('#bk-drop, .bk-stage, .bk-need, .bk-prog, .bk-more'); }
     main.addEventListener('dragover', function(e){ var d = dropTarget(e); if(d){ e.preventDefault(); d.classList.add('over'); } });
     main.addEventListener('dragleave', function(e){ var d = dropTarget(e); if(d && !d.contains(e.relatedTarget)) d.classList.remove('over'); });
     main.addEventListener('drop', function(e){
@@ -796,25 +1167,49 @@
     /* One card's width plus the gap, so the carousel lands on a card's edge */
     function step(){ var c = grid.children; return c.length > 1 ? (c[1].offsetLeft - c[0].offsetLeft) || grid.clientWidth : grid.clientWidth; }
     grid.addEventListener('scroll', function(){ clearTimeout(sdeb); sdeb = setTimeout(function(){ if(!grid.clientWidth) return; var i = Math.round(grid.scrollLeft / step()); if(i !== h.cardAt){ h.cardAt = i; A.put(h); dots(); } }, 120); }, {passive:true});
-    function roomPicker(){
+    /* A new room, and the photo that showed it goes straight in */
+    function addRoomFor(type, name, pid){
+      var n = (h.extraRooms || []).filter(function(x){ return x.type === type; }).length + 1, key = 'x-' + type + '-' + A.uid('');
+      h.extraRooms = (h.extraRooms || []).concat([{key:key, type:type, name:name + (n > 1 ? ' ' + n : '')}]);
+      var ph = pid && (h.photos.unsorted || []).filter(function(x){ return x.id === pid; })[0];
+      if(ph){ h.photos.unsorted = h.photos.unsorted.filter(function(x){ return x !== ph; }); delete ph.unsure; delete ph.alts; delete ph.newType; (h.photos[key] = h.photos[key] || []).push(ph); }
+      saved(h); RI.toast(name + ' added' + (ph ? ', with the photo.' : '.'), 'check'); A.render();
+    }
+    /* A room from step 1 with no photos can be taken off: the last bedroom or bath, the basement, or a room added here */
+    function noRoomOk(key){
+      var r = roomOf(key); if(!r || A.photoCount(h, key)) return false;
+      if(r[3] || key === 'basement') return true;
+      var g = r[2]; if(['bedrooms','hallbath','halfbath'].indexOf(g) < 0) return false;
+      var grp = rooms.filter(function(x){ return x[2] === g; });
+      return grp[grp.length - 1][0] === key && (g !== 'hallbath' || grp.length > 1);
+    }
+    function noRoom(key){
+      var r = roomOf(key), f = h.facts = h.facts || {}; if(!noRoomOk(key)) return;
+      if(r[3]) h.extraRooms = (h.extraRooms || []).filter(function(x){ return x.key !== key; });
+      else if(key === 'basement') f.basement = 'none';
+      else if(r[2] === 'bedrooms') f.beds = Math.max(0, (f.beds != null ? +f.beds : 3) - 1);
+      else if(r[2] === 'hallbath') f.baths = Math.max(1, (+f.baths || 1) - 1);
+      else if(r[2] === 'halfbath') f.halfBaths = Math.max(0, (+f.halfBaths || 0) - 1);
+      delete h.photos[key]; delete h.sizes[key]; delete h.notes[key];
+      saved(h); RI.toast(r[1] + ' taken off your house.', 'check'); A.render();
+    }
+    function roomPicker(pid){
       var cnt = {}; (h.extraRooms || []).forEach(function(x){ cnt[x.type] = (cnt[x.type] || 0) + 1; });
       function grp(title, arr){ return '<div class="rp-g"><h3>' + title + '</h3><div class="rp-chips">' + arr.map(function(t){ return '<button type="button" data-rt="' + t[0] + '" data-rn="' + RI.esc(t[1]) + '">' + t[1] + (cnt[t[0]] ? ' <span class="n">' + cnt[t[0]] + '</span>' : '') + '</button>'; }).join('') + '</div></div>'; }
-      var d = A.dialog('Add a room', grp('Inside', RI.ROOM_TYPES.inside) + grp('Outside', RI.ROOM_TYPES.outside), {wide:true});
+      var d = A.dialog(pid ? 'Which room is it?' : 'Add a room', (pid ? '<p class="small muted">We add the room to your house and put the photo in it.</p>' : '') + grp('Inside', RI.ROOM_TYPES.inside) + grp('Outside', RI.ROOM_TYPES.outside), {wide:true});
       d.addEventListener('click', function(e){
         var b2 = e.target.closest('[data-rt]'); if(!b2) return;
-        var type = b2.getAttribute('data-rt'), name = b2.getAttribute('data-rn'), n = (cnt[type] || 0) + 1;
-        h.extraRooms = (h.extraRooms || []).concat([{key:'x-' + type + '-' + A.uid(''), type:type, name:name + (n > 1 ? ' ' + n : '')}]);
-        saved(h); d.close(); RI.toast(name + ' added.'); A.render();
+        d.close(); addRoomFor(b2.getAttribute('data-rt'), b2.getAttribute('data-rn'), pid);
       });
     }
     function addPlans(files){
       [].slice.call(files).forEach(function(file){
         var isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name), isImg = /^image\/(jpeg|png|webp)$/i.test(file.type);
-        if(!isPdf && !isImg){ RI.toast(file.name + ' was not added. Plans can be JPG, PNG, WebP or PDF.', 'warn'); return; }
-        if(file.size > MAX_MB * 1048576){ RI.toast(file.name + ' is over ' + MAX_MB + ' MB.', 'warn'); return; }
+        if(!isPdf && !isImg){ planErr(file.name + ' was not added. Use JPG, PNG, WebP or PDF.'); return; }
+        if(file.size > MAX_MB * 1048576){ planErr(file.name + ' was not added. It is over ' + MAX_MB + ' MB.'); return; }
         var rec = {name:file.name, kb:Math.round(file.size / 1024), kind:isPdf ? 'pdf' : 'image'};
-        function done(){ h.plans = (h.plans || []).concat([rec]); saved(h); plans(); RI.toast('Plan added.', 'file'); }
-        if(isImg){ A.shrink(file).then(function(r){ rec.src = r.src; done(); }, function(){ RI.toast(file.name + ' could not be opened.', 'warn'); }); }
+        function done(){ h.plans = (h.plans || []).concat([rec]); saved(h); planErr(''); plans(h.plans.length - 1); }
+        if(isImg){ A.shrink(file).then(function(r){ rec.src = r.src; done(); }, function(){ planErr(file.name + ' could not be opened.'); }); }
         else if(file.size <= MAX_PLAN_KEEP * 1048576){ var fr = new FileReader(); fr.onload = function(){ rec.src = fr.result; done(); }; fr.readAsDataURL(file); }
         else { rec.big = true; done(); }
       });
@@ -823,20 +1218,23 @@
       var p = h.plans[i];
       A.dialog(RI.esc(p.name), p.src ? (p.kind === 'pdf' ? '<object class="plan-view" data="' + p.src + '" type="application/pdf"><p><a href="' + p.src + '" download="' + RI.esc(p.name) + '">Download it</a>.</p></object>' : '<img class="plan-view" src="' + p.src + '" alt="Floor plan">') : '<p class="muted">In the product this file is stored privately and opens here.</p>', {wide:true});
     }
-    function plans(){ main.querySelector('#plan-files').innerHTML = (h.plans || []).map(function(p, i){ return '<li>' + RI.icon('file','i-sm') + '<span>' + RI.esc(p.name) + '</span><span class="xsmall muted">' + (p.kind === 'pdf' ? 'PDF' : 'Image') + ', ' + p.kb + ' KB</span><button type="button" class="linkbtn" data-viewplan="' + i + '">View</button><button type="button" class="linkbtn" data-rmplan="' + i + '">Remove</button></li>'; }).join(''); RI.fillIcons(main.querySelector('#plan-files')); }
-    plans(); all(); rooms.forEach(function(r){ maybeMeasure(r[0]); });
-    (h.photos.unsorted || []).forEach(function(p){ if(p.state === 'done') read(p); });
-    /* Desktop: the photo card ends just above the submit dock, wherever the page is scrolled */
-    var trayEl = main.querySelector('.rp2-tray'), fitQ = false;
-    function fitTray(){
-      fitQ = false;
-      if(!trayEl.isConnected){ removeEventListener('scroll', qFit); removeEventListener('resize', qFit); return; }
-      if(getComputedStyle(trayEl).position !== 'sticky'){ trayEl.style.maxHeight = ''; return; }
-      var dk = doc.querySelector('.wb-dock'), bottom = dk ? dk.getBoundingClientRect().top - 12 : innerHeight - 16;
-      trayEl.style.maxHeight = Math.max(320, Math.round(bottom - trayEl.getBoundingClientRect().top)) + 'px';
+    function planErr(msg){ main.querySelectorAll('.pl-err').forEach(function(e){ e.textContent = msg; }); }
+    function plans(fresh){
+      var list = h.plans || [];
+      main.querySelectorAll('.pl-box').forEach(function(box){
+        box.classList.toggle('has', list.length > 0);
+        box.querySelector('.pl-add-t').textContent = list.length ? 'Add another' : 'Add a plan';
+        box.querySelector('.pl-list').innerHTML = list.map(function(p, i){
+          var th = p.kind === 'image' && p.src ? '<img class="pl-th" src="' + p.src + '" alt="">' : '<span class="pl-th pl-pdf" aria-hidden="true">PDF</span>';
+          return '<li class="pl-row' + (i === fresh ? ' is-new' : '') + '">' + th + '<span class="pl-n"><b title="' + RI.esc(p.name) + '">' + RI.esc(p.name) + '</b><small>' + (p.kind === 'pdf' ? 'PDF' : 'Image') + ' · ' + (p.kb >= 1024 ? (p.kb / 1024).toFixed(1) + ' MB' : p.kb < 1 ? 'under 1 KB' : p.kb + ' KB') + '</small></span>' +
+            '<span class="pl-acts"><button type="button" class="linkbtn small" data-viewplan="' + i + '" aria-label="View ' + RI.esc(p.name) + '">View</button><button type="button" class="linkbtn small pl-rm" data-rmplan="' + i + '" aria-label="Remove ' + RI.esc(p.name) + '">Remove</button></span></li>';
+        }).join('');
+      });
     }
-    function qFit(){ if(!fitQ){ fitQ = true; requestAnimationFrame(fitTray); } }
-    addEventListener('scroll', qFit, {passive:true}); addEventListener('resize', qFit); qFit();
+    plans(); all(); rooms.forEach(function(r){ maybeMeasure(r[0]); });
+    /* Team only: Fill sample data in the ribbon adds the sample photos */
+    RI.setDevFill(function(){ var sb = main.querySelector('#sample'); if(sb) sb.click(); }, 'Add sample photos', main);
+    (h.photos.unsorted || []).forEach(function(p){ if(p.state === 'done') read(p); });
     if(h.cardAt) requestAnimationFrame(function(){ grid.scrollLeft = step() * h.cardAt; });
     /* Submit is always allowed. What is missing shows on the room card and, after the run, as unverified */
     function disclaimer(){

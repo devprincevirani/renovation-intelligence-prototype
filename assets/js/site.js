@@ -228,6 +228,18 @@
   })();
   if(RI.devTools) document.documentElement.classList.add('team');
 
+  /* ---------- Team only: Fill sample data (user, Nov 2026) ----------
+     A button beside Pages that fills the screen in front of you with sample data, so a demo needs no typing. A screen
+     offers it with RI.setDevFill(fn, label, el); the button hides once that screen is gone. */
+  var devFill = null;
+  function fillBtn(){
+    var b = doc.getElementById('pb-fill'); if(!b) return;
+    var on = !!(devFill && (!devFill.el || devFill.el.isConnected));
+    b.hidden = !on; if(on) b.querySelector('span').textContent = devFill.label || 'Fill sample data';
+  }
+  RI.setDevFill = function(fn, label, el){ devFill = fn ? {fn:fn, label:label, el:el} : null; fillBtn(); };
+  addEventListener('hashchange', function(){ setTimeout(fillBtn, 80); });
+
   /* ---------- Prototype ribbon and demo panel ---------- */
   /* The prototype ribbon shows only in developer mode, because it holds the shortcuts. */
   function renderProtoBar(){
@@ -235,9 +247,12 @@
     if(dev){
       var bar = doc.createElement('div'); bar.className = 'proto-bar';
       bar.innerHTML = '<div class="wrap"><span class="tag-proto">Prototype</span><span class="pb-long">A design prototype for review. Houses, prices and text are <b>sample data</b>.</span><span class="pb-short">Sample data only.</span>' +
-        '<button type="button" data-open-demo>Demo access</button><button type="button" class="pb-pages" id="pb-pages" aria-haspopup="true" aria-expanded="false" aria-controls="pages-menu">Pages<svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 4.5L6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button></div>';
+        '<button type="button" data-open-demo>Demo access</button><button type="button" class="pb-pages" id="pb-pages" aria-haspopup="true" aria-expanded="false" aria-controls="pages-menu">Pages<svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 4.5L6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>' +
+        '<button type="button" class="pb-pages pb-fill" id="pb-fill" hidden>' + RI.icon('pencil','i-sm') + '<span>Fill sample data</span></button></div>';
       doc.body.insertBefore(bar, doc.body.firstChild);
       pagesMenu(bar);
+      bar.querySelector('#pb-fill').addEventListener('click', function(){ if(devFill && (!devFill.el || devFill.el.isConnected)) devFill.fn(); else fillBtn(); });
+      fillBtn();
     }
     var skip = doc.createElement('a'); skip.className = 'skip'; skip.href = '#main'; skip.textContent = 'Skip to content';
     doc.body.insertBefore(skip, doc.body.firstChild);
