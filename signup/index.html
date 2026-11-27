@@ -35,6 +35,16 @@
       <button class="btn btn-primary btn-block btn-lg" type="submit">Create my account <i data-i="arrow" class="i-arrow"></i></button>
       <p class="small muted center">Already have an account? <a href="../login/">Log in</a></p>
     </form>
+    <!-- 15-day trial sign up (?invite=trial-invite): the invite fixes the email and the account type -->
+    <form class="form-grid" id="su-trial" novalidate hidden>
+      <div class="field"><label for="st-email">Email</label><div class="lock-wrap"><input class="input" id="st-email" type="email" autocomplete="username" readonly aria-describedby="st-email-help"><i data-i="lock"></i></div><span class="help" id="st-email-help">Set by the invite. Sam sent it to this address.</span><span class="err" role="alert"></span></div>
+      <div class="field"><label for="st-pw">Password</label><div class="pw-wrap"><input class="input" id="st-pw" type="password" autocomplete="new-password"><button type="button" aria-pressed="false">Show</button></div><div class="meter" id="st-pw-meter" aria-hidden="true"><i></i><i></i><i></i></div><span class="err" role="alert"></span></div>
+      <div class="field"><label for="st-pw2">Confirm password</label><div class="pw-wrap"><input class="input" id="st-pw2" type="password" autocomplete="new-password"><button type="button" aria-pressed="false">Show</button></div><span class="err" role="alert"></span></div>
+      <ul class="pw-rules" aria-live="polite"><li id="st-r-len"><i data-i="check" class="i-sm"></i>At least 8 characters</li><li id="st-r-match"><i data-i="check" class="i-sm"></i>Both passwords match</li></ul>
+      <div class="field consent-card"><label class="check"><input type="checkbox" id="st-disc"><span>I understand that an estimate is for planning. It is not a contractor's bid, an inspection or a fixed price. <a href="../disclaimer/" target="_blank" rel="noopener">Read the disclaimer</a></span></label><span class="err" id="st-disc-err" role="alert"></span></div>
+      <button class="btn btn-primary btn-block btn-lg" type="submit">Start my 15-day trial <i data-i="arrow" class="i-arrow"></i></button>
+      <p class="small muted center">Already have an account? <a href="../login/">Log in</a></p>
+    </form>
   </div></div>
   <aside class="auth-show" aria-label="What you get"><div class="as-in">
   <p class="as-k">What you get, free</p><h2>One house. Three goals. A Low and a High for each.</h2>
