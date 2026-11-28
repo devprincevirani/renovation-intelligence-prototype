@@ -304,6 +304,9 @@
           '<span class="bl-pa"><span class="bl-av" aria-hidden="true">' + RI.icon('house', 'i-sm') + '</span><b>' + esc(f.author || B.TEAM) + '</b><span class="d">' + B.date(q.at) + '</span></span></span></span>' +
         '<details class="bg-pvart"><summary>See the whole article</summary><div class="bl-text">' + (f.body.trim() ? B.render(f.body) : '<p class="muted">The article text shows here.</p>') + '</div></details></div>';
     }
+    /* SEO in production: the title becomes the page title and the summary the meta description, as this preview shows.
+       The real build also writes the canonical link, share tags and structured data (BlogPosting, proposed) from these
+       fields, photo and alt text included. Not built in the prototype (docs/SEO_CONVERSION.md sections 5 and 6) */
     function serpHTML(){
       return '<div class="bg-serp"><span class="bg-serp-u">…/blog/' + esc(f.slug || 'web-address') + '/</span><b>' + esc((f.title || 'Title') + ' | Renovation Intelligence') + '</b><span>' + esc(f.summary.length > 160 ? f.summary.slice(0, 157) + '…' : (f.summary || 'The summary shows here.')) + '</span></div>';
     }
@@ -439,7 +442,11 @@
     drop.addEventListener('drop', function(e){ readFile(e.dataTransfer && e.dataTransfer.files[0]); });
     $('bg-rm').addEventListener('click', function(){ setImg(''); f.alt = ''; $('bg-alt').value = ''; refresh(); });
 
-    /* ---- Saving, scheduling, publishing ---- */
+    /* ---- Saving, scheduling, publishing ----
+       SEO in production: publishing (or a scheduled article going live) adds the article to the sitemap; unpublishing
+       takes it out and its address returns 404; changing the web address of a live article should keep a permanent
+       redirect from the old one (proposed). The prototype only stores the article in this
+       browser (docs/SEO_CONVERSION.md section 4) */
     function store(patch, action){
       var now = Date.now(), list = all(), rec = Object.assign({}, p, f, {slug:f.slug || B.slugify(f.title) || p.id, updated:now}, patch || {});
       if(rec.sample && JSON.stringify(pick(rec)) !== saved) rec.sample = false;
