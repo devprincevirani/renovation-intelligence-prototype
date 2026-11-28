@@ -43,8 +43,10 @@
      not repeated in the grid ---------- */
   function list(){
     var posts = B.live(), qs = new URLSearchParams(location.search), top = posts[0];
-    var cur = B.TOPICS.some(function(t){ return t.key === qs.get('topic'); }) ? qs.get('topic') : 'all', term = qs.get('q') || '';
-    var tabs = [{key:'all', name:'All'}].concat(B.TOPICS).map(function(t){
+    /* Tabs follow the console's topic list: its order and names, hidden topics and topics with no live article left out */
+    var shownTopics = B.tabs(posts);
+    var cur = shownTopics.some(function(t){ return t.key === qs.get('topic'); }) ? qs.get('topic') : 'all', term = qs.get('q') || '';
+    var tabs = [{key:'all', name:'All'}].concat(shownTopics).map(function(t){
       var n = t.key === 'all' ? posts.length : posts.filter(function(p){ return p.topic === t.key; }).length;
       return '<button type="button" class="bl-tab" data-tab="' + t.key + '" aria-pressed="' + (t.key === cur) + '">' + esc(t.name) + '<span class="bl-tn">' + n + '</span></button>';
     }).join('');
@@ -102,7 +104,7 @@
         '<div class="cta-row"><a class="btn btn-primary" href="' + RI.url('blog/') + '">See all articles</a></div></div></section>';
       return;
     }
-    var t = B.topic(p.topic);
+    var t = B.topic(p.topic), isTab = B.tabs().some(function(x){ return x.key === t.key; });
     doc.title = p.title + ' | Renovation Intelligence';
     var md = doc.querySelector('meta[name="description"]'); if(md) md.setAttribute('content', p.summary);
     /* Number the headings so "In this article" can point at them */
@@ -112,7 +114,7 @@
       .sort(function(a, b){ return (b.topic === p.topic) - (a.topic === p.topic) || (b.at || 0) - (a.at || 0); }).slice(0, 3);
     var free = function(cls){ return '<a class="btn ' + cls + '" data-cta="free" href="' + RI.url('signup/') + '"><span class="t">Explore renovation costs for free</span></a>'; };
     main.innerHTML =
-      '<section class="bl-head"><div class="wrap">' + crumbs([['Home', ''], ['Blog', 'blog/'], [t.name, 'blog/?topic=' + t.key]]) +
+      '<section class="bl-head"><div class="wrap">' + crumbs([['Home', ''], ['Blog', 'blog/'], [t.name, isTab ? 'blog/?topic=' + t.key : 'blog/']]) +
         '<p class="label">' + esc(t.name) + '</p><h1>' + esc(p.title) + '</h1><p class="lede">' + esc(p.summary) + '</p>' +
         '<p class="bl-by"><span>' + esc(p.author || B.TEAM) + '</span><span>' + (p.updated && p.updated > (p.at || 0) ? 'Updated ' + B.date(p.updated) : B.date(p.at)) + '</span><span>' + B.mins(p.body) + ' min read</span>' +
           (p.sample ? '<span class="state state-sample">Sample</span>' : '') + '</p>' +

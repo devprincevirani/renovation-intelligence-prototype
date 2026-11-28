@@ -3810,6 +3810,35 @@ dialog.dlg.dlg-drawer.ax-open{width:min(1040px,100vw)}
   .bg-au{display:flex}
   .bg-aum{display:none}
 }
+/* Topics (Nov 28): "Manage topics" beside the filter opens a dialog with one row per topic, in tab order */
+.bg-tools .bg-mt{margin-left:auto;min-height:40px;padding-block:0}
+/* Phones: Topics sits beside the topic filter, the search gets its own full-width line */
+@media (max-width:759px){ .bg-tools .c-select{flex:1 1 0;min-width:0} .bg-tools .c-select select{width:100%} .bg-tools .bg-mt{order:2;margin-left:0} .bg-tools .c-search{order:3;flex:1 1 100%;max-width:none} }
+.bg-tform{display:grid;gap:14px}
+.bg-tform>p{margin:0}
+.bg-tpl{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.bg-tpr{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"gr nm nm" "gr meta hd";gap:8px 10px;align-items:center;padding:8px 10px 8px 4px;border:1px solid var(--border);border-radius:8px;background:var(--raised)}
+.bg-tpr.is-hidden{background:var(--sunken)}
+.bg-tpr.is-hidden .bg-tnm .input{color:var(--muted)}
+/* The handle: grab it to drag the row (touch too); arrow keys move it one place */
+.bg-tgrip{grid-area:gr;align-self:stretch;width:32px;min-height:40px;display:grid;place-items:center;padding:0;border:0;border-radius:4px;background:none;color:var(--muted);cursor:grab;touch-action:none}
+.bg-tgrip:hover{background:var(--sunken);color:var(--deep-forest)}
+.bg-tgrip svg{width:18px;height:18px;fill:currentColor}
+/* The row being dragged floats above the others (DESIGN.md: a shadow only on something floating) */
+.bg-tpr.is-drag{position:relative;z-index:3;border-color:var(--border-strong);box-shadow:var(--shadow-float)}
+.bg-tpl.is-sorting{user-select:none;-webkit-user-select:none}
+.bg-tpl.is-sorting,.bg-tpl.is-sorting .bg-tgrip{cursor:grabbing}
+.bg-tnm{grid-area:nm;display:grid;gap:4px;margin:0;min-width:0}
+.bg-tnm .input{width:100%;min-height:40px}
+.bg-tmeta{grid-area:meta;display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:.8rem;color:var(--muted)}
+.bg-thd{grid-area:hd;min-width:64px}
+.bg-taddr{display:flex;gap:8px}
+.bg-taddr .input{flex:1;min-width:0}
+.bg-tfoot{justify-content:flex-end}
+@media (min-width:600px){
+  .bg-tpr{grid-template-columns:auto minmax(0,1fr) 150px auto;grid-template-areas:"gr nm meta hd"}
+  .bg-tmeta{justify-content:flex-end;text-align:right}
+}
 /* The editor's fields */
 .bg-slug{display:flex;align-items:stretch}
 .bg-slug>span{display:flex;align-items:center;padding:0 10px;border:1px solid var(--border-strong);border-right:0;border-radius:4px 0 0 4px;background:var(--sunken);color:var(--muted);font-size:.9rem}
