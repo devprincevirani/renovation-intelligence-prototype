@@ -21,7 +21,6 @@
   var TYPES_OK = /\.(jpe?g|png|webp|heic|heif)$/i;
   var RIGHTS = {version:'Draft 1, November 2026', text:'I took these photos or have the right to use them.'};
   var DISC = {version:'Draft 1, November 2026', text:'I understand this is an estimate for planning, based on the photos and facts I gave. It is not an inspection or a contractor\'s bid.'};
-  A.FREE_LIMIT = RI.OFFERS.freeRuns; /* from RI.OFFERS; Sam sets the real number */
 
   /* ---------- Reading a photo: shrink it, and measure size, sharpness and a small fingerprint ---------- */
   function gray(ctx, w, h){ var d = ctx.getImageData(0, 0, w, h).data, g = new Float32Array(w * h); for(var i = 0; i < w * h; i++) g[i] = d[i * 4] * .299 + d[i * 4 + 1] * .587 + d[i * 4 + 2] * .114; return g; }
@@ -583,6 +582,13 @@
     /* Which view: no photos yet; the first photos being sorted; or checking the rooms. Once a house has been sorted it
        stays on the check view, and new photos sort in the strip above the rooms. */
     function working(){ return Object.keys(reading).length > 0 || Object.keys(pending).some(function(k){ return pending[k].some(function(p){ return p.state === 'up'; }); }); }
+    /* While the AI uploads, reads, measures or shows photos on the board, Save draft and Review (or Submit) wait (user, Nov 27) */
+    function scanning(){ return working() || Object.keys(measuring).length > 0 || !!(stg && stg.el && stg.el.isConnected && !h.sortedOnce && (stg.busy || stg.queue.length || stg.playing)); }
+    function syncBusy(){
+      var on = scanning(), nb = doc.getElementById('next'), sd = doc.getElementById('save-draft');
+      if(nb && nb.getAttribute('aria-busy') !== 'true' && nb.disabled !== on){ nb.disabled = on; nb.title = on ? 'Wait while we read your photos' : ''; }
+      if(sd && sd.classList.contains('is-off') !== on){ sd.classList.toggle('is-off', on); if(on){ sd.setAttribute('aria-disabled', 'true'); sd.setAttribute('tabindex', '-1'); } else { sd.removeAttribute('aria-disabled'); sd.removeAttribute('tabindex'); } }
+    }
     function phase(){
       var any = A.photoCount(h) + (h.photos.unsorted || []).length + Object.keys(pending).reduce(function(n, k){ return n + pending[k].length; }, 0);
       if(!any && !h.sortedOnce) return 'empty';
@@ -603,6 +609,10 @@
       if(ph !== 'check'){ if(sub.innerHTML !== LEADH) sub.innerHTML = LEADH; } else sub.textContent = un ? 'We sorted ' + inR + ' of ' + all + ' photos. Place the ' + (un === 1 ? 'one' : un) + ' we were not sure about, then check each room.' : 'Every photo is in a room. Check each room and its size, then submit.';
       if(ph === 'empty') drawWant();
       if(ph === 'sorting') drawSorting();
+      /* While the sorting board is open the bottom button is Review: it does what Place them later does, so the
+         rooms (and their sizes) are seen before Submit (user, Nov 27) */
+      var nb = doc.getElementById('next'), rv = ph === 'sorting';
+      if(nb && nb.getAttribute('data-rv') !== String(rv)){ nb.setAttribute('data-rv', String(rv)); nb.innerHTML = rv ? '<span>Review</span>' + RI.icon('arrow','i-sm i-arrow') : '<span>Submit my house</span>' + RI.icon('check','i-sm'); }
       if(ph !== lastPhase){ if(lastPhase === 'sorting' && ph === 'check') RI.toast('Your photos are sorted. Check each room.', 'check'); lastPhase = ph; }
     }
     function drawWant(){
@@ -1232,6 +1242,7 @@
       });
     }
     plans(); all(); rooms.forEach(function(r){ maybeMeasure(r[0]); });
+    syncBusy(); A.every(syncBusy, 250);
     /* Team only: Fill sample data in the ribbon adds the sample photos */
     RI.setDevFill(function(){ var sb = main.querySelector('#sample'); if(sb) sb.click(); }, 'Add sample photos', main);
     (h.photos.unsorted || []).forEach(function(p){ if(p.state === 'done') read(p); });
@@ -1247,6 +1258,13 @@
       });
     }
     return function(){
+      /* Review: leave the sorting board for the room cards, like Place them later */
+      if(phase() === 'sorting'){
+        if(working()){ RI.toast('A few photos are still being read. One moment.', 'clock'); return false; }
+        h.sortedOnce = true; A.put(h); drawPhase();
+        var bkEl = main.querySelector('#bk'); if(bkEl) bkEl.scrollIntoView({behavior:A.reduce ? 'auto' : 'smooth', block:'start'});
+        return false;
+      }
       if(A.regionBlocked(h)) return false;
       var up = Object.keys(pending).some(function(k){ return pending[k].some(function(p){ return p.state === 'up'; }); });
       if(up){ RI.toast('A few photos are still uploading. One moment.', 'clock'); return false; }
@@ -1263,19 +1281,8 @@
     };
   }
 
-  /* ---------- Submit checks: a verified email, and room under the free-report limit (SECURITY 5, 9) ---------- */
-  /* Settings Sam can change (change 8, a proposal): free runs, runs added per payment, invite credits. No clock anywhere. */
-  A.RUNS_PER_PAYMENT = RI.OFFERS.runsPerPayment; A.CREDITS_START = RI.OFFERS.inviteCredits;
-  A.freeRuns = function(){ return A.FREE_LIMIT + A.RUNS_PER_PAYMENT * A.mine().filter(function(x){ return x.paid; }).length; };
-  A.hasCredits = function(){ var s = A.me(); if(!s) return false; if(s.demo) return s.role === 'builder'; var u = RI.users.get(s.email) || {}; return !!u.trial; };
-  A.creditsLeft = function(){ return A.hasCredits() ? Math.max(0, A.CREDITS_START - A.mine().filter(function(x){ return x.trialOpen && !x.paid; }).length) : 0; };
-  A.limitDialog = function(h){
-    A.dialog('You have used your ' + A.freeRuns() + ' free estimates', '<div class="mark bronze">' + RI.icon('lock') + '</div><p>Prices you have already seen stay open, and your draft is saved. Open the full presentation for one of your houses to get <b>' + A.RUNS_PER_PAYMENT + ' more</b>, or ask us for more.</p>' +
-      '<div class="limit-opts">' +
-        (h ? '<a class="lo" href="#/houses/' + h.id + '/checkout?run=1" data-dlg-close><b>Pay for this house</b><span>One payment runs it and opens the full presentation.</span></a>' : '') +
-        '<a class="lo" href="' + RI.url('contact/') + '"><b>Ask us for more</b><span>Tell us about your houses and we will get back to you.</span></a>' +
-      '</div><p class="xsmall muted">Sample numbers. Sam sets them.</p>');
-  };
+  /* ---------- Submit checks: a verified email (SECURITY 5). No free-estimate limit and no invite credits:
+     the business model v1.0 has neither (user, Nov 27 2026) ---------- */
   /* A house in a region that is not live yet stays a draft; it is never priced with another region's rates */
   A.regionBlocked = function(h){
     var st = RI.stateOfHouse(h), g = RI.regionOf(st); if(!g || g.live) return false;
@@ -1292,10 +1299,6 @@
         A.dialog('Confirm your email to submit', '<p>We need a confirmed email before we read your photos. Your draft is saved.</p><div class="cta-row" style="justify-content:flex-end"><a class="btn btn-primary" href="' + RI.url('verify-email/?email=' + encodeURIComponent(s.email)) + '">Confirm my email</a></div>');
         return false;
       }
-    }
-    if(!again && !A.isPro()){
-      var used = A.mine().filter(function(x){ return x.run && x.id !== h.id; }).length;
-      if(used >= A.freeRuns()){ A.limitDialog(h); return false; }
     }
     return true;
   }

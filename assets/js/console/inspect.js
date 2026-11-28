@@ -39,6 +39,7 @@
   /* Presentation access, in the words of APP_FLOW 9 */
   function access(h, st){
     if(h.paid) return 'Paid' + (h.paidAt ? ', ' + C.date(h.paidAt) : '');
+    if(h.proOpen) return 'Pro' + (h.proKind === 'bought' ? ', bought $10' : ' credit');
     if(h.trialOpen) return 'Trial';
     return isReady(st) ? 'Price only' : 'No price yet';
   }

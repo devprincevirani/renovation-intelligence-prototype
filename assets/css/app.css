@@ -511,8 +511,25 @@ body.is-focus .app-top{background:var(--inverse)}
 .trade li.is-off{opacity:.5}
 .empty-s{display:flex;gap:10px;align-items:center;padding:20px;border-radius:var(--r-md);background:var(--ok-bg);color:var(--ok)}
 .tasks-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-.tasks-t td .xsmall{display:block}
-.tasks-t tr.first td{border-top:1px solid var(--border)}
+/* Task lists (Nov 27 2026): the Trades tab's groups (.tv-g); one row per piece of work, its tasks numbered under it */
+.tasks-act{display:flex;align-items:center;gap:8px 20px;flex-wrap:wrap}
+.tk .tv-g>summary{grid-template-columns:minmax(0,1fr) 20px}
+.tk-l{list-style:none;margin:0;padding:0 14px}
+.tk-i{padding:14px 0;border-top:1px solid var(--border-soft)}
+.tk-i:first-child{border-top:0}
+.tk-top{display:grid;gap:2px}
+.tk-top b{font-weight:600}
+.tk-where{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tk-steps{list-style:none;counter-reset:tk;margin:10px 0 0;padding:0;display:grid;gap:8px}
+.tk-steps li{counter-increment:tk;display:flex;gap:8px;align-items:center;font-size:.9rem;line-height:1.35}
+.tk-steps li::before{content:counter(tk);flex:none;display:grid;place-items:center;width:20px;height:20px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:11px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.tk-empty{margin:0;padding:12px 14px;border-radius:var(--r-lg);background:var(--sunken)}
+@media (min-width:641px){
+  .tk-l{padding:0 16px}
+  .tk-top{grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:baseline}
+  .tk-where{font-size:.88rem;text-align:right;white-space:nowrap}
+  .tk-steps{display:flex;flex-wrap:wrap;gap:8px 24px}
+}
 .share-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
 .share-row .input{font-size:.88rem}
 .fb-inline{margin-top:28px}
@@ -642,7 +659,6 @@ img.plan-view{min-height:0}
   .dec td{border:0;padding:4px 0}
   .dec td[data-label]::before{content:attr(data-label);display:block;font-size:.68rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
   .dec td:empty{display:none}
-  .tasks-t tr.first td{border:0}
 }
 /* House cards: the footer always sits at the bottom, so footers line up across a row */
 .hcard{height:100%}
@@ -2254,6 +2270,34 @@ dialog.ed-dlg{border-radius:var(--r-lg)}
   .ed-in .input{width:100%}
   .ed-stat .btn{flex:1 1 100%}
 }
+
+/* ---------- Pro plan (client request, Nov 27): credits meter, plan card, none-left box, no-credit notes ---------- */
+.pro-head-r{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.pro-meter{display:grid;gap:8px}
+.pro-meter .prm-top{display:flex;justify-content:space-between;align-items:baseline;gap:16px}
+.pro-meter .prm-top b{font-family:var(--display);font-weight:500;font-size:1.15rem;font-variant-numeric:tabular-nums}
+.pro-meter .prm-top span{font-size:.85rem;color:var(--muted);white-space:nowrap}
+.pro-meter .pr-m-bar i{height:8px;background:var(--border-soft)}
+.pro-meter .pr-m-bar i.on{background:var(--accent)}
+.pro-meter.is-low .pr-m-bar i.on{background:var(--bronze)}
+.pm-extra{font-size:.82rem;font-weight:600;color:var(--hl-text)}
+.pro-meter-box{min-width:250px;padding:10px 14px;background:var(--raised);border:1px solid var(--border);border-radius:var(--r-lg)}
+.pro-plan{display:grid;gap:14px}
+.pro-plan-h{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px 12px}
+.pro-plan-h b{font-family:var(--display);font-weight:500;font-size:1.2rem}
+.pro-used{list-style:none;margin:0;padding:0;display:grid}
+.pro-used li{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--border-soft);font-size:.9rem}
+.pro-used li:last-child{border-bottom:1px solid var(--border-soft)}
+.pro-offer{padding:14px;border:1px solid var(--border-soft);border-radius:var(--r-md);background:#FBFAF7}
+.pro-offer .ticks{margin:0}
+.pro-out{display:grid;gap:2px;padding:12px;border-radius:var(--r-md);background:var(--sunken);font-size:.9rem}
+.pro-out b{font-weight:600}
+.pro-free{display:flex;align-items:center;gap:8px;margin:0;padding:8px 12px;border-radius:var(--r-md);background:var(--ok-bg);color:var(--ok);font-size:.88rem;font-weight:500}
+.pr-head .pro-free{flex-basis:100%}
+.pro-share{margin:12px 0 0}
+.pro-dlg-tot{margin:14px 0 8px}
+.co-tot .pro-next{color:var(--muted);font-size:.9rem}
+@media (max-width:639px){ .pro-head-r{width:100%} .pro-head-r > *{flex:1 1 100%} }
 
 /* ---------- Refer and earn (business model 3) ----------
    Read top to bottom: what you get and your link, your credit, how it works, your friends step by step, questions */

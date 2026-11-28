@@ -6,19 +6,15 @@
 
   /* Offers and limits (19 Nov brief, change 4 section 11, and change 8): every one is a setting, in this one place.
      Sam decides the numbers and the dates. Nothing goes live as an offer until he says so. No countdowns, ever. */
+  /* Only the business model v1.0 prices (Nov 2026). No founding price, second-house price, invite credits or
+     free-estimate limit: the doc has none of them (user, Nov 27). */
   RI.OFFERS = {
     price:50, priceIsSample:false,                        /* the detailed report, one payment per property (business model v1.0, Nov 2026) */
     pro:{price:99, credits:10, extra:10},                 /* Pro: $99 a month, 10 properties a month, extra properties $10 each */
-    founding:{on:false, price:29, ends:'2027-04-30'},     /* waitlist members; the end date is shown as a date */
-    secondHouse:{on:false, price:35},                     /* the second and later houses on one account */
-    inviteCredits:3,                                      /* full presentations free for invited contacts, no clock */
-    freeRuns:5, runsPerPayment:2,                         /* free price views per account, more after each payment */
     priceReadyEmail:true,
     reminderEmail:{on:true, days:3},                      /* one reminder if the presentation is still locked, then silence */
     sample:true                                           /* the public sample presentation */
   };
-  /* Team switches for the two offers (Team panel, ?team=1). Kept in this browser only. */
-  try { var ov = JSON.parse(localStorage.getItem('ri-offers') || 'null'); if(ov){ RI.OFFERS.founding.on = !!ov.founding; RI.OFFERS.secondHouse.on = !!ov.second; } } catch(e){}
 
   RI.PACKAGES = [
     {key:'E', name:'Essential', goal:'Fix what must be fixed'},

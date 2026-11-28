@@ -82,22 +82,16 @@
   }
 
   /* ---------- Price ready (free): one room open, the rest locked and counted, the promise beside the button ---------- */
-  /* The price for one house, from RI.OFFERS: the base price, or a true offer when Sam has switched one on */
+  /* The price for one house: the detailed report (business model v1.0). No founding or second-house price (user, Nov 27) */
   A.PRICE = RI.OFFERS.price;
-  A.priceFor = function(h){
-    var O = RI.OFFERS, s = A.me() || {}, paidOther = A.mine().some(function(x){ return x.paid && (!h || x.id !== h.id); });
-    if(O.secondHouse.on && paidOther) return {amount:O.secondHouse.price, note:'Second house price'};
-    var onList = (RI.store.get('waitlist', []) || []).some(function(w){ return w.email === (s.email || '').toLowerCase(); }) || s.demo;
-    var ends = new Date(O.founding.ends + 'T23:59:59');
-    if(O.founding.on && onList && Date.now() < ends) return {amount:O.founding.price, note:'Founding price, until ' + ends.toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})};
-    return {amount:O.price, note:''};
-  };
+  A.priceFor = function(h){ return {amount:RI.OFFERS.price, note:''}; };
   function ready(view, h){
     var est = A.estimate(h); RI.CURRENT = est; RI.track('price_viewed', {house:h.id});
     var T = {}; ['E','S','P'].forEach(function(k){ T[k] = RI.totals(k, {}); });
     var held = A.heldCount(est), max = Math.ceil(T.P.high / 25000) * 25000, sel = 'S';
     var unk = []; est.rooms.forEach(function(r){ r.items.forEach(function(it){ if(RI.isHeld(it)) unk.push([r, it]); }); });
-    var paid = h.paid || h.trialOpen, credit = !paid && A.creditsLeft() > 0;
+    /* Pro plan (client, Nov 27): a credit opens the house; with none left the user may buy one more, never automatically */
+    var paid = h.paid || h.trialOpen || h.proOpen, pro = A.proOn(), credit = !paid && pro && A.proLeft() > 0, buy = !paid && pro && !credit;
     /* The open room: the kitchen when the house has one (user, Nov 2026: it has the most to show), else the largest
        share of the Standard total */
     var open = est.rooms.filter(function(r){ return r.key === 'kitchen'; })[0] || est.rooms.slice().sort(function(a, b){ return RI.totals('S', {}, b.key).high - RI.totals('S', {}, a.key).high; })[0];
@@ -236,7 +230,8 @@
       var clear = list.filter(lockImg).concat(list.filter(function(it){ return !lockImg(it); })).slice(0, n);
       clear.sort(function(x, y){ return cost(y) - cost(x); });
       var hid = list.filter(function(it){ return clear.indexOf(it) < 0; }), rest = hid.length;
-      var cta = credit ? '<button type="button" class="btn btn-primary px-cta" data-credit>Open every room with a credit</button>'
+      var cta = credit ? '<button type="button" class="btn btn-primary px-cta" data-credit>Open full presentation</button>'
+        : buy ? '<button type="button" class="btn btn-primary px-cta" data-probuy>' + A.proBuyLabel() + '</button>'
         : A.hasCheckout ? '<a class="btn btn-primary px-cta" href="#/houses/' + h.id + '/checkout">Open every room, ' + price + '</a>' : '';
       return '<section class="wb" aria-label="What this buys">' + BUYS_HD +
         (list.length ? '<ul class="wb-list">' + clear.map(function(it){ return buyLine(it, 'clear'); }).join('') + hid.slice(0, 5).map(function(it){ return buyLine(it, 'hid'); }).join('') + '</ul>' +
@@ -289,10 +284,11 @@
         '<aside class="px-side px-pin" aria-label="Open the full presentation"><p class="label">The full presentation</p><h2>' + (paid ? 'Your presentation is open' : 'Open every room') + '</h2>' +
           '<ul><li>Every room with its photo and products</li><li>Switch goals, turn items on or off</li><li>Guidance on the roof, heating, water heater and panel</li><li>A PDF and a private link</li></ul>' +
           (paid ? '<a class="btn btn-primary btn-block px-btn" href="#/houses/' + h.id + '/presentation">Open presentation ' + RI.icon('arrow','i-sm i-arrow') + '</a>'
-            : credit ? '<button type="button" class="btn btn-primary btn-block px-btn" id="credit-open">Open with a credit</button><p class="small muted">You have ' + A.creditsLeft() + ' credit' + (A.creditsLeft() === 1 ? '' : 's') + ' left.</p>'
+            : credit && pro ? '<button type="button" class="btn btn-primary btn-block px-btn" id="credit-open">Open full presentation</button><p class="small muted">' + A.proLeftText() + '</p>'
+            : buy ? A.proOutHtml()
             : '<a class="btn btn-primary btn-block px-btn" href="#/houses/' + h.id + '/checkout" id="pay">Open the full presentation, ' + price + '</a><p class="px-promise">One payment for this house. Yours to keep. PDF and a private link included.' + (RI.OFFERS.priceIsSample ? ' <span class="state state-sample">Sample price</span>' : '') + '</p>' + (pf.note ? '<p class="small muted">' + RI.esc(pf.note) + '.</p>' : '') + (RI.devTools && RI.OFFERS.reminderEmail.on ? '<p class="xsmall muted">Team: one reminder email ' + RI.OFFERS.reminderEmail.days + ' days after the price is ready, if still locked. Then nothing more.</p>' : '')) +
           '<a class="textlink small" href="' + RI.url('sample/') + '" id="px-sample" target="_blank" rel="noopener">See a sample first ' + RI.icon('arrow','i-sm') + '</a>' +
-          '<p class="xsmall muted">An estimate for planning. No subscription.</p></aside></div>' +
+          '<p class="xsmall muted">An estimate for planning.' + (pro ? '' : ' No subscription.') + '</p></aside></div>' +
       '<div class="tabs-s" role="tablist" aria-label="Details">' +
         '<button role="tab" aria-selected="true" data-tab="unk">What we could not confirm <span class="n">' + unk.length + '</span></button>' +
         '<button role="tab" aria-selected="false" data-tab="dec">What each goal does</button>' +
@@ -300,7 +296,7 @@
       '<div class="tab-p" id="tab-unk">' + (unk.length ? '<p class="small muted">These lines are left out of every total and never shown as zero. Each one says what would settle it.</p><ul class="unk">' + unk.map(function(x){
           var fixPhotos = x[1].state === 'unverified', link = '#/houses/' + h.id + '/intake/' + (fixPhotos ? 'photos' : 'measurements');
           return '<li><span class="state ' + (fixPhotos ? 'state-unverified' : 'state-measure') + '">' + (fixPhotos ? 'Unverified' : 'Needs measurement') + '</span><span><b>' + x[0].name + ', ' + x[1].name.toLowerCase() + '</b><span class="small muted">' + RI.esc(x[1].fix) + ' would settle it.</span></span><a class="btn btn-secondary btn-sm" href="' + link + '" data-fix>' + (fixPhotos ? 'Add the photo' : 'Add the size') + '</a></li>';
-        }).join('') + '</ul><p class="xsmall muted">Adding a photo or a size runs the house again. You get a new version; the old one is kept.</p>' : '<p class="muted">Every line is priced. Nothing is missing.</p>') + '</div>' +
+        }).join('') + '</ul><p class="xsmall muted">Adding a photo or a size runs the house again. You get a new version; the old one is kept.' + (pro ? ' No credit used.' : '') + '</p>' : '<p class="muted">Every line is priced. Nothing is missing.</p>') + '</div>' +
       '<div class="tab-p" id="tab-dec" hidden><p class="small muted">The same parts under three goals.</p><div class="scroll-x"><table class="dec"><thead><tr><th>Part</th>' + RI.PACKAGES.map(function(p){ return '<th>' + p.name + '</th>'; }).join('') + '</tr></thead><tbody>' +
         est.rooms.map(function(r){ return '<tr class="dec-room"><th colspan="4">' + r.name + '</th></tr>' + r.items.map(function(it){ return '<tr><td data-label="Part">' + RI.esc(it.name) + (RI.isHeld(it) ? ' <span class="state ' + (it.state === 'measure' ? 'state-measure' : 'state-unverified') + '">' + (it.state === 'measure' ? 'Needs measurement' : 'Unverified') + '</span>' : '') + '</td>' + ['E','S','P'].map(function(k){ var a = it.pk[k]; return '<td data-label="' + RI.PACKAGES.filter(function(p){ return p.key === k; })[0].name + '">' + (a ? RI.esc(a[0]) : '') + '</td>'; }).join('') + '</tr>'; }).join(''); }).join('') +
         '</tbody></table></div></div>' +
@@ -326,13 +322,13 @@
         oh.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
         hh.setAttribute('tabindex', '-1'); hh.focus({preventScroll:true}); return;
       }
-      var t = e.target.closest('.tz-more[href$="/checkout"]'); if(t && (credit || !A.hasCheckout)){ e.preventDefault(); var b = view.querySelector('#credit-open'); if(b) b.click(); }
+      var t = e.target.closest('.tz-more[href$="/checkout"]'); if(t && (credit || buy || !A.hasCheckout)){ e.preventDefault(); var b = view.querySelector('#credit-open') || view.querySelector('#pro-buy'); if(b) b.click(); }
     });
     RI.syncSeg(view.querySelector('.hm-seg'));
     /* The room buttons; a locked room's button opens with a credit when there is one, as the main button does */
     view.querySelector('#px-open').addEventListener('click', function(e){ var en = e.target.closest('[data-end]'); if(!en || en.getAttribute('data-end') === end) return; end = en.getAttribute('data-end'); drawEnd(); });
     view.querySelector('#px-pick').addEventListener('click', function(e){ var b = e.target.closest('[data-pick]'); if(b && b.getAttribute('data-pick') !== pick){ pick = b.getAttribute('data-pick'); drawRoom('room'); } });
-    view.querySelector('#px-open').addEventListener('click', function(e){ if(e.target.closest('[data-credit]')){ var b = view.querySelector('#credit-open'); if(b) b.click(); } });
+    view.querySelector('#px-open').addEventListener('click', function(e){ if(e.target.closest('[data-credit],[data-probuy]')){ var b = view.querySelector('#credit-open') || view.querySelector('#pro-buy'); if(b) b.click(); } });
     view.querySelector('.pk-cards').addEventListener('click', function(e){ var c = e.target.closest('[data-goal]'); if(c) setGoal(c.getAttribute('data-goal')); });
     view.querySelector('.pk-seg-m').addEventListener('click', function(e){ var c = e.target.closest('[data-goal]'); if(c) setGoal(c.getAttribute('data-goal')); });
     RI.syncSeg(view.querySelector('.pk-seg-m'));
@@ -342,7 +338,8 @@
     var tabs = view.querySelectorAll('.tabs-s [data-tab]');
     tabs.forEach(function(t){ t.addEventListener('click', function(){ tabs.forEach(function(x){ x.setAttribute('aria-selected', x === t); }); ['unk','dec','ph'].forEach(function(k){ view.querySelector('#tab-' + k).hidden = k !== t.getAttribute('data-tab'); }); }); });
     view.querySelector('.tabs-s').addEventListener('keydown', function(e){ if(e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return; var arr = [].slice.call(tabs), i = arr.indexOf(doc.activeElement); if(i < 0) return; var n = arr[(i + (e.key === 'ArrowRight' ? 1 : arr.length - 1)) % arr.length]; n.focus(); n.click(); });
-    var to = view.querySelector('#credit-open'); if(to) to.addEventListener('click', function(){ h.trialOpen = true; A.put(h); RI.toast('Opened with a credit.'); A.go('#/houses/' + h.id + '/presentation'); });
+    var pb = view.querySelector('#pro-buy'); if(pb) pb.addEventListener('click', function(){ A.proBuy(h); });
+    var to = view.querySelector('#credit-open'); if(to) to.addEventListener('click', function(){ A.proSpend(h); RI.toast('Opened. ' + A.proLeftText() + '.'); A.go('#/houses/' + h.id + '/presentation'); });
     if(!A.hasCheckout){ if(pay){ pay.removeAttribute('href'); pay.setAttribute('aria-disabled', 'true'); pay.classList.add('is-off'); pay.textContent = 'The presentation arrives in milestone 4'; } }
   }
 

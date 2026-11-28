@@ -14,6 +14,7 @@
     catch(e){ RI.toast('This browser is out of space for demo photos. Remove a few photos, or reset the demo data.', 'warn'); return false; }
   };
   A.me = function(){ return RI.session(); };
+  /* The builder or agent view (Client houses, client names). Not the paid Pro plan: that is A.proOn() in pro.js, which also gates task lists and Resources */
   A.isPro = function(){ var s = A.me(); return !!s && (s.role === 'builder' || s.type === 'Builder' || s.type === 'builder' || s.type === 'agent' || s.type === 'Agent'); };
   A.mine = function(){ var s = A.me(); return s ? A.all().filter(function(h){ return h.owner === s.email; }) : []; };
   A.get = function(id){ return A.mine().filter(function(h){ return h.id === id; })[0] || null; };
@@ -112,7 +113,7 @@
     }
     return {status:'ready', stage:A.STAGES.length, photos:n, read:n};
   };
-  A.status = function(h){ if(h.status === 'draft') return 'draft'; var s = A.runState(h).status; return s === 'ready' && (h.paid || h.trialOpen) ? 'open' : s; };
+  A.status = function(h){ if(h.status === 'draft') return 'draft'; var s = A.runState(h).status; return s === 'ready' && (h.paid || h.trialOpen || h.proOpen) ? 'open' : s; };
   A.STATUS = {draft:['Draft','st-draft'], queued:['In line','st-work'], reading:['Reading photos','st-work'], planning:['Working out the plan','st-work'], ready:['Price ready','st-ready'], open:['Presentation open','st-open']};
   A.next = function(h){
     var s = A.status(h);
@@ -282,7 +283,7 @@
   function shell(active){
     var s = A.me(), top = doc.getElementById('app-top'), tabs = doc.getElementById('app-tabs');
     var items = [['houses', A.isPro() ? 'Client houses' : 'My houses', '#/houses', 'house']];
-    if(A.isPro()) items.push(['resources','Resources','#/resources','file']);
+    if(A.proOn && A.proOn()) items.push(['resources','Resources','#/resources','file']);
     if(RI.Ref) items.push(['refer','Refer','#/refer','share']);
     items.push(['account','Account','#/account','user']);
     var initials = s ? (s.name || s.email).split(/[\s@.]/).filter(Boolean).slice(0, 2).map(function(x){ return x[0].toUpperCase(); }).join('') : '';

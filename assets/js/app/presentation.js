@@ -78,12 +78,13 @@
     if(A.status(h) !== 'open'){ RI.toast('Open the presentation from the price page first.', 'lock'); A.go('#/houses/' + h.id); return; }
     var est = A.estimate(h); RI.CURRENT = est; RI.track('presentation_opened', {house:h.id});
     h.pk = h.pk || 'S'; h.off = h.off || {};
-    var pro = A.isPro(), open = {}, held = A.heldCount(est), tab = 'rooms';
+    /* Task lists come with Pro (Sam, Nov 27): Pro = everything in the $50 report + task lists */
+    var pro = A.proOn(), open = {}, held = A.heldCount(est), tab = 'rooms';
     open[est.rooms[0].key] = true;
     view.innerHTML = '<div class="app-wrap pres">' +
       '<a class="back" href="#/houses/' + h.id + '">' + RI.icon('arrow','i-sm flip') + 'Price by package</a>' +
       '<header class="pr-head">' + (A.cover(h) ? '<img class="pr-photo" src="' + A.cover(h) + '" alt="' + RI.esc(A.addr(h)) + '">' : '') + '<div class="pr-ht"><p class="label">Presentation' + (h.version > 1 ? ' · version ' + h.version : '') + '</p><h1>' + RI.esc(A.addr(h)) + '</h1><p class="muted small">' + RI.esc(A.place(h)) + ' · ' + RI.esc(h.title || '') + '</p><p class="xsmall muted">Based on: ' + A.photoCount(h) + ' photos' + (Object.keys(h.sizes || {}).length ? ' and your room sizes' : '') + ', as of ' + A.date(h.run.start) + '. Prepared for ' + RI.esc(h.client || A.me().name) + '.</p></div>' +
-        '<div class="pr-actions"><button type="button" class="btn btn-secondary btn-sm" id="share">' + RI.icon('share','i-sm') + 'Share</button><button type="button" class="btn btn-secondary btn-sm" id="pdf">' + RI.icon('file','i-sm') + 'PDF</button><button type="button" class="btn btn-secondary btn-sm" id="fb">Feedback</button></div></header>' +
+        '<div class="pr-actions"><button type="button" class="btn btn-secondary btn-sm" id="share">' + RI.icon('share','i-sm') + 'Share</button><button type="button" class="btn btn-secondary btn-sm" id="pdf">' + RI.icon('file','i-sm') + 'PDF</button><button type="button" class="btn btn-secondary btn-sm" id="fb">Feedback</button></div>' + (A.proOn() ? '<p class="pro-free">' + RI.icon('check','i-sm') + 'Downloads, shares and fixes to this house use no credit.</p>' : '') + '</header>' +
       '<div class="pr-layout"><aside class="pr-side" id="pr-bar" aria-label="Package and total"><div class="pr-side-in"><div class="seg" role="tablist" aria-label="Package" id="pk"><span class="seg-thumb"></span>' + RI.PACKAGES.map(function(x){ return '<button type="button" role="tab" data-pk="' + x.key + '" aria-selected="' + (x.key === h.pk) + '">' + x.name + '</button>'; }).join('') + '</div>' +
         '<span class="small muted pr-goal" id="pr-goal"></span><div class="pr-total" aria-live="polite"><span class="lbl"><span id="pr-off"></span>' + (held.u + held.m ? '<span class="state state-partial">Partial</span>' : '') + '</span><span class="range-txt" id="pr-tot"></span><div data-scale="0,1"><div class="rl' + (held.u + held.m ? ' partial' : '') + '" id="pr-rl" data-low="0" data-high="0"></div></div></div><button type="button" class="linkbtn small pr-reset" id="pr-reset">Turn all items on</button></div></aside><div class="pr-main">' +
       '<div class="tabs-s" role="tablist" aria-label="Views" id="views">' + [['rooms','Rooms'],['trades','Trades'],['products','Products'],['unk','Not confirmed <span class="n' + (held.u + held.m ? ' n-warn n-pulse' : '') + '">' + (held.u + held.m) + '</span>'],['extras','Potential extra costs'],['notinc','Not included'],['sys','House systems']].concat(pro ? [['tasks','Task lists']] : []).map(function(t, i){ return '<button role="tab" data-v="' + t[0] + '" aria-selected="' + (i === 0) + '">' + t[1] + '</button>'; }).join('') + '</div>' +
@@ -222,7 +223,7 @@
     }
     function viewUnk(){
       var list = []; est.rooms.forEach(function(r){ r.items.forEach(function(it){ if(RI.isHeld(it)) list.push([r, it]); }); });
-      pv.innerHTML = list.length ? '<p class="small muted tab-intro">Left out of every total, never shown as zero. Add what is missing and the house runs again as a new version.</p><ul class="unk">' + list.map(function(x){ var ph = x[1].state === 'unverified'; return '<li>' + heldTag(x[1]) + '<span><b>' + x[0].name + ', ' + x[1].name.toLowerCase() + '</b><span class="small muted">' + RI.esc(x[1].fix) + ' would settle it.</span></span><a class="btn btn-secondary btn-sm" href="#/houses/' + h.id + '/intake/' + (ph ? 'photos' : 'measurements') + '">' + (ph ? 'Add the photo' : 'Add the size') + '</a></li>'; }).join('') + '</ul>' : '<div class="empty-s">' + RI.icon('check') + '<p>Every line in this house is priced.</p></div>';
+      pv.innerHTML = list.length ? '<p class="small muted tab-intro">Left out of every total, never shown as zero. Add what is missing and the house runs again as a new version.' + (A.proOn() ? ' No credit used.' : '') + '</p><ul class="unk">' + list.map(function(x){ var ph = x[1].state === 'unverified'; return '<li>' + heldTag(x[1]) + '<span><b>' + x[0].name + ', ' + x[1].name.toLowerCase() + '</b><span class="small muted">' + RI.esc(x[1].fix) + ' would settle it.</span></span><a class="btn btn-secondary btn-sm" href="#/houses/' + h.id + '/intake/' + (ph ? 'photos' : 'measurements') + '">' + (ph ? 'Add the photo' : 'Add the size') + '</a></li>'; }).join('') + '</ul>' : '<div class="empty-s">' + RI.icon('check') + '<p>Every line in this house is priced.</p></div>';
     }
     function viewSys(){
       pv.innerHTML = '<p class="small muted tab-intro">The roof, heating and cooling, water heater and electrical panel are never scored and never part of a package total. Education only; have each one inspected. <span class="state state-sample">Sample guidance</span></p><div class="mech">' + est.mechanicals.map(RI.mechCard).join('') + '</div>';
@@ -255,11 +256,38 @@
       pv.innerHTML = '<p class="small muted tab-intro">What this estimate does not cover.</p><ul class="notinc">' + RI.NOT_INCLUDED.filter(function(x){ return x !== 'Items you turned off'; }).map(function(x){ return '<li>' + RI.icon('x','i-sm') + '<span>' + x + '</span></li>'; }).join('') +
         '<li>' + RI.icon('x','i-sm') + '<span>Items you turned off' + (offs.length ? ': ' + offs.join('; ') : ' (none right now)') + '</span></li></ul>';
     }
+    /* Task lists (user, Nov 27 2026: "too much scrolling"): the Trades tab's open-and-close trade groups; each piece of
+       work is one row (room and net quantity beside it) with its tasks as a numbered line, not one table row per task.
+       Trades stay open across a package switch. The CSV keeps one row per task. */
     function viewTasks(){
-      var rows = []; est.rooms.forEach(function(r){ r.items.forEach(function(it){ if(RI.isHeld(it) || h.off[it.id]) return; var a = it.pk[h.pk]; if(a[1] == null) return; tasksFor(it, a[0]).forEach(function(t){ rows.push([t[0], t[1], r.name, t[2], a[0]]); }); }); });
-      rows.sort(function(a, b){ return a[0].localeCompare(b[0]); });
-      pv.innerHTML = '<div class="tasks-head"><p class="small muted">Tasks for the ' + RI.PACKAGES.filter(function(x){ return x.key === h.pk; })[0].name + ' goal, by trade, with net quantities. Turned-off items are left out.</p><button type="button" class="btn btn-secondary btn-sm" id="csv">' + RI.icon('file','i-sm') + 'Download CSV</button></div>' +
-        '<div class="scroll-x"><table class="dec tasks-t"><thead><tr><th>Trade</th><th>Task</th><th>Room</th><th>Net quantity</th></tr></thead><tbody>' + rows.map(function(r, i){ return '<tr' + (i && rows[i - 1][0] === r[0] ? '' : ' class="first"') + '><td data-label="Trade">' + (i && rows[i - 1][0] === r[0] ? '' : '<b>' + r[0] + '</b>') + '</td><td data-label="Task">' + RI.esc(r[1]) + '<span class="xsmall muted">' + RI.esc(r[4]) + '</span></td><td data-label="Room">' + r[2] + '</td><td data-label="Net quantity">' + RI.esc(r[3]) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+      var openG = [].slice.call(pv.querySelectorAll('.tk .tv-g[open]')).map(function(d){ return d.getAttribute('data-g'); });
+      var work = []; est.rooms.forEach(function(r){ r.items.forEach(function(it){ if(RI.isHeld(it) || h.off[it.id]) return; var a = it.pk[h.pk]; if(a[1] == null) return; work.push({trade:it.trade, room:r.name, act:a[0], qty:it.qty, steps:tasksFor(it, a[0]).map(function(t){ return t[1]; })}); }); });
+      work.sort(function(a, b){ return a.trade.localeCompare(b.trade); });
+      var rows = [], groups = [];
+      work.forEach(function(w){
+        w.steps.forEach(function(s){ rows.push([w.trade, s, w.room, w.qty, w.act]); });
+        var g = groups[groups.length - 1]; if(!g || g.trade !== w.trade){ g = {trade:w.trade, work:[], rooms:{}, n:0}; groups.push(g); }
+        g.work.push(w); g.rooms[w.room] = 1; g.n += w.steps.length;
+      });
+      var pkName = RI.PACKAGES.filter(function(x){ return x.key === h.pk; })[0].name, plural = function(n, w){ return n + ' ' + w + (n === 1 ? '' : 's'); };
+      var lower = function(s){ return s.charAt(0).toLowerCase() + s.slice(1); };
+      function row(w){
+        var steps = w.steps.length === 1 && w.steps[0] === w.act ? '' : '<ol class="tk-steps">' + w.steps.map(function(s){ return '<li>' + RI.esc(s) + '</li>'; }).join('') + '</ol>';
+        return '<li class="tk-i"><div class="tk-top"><b>' + RI.esc(w.act) + '</b><span class="tk-where">' + RI.esc(w.room) + ' · ' + RI.esc(w.qty) + '</span></div>' + steps + '</li>';
+      }
+      pv.innerHTML = '<div class="tasks-head"><p class="small muted">Tasks for the ' + pkName + ' goal, by trade, with net quantities. Turned-off items are left out.</p>' +
+        (groups.length ? '<div class="tasks-act"><button type="button" class="linkbtn small" id="tk-all" aria-controls="tk-list">Open all</button><button type="button" class="btn btn-secondary btn-sm" id="csv">' + RI.icon('file','i-sm') + 'Download CSV</button></div>' : '') + '</div>' +
+        (groups.length ? '<div class="tv tk" id="tk-list">' + groups.map(function(g){
+          var rk = Object.keys(g.rooms);
+          return '<details class="tv-g" data-g="' + RI.esc(g.trade) + '"' + (openG.indexOf(g.trade) >= 0 ? ' open' : '') + '><summary><span class="tv-n"><b>' + RI.esc(g.trade) + '</b><small>' + plural(g.work.length, 'item') + ' · ' + plural(g.n, 'task') + ' · ' + (rk.length === 1 ? RI.esc(rk[0]) : rk.length + ' rooms') + '</small></span><span class="tv-chev" aria-hidden="true"></span></summary>' +
+            '<div class="tv-body"><ul class="tk-l">' + g.work.map(row).join('') + '</ul>' +
+            '<button type="button" class="tv-close" data-tv-close>Close ' + RI.esc(lower(g.trade)) + '<span class="tv-chev up" aria-hidden="true"></span></button></div></details>';
+        }).join('') + '</div>' : '<p class="tk-empty small">Nothing to list for the ' + pkName + ' goal. Every item is turned off or not priced yet.</p>');
+      if(!groups.length) return;
+      var list = pv.querySelector('#tk-list'), all = pv.querySelector('#tk-all'), ds = list.querySelectorAll('.tv-g');
+      function sync(){ var shut = [].some.call(ds, function(d){ return !d.open; }); all.textContent = shut ? 'Open all' : 'Close all'; all.setAttribute('aria-expanded', !shut); }
+      list.addEventListener('toggle', sync, true); sync();
+      all.addEventListener('click', function(){ var shut = [].some.call(ds, function(d){ return !d.open; }); [].forEach.call(ds, function(d){ d.open = shut; }); });
       pv.querySelector('#csv').addEventListener('click', function(){
         var csv = 'Trade,Task,Room,Net quantity,Action\n' + rows.map(function(r){ return r.map(function(c){ return '"' + String(c).replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
         var a = doc.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'})); a.download = A.addr(h).replace(/\W+/g, '-').toLowerCase() + '-tasks.csv'; doc.body.appendChild(a); a.click(); a.remove();
@@ -311,7 +339,7 @@
           '<div class="cta-row" style="justify-content:space-between"><a class="textlink" href="' + link(sh) + '" target="_blank" rel="noopener">Open the share view</a><button type="button" class="linkbtn" id="sh-off">Turn off this link</button></div><p class="xsmall muted">Created ' + A.date(sh.created) + '. Shows the ' + RI.PACKAGES.filter(function(x){ return x.key === h.pk; })[0].name + ' goal and every item you have on.</p>'
           : '<p>Create a private, read-only link for a partner, an agent or a lender. You can turn it off at any time.</p><button type="button" class="btn btn-primary" id="sh-make">' + RI.icon('share','i-sm') + 'Create a share link</button>' + ((h.shares || []).length ? '<p class="xsmall muted">' + h.shares.length + ' earlier link' + (h.shares.length > 1 ? 's are' : ' is') + ' turned off.</p>' : '');
       }
-      var d = A.dialog('Share this presentation', '<div id="sh-b">' + body() + '</div>');
+      var d = A.dialog('Share this presentation', '<div id="sh-b">' + body() + '</div>' + (A.proOn() ? '<p class="xsmall muted pro-share">Sharing never uses a credit.</p>' : ''));
       d.addEventListener('click', function(e){
         if(e.target.closest('#sh-make')){ h.shares = h.shares || []; h.shares.push({token:A.uid('s') + A.uid(''), created:Date.now(), active:true, forName:h.client || A.me().name}); save(); RI.track('share_created', {house:h.id}); d.querySelector('#sh-b').innerHTML = body(); RI.fillIcons(d); RI.toast('Share link created.', 'share'); }
         if(e.target.closest('#sh-copy')){ var u = d.querySelector('#sh-url'); u.select(); (navigator.clipboard ? navigator.clipboard.writeText(u.value) : Promise.reject()).then(function(){ RI.toast('Link copied.', 'share'); }, function(){ doc.execCommand && doc.execCommand('copy'); RI.toast('Link copied.', 'share'); }); }

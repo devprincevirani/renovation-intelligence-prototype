@@ -89,6 +89,7 @@
     search:'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
     chev:'<path d="M6 9.5l6 6 6-6"/>',
     dot:'<circle cx="12" cy="12" r="3"/>',
+    trend:'<path d="M3.5 20h17"/><path d="M5.5 15.5l4.5-5 3.5 3.5 6-7"/><path d="M15 7h4.5v4.5"/>',
     tag:'<path d="M3.5 12.2V4.5a1 1 0 011-1h7.7l8.3 8.3a1.2 1.2 0 010 1.7l-7 7a1.2 1.2 0 01-1.7 0z"/><circle cx="8" cy="8" r="1.6"/>',
     key:'<circle cx="8" cy="15" r="4.5"/><path d="M11.3 11.8L20 3.5M16.5 7l2.5 2.5M14 9.5l2 2"/>',
     exit:'<path d="M14 4.5h3.5a2 2 0 012 2v11a2 2 0 01-2 2H14"/><path d="M10 16l4-4-4-4M14 12H4.5"/>',
@@ -120,7 +121,7 @@
 
   var LOGO = '<svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect x=".5" y=".5" width="33" height="33" rx="4" fill="none" stroke="currentColor" stroke-opacity=".35"/><path d="M8 17.5L17 10l9 7.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10.5 16v7.5h13V16" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 27.5h18" stroke="#C9A57F" stroke-width="1.6"/><path d="M8 25.5v4M26 25.5v4" stroke="#C9A57F" stroke-width="1.6"/></svg>';
   RI.LOGO = LOGO;
-  function brand(){ return '<a class="brand" href="' + RI.url('') + '" aria-label="Renovation Intelligence, home">' + LOGO + '<span><span class="bn">Renovation Intelligence</span></span></a>'; }
+  function brand(){ return '<a class="brand" href="' + (RI.url('') || './') + '" aria-label="Renovation Intelligence, home">' + LOGO + '<span><span class="bn">Renovation Intelligence</span></span></a>'; }
 
   /* ---------- Primary action, per site state (docs/APP_FLOW.md section 3) ---------- */
   function ctaFor(variant){
@@ -129,7 +130,7 @@
     /* Business model v1.0 (Nov 2026): free cost ranges, the $50 detailed report, Pro at $99 a month */
     var O = RI.OFFERS || {}, P = O.pro || {};
     if(variant === 'free') return pre ? {t:'Join the waitlist', h:'waitlist/'} : {t:'Explore renovation costs for free', h:'signup/'};
-    if(variant === 'report') return pre ? {t:'See what the $' + O.price + ' report includes', h:'pricing/#report'} : {t:'Get your detailed report, $' + O.price, h:'signup/?next=report'};
+    if(variant === 'report') return pre ? {t:'See what the $' + O.price + ' report includes', h:'pricing/#report'} : {t:'Get your detailed renovation report, $' + O.price, h:'signup/?next=report'};
     if(variant === 'pro') return pre ? {t:'Join the waitlist as a professional', h:'waitlist/?type=agent'} : {t:'Get Renovation Intelligence Pro', h:'signup/?plan=pro'};
     return pre ? {t:'Join the waitlist', h:'waitlist/'} : {t:'Start your estimate', h:'signup/'};
   }
@@ -190,13 +191,16 @@
   function renderFooter(){
     var host = doc.getElementById('site-foot'); if(!host) return;
     var areas = RI.AREAS ? Object.keys(RI.AREAS).map(function(k){ return '<li><a href="' + RI.url('renovation-cost/' + k + '/') + '">' + RI.AREAS[k].name + '</a></li>'; }).join('') : '';
-    host.outerHTML = '<footer class="site-foot"><div class="wrap"><div class="foot-grid">' +
-      '<div class="foot-brand">' + brand() + '<p>An estimate for one specific house, with a Low and a High under three goals, and every unknown named.</p><div><a class="btn btn-ivory btn-sm" data-cta></a></div></div>' +
+    /* A page may hand the footer its closing block (the last screen is the close and the footer together)
+       and one credit line for its photos (home page, Nov 2026) */
+    var closeT = doc.getElementById('page-close'), credT = doc.getElementById('page-credits');
+    host.outerHTML = '<footer class="site-foot' + (closeT ? ' has-close closing' : '') + '">' + (closeT ? '<div class="foot-close"><div class="wrap">' + closeT.innerHTML + '</div></div>' : '') + '<div class="wrap">' + (closeT ? '<div class="foot-rest">' : '') + '<div class="foot-grid">' +
+      '<div class="foot-brand">' + brand() + '<p>An estimate for one specific house, with a Low and a High under three goals, and every unknown named.</p>' + (closeT ? '' : '<div><a class="btn btn-ivory btn-sm" data-cta></a></div>') + '</div>' +
       '<div><h4>Product</h4><ul><li><a href="' + RI.url('how-it-works/') + '">How it works</a></li><li><a href="' + RI.url('pricing/') + '">Pricing</a></li><li><a href="' + RI.url('professionals/') + '">For professionals</a></li><li><a href="' + RI.url('sample/') + '">Sample report</a></li><li><a href="' + RI.url('renovation-cost/') + '">Renovation cost</a></li><li><a href="' + RI.url('waitlist/') + '">Waitlist</a></li><li><a href="' + RI.url('login/') + '">Log in</a></li></ul></div>' +
       '<div><h4>Renovation cost by area</h4><p class="xsmall" style="margin:0 0 6px;opacity:.75">Michigan</p><ul>' + areas + '</ul></div>' +
       '<div><h4>Legal</h4><ul><li><a href="' + RI.url('terms/') + '">Terms of use</a></li><li><a href="' + RI.url('privacy/') + '">Privacy</a></li><li><a href="' + RI.url('disclaimer/') + '">Estimate disclaimer</a></li><li><a href="' + RI.url('contact/') + '">Contact</a></li></ul></div>' +
-      '</div><div class="foot-bottom"><div class="disc"><p>Every figure is an estimate for planning, not a contractor\'s bid or a fixed price. Items we could not confirm are labeled and left out of the total. The roof, heating and cooling, water heater and electrical panel get guidance only, never a price.</p><p>Sample houses and figures shown on this site are sample data.</p></div>' +
-      (RI.devTools ? '<div class="foot-state"><span class="xsmall">Team: site state</span>' + modeSeg(true) + '</div>' : '') + '</div></div></footer>';
+      '</div><div class="foot-bottom"><div class="disc"><p>Every figure is an estimate for planning, not a contractor\'s bid or a fixed price. Items we could not confirm are labeled and left out of the total. The roof, heating and cooling, water heater and electrical panel get guidance only, never a price.</p><p>Sample houses and figures shown on this site are sample data.</p>' + (credT ? '<p class="foot-credit">' + credT.innerHTML + '</p>' : '') + '</div>' +
+      (RI.devTools ? '<div class="foot-state"><span class="xsmall">Team: site state</span>' + modeSeg(true) + '</div>' : '') + '</div>' + (closeT ? '</div>' : '') + '</div></footer>';
   }
 
   /* ---------- Segmented control with sliding thumb ---------- */
@@ -287,7 +291,7 @@
       ['Legal and other', [['Terms', 'terms/', 'Terms of use', 'file'], ['Privacy', 'privacy/', 'How data is handled', 'shield'], ['Disclaimer', 'disclaimer/', 'An estimate, not a bid', 'info'], ['Page not found', '404.html', 'The 404 screen', 'warn']]]
     ]},
     {key:'accounts', name:'Accounts', icon:'user', sections:[
-      ['Sign up', [['Sign up', 'signup/', 'Before launch: closed, points to the waitlist', 'user'], ['Sign up from Sam\'s trial invite', 'signup/?invite=demo-trial', 'The invited path, with 3 invite credits', 'mail'], ['Sign up for the 15-day trial', 'signup/?invite=trial-invite', 'Email locked, choose a password', 'clock'], ['Sign up from a referral link', 'signup/?ref=JORDAN10', 'After launch: names who shared it', 'share'], ['Check your email', 'verify-email/?email=homeowner@demo.ri', 'Confirm the address after sign up', 'mail'], ['Email link expired', 'verify-email/?email=homeowner@demo.ri&state=expired', 'The link is older than 24 hours', 'clock']]],
+      ['Sign up', [['Sign up', 'signup/', 'Before launch: closed, points to the waitlist', 'user'], ['Sign up from Sam\'s trial invite', 'signup/?invite=demo-trial', 'The invited path', 'mail'], ['Sign up for the 15-day trial', 'signup/?invite=trial-invite', 'Email locked, choose a password', 'clock'], ['Sign up from a referral link', 'signup/?ref=JORDAN10', 'After launch: names who shared it', 'share'], ['Check your email', 'verify-email/?email=homeowner@demo.ri', 'Confirm the address after sign up', 'mail'], ['Email link expired', 'verify-email/?email=homeowner@demo.ri&state=expired', 'The link is older than 24 hours', 'clock']]],
       ['Log in and passwords', [['Log in', 'login/', 'Email and password, plus the demo roles', 'lock'], ['Forgot password', 'forgot-password/', 'Ask for a reset link', 'refresh'], ['Set a new password', 'reset-password/?email=homeowner@demo.ri', 'Opened from the reset link', 'lock']]],
       ['Staff', [['Staff invite', 'invite/?t=demo-staff', 'Accept Sam\'s invite and set a password', 'shield'], ['Staff invite expired', 'invite/?t=old', 'The invite link no longer works', 'clock']]]
     ]},
@@ -443,20 +447,13 @@
         '<div class="dlg-body"><div class="dlg-sec"><h3>Log in as</h3><div class="role-list">' + RI.roleButtons() + '</div><p class="xsmall muted">No password needed. The dashboards are built in the next phases; for now each opens a preview page.</p></div>' +
         '<div class="dlg-sec"><h3>Site state</h3>' + modeSeg(false) + '<p class="xsmall muted">Before launch, the main button is Join the waitlist and only the contacts Sam invites can sign up. <a href="' + RI.url('signup/?invite=demo-trial') + '">Open Sam\'s trial invite</a></p></div>' +
         '<div class="dlg-sec"><h3>Staff</h3><p class="xsmall muted">Sam invites staff from the console. <a href="' + RI.url('invite/?t=demo-staff') + '">Open a demo staff invite</a></p></div>' +
-        '<div class="dlg-sec"><h3>Offers and limits</h3><p class="xsmall muted">One place for every setting (RI.OFFERS in data.js). Sam decides the numbers and dates.</p>' +
-          '<label class="switch"><input type="checkbox" data-offer="founding"' + (RI.OFFERS.founding.on ? ' checked' : '') + '><span class="track"></span><span>Founding price $' + RI.OFFERS.founding.price + ' for waitlist members, until ' + RI.OFFERS.founding.ends + '</span></label>' +
-          '<label class="switch"><input type="checkbox" data-offer="second"' + (RI.OFFERS.secondHouse.on ? ' checked' : '') + '><span class="track"></span><span>Second house $' + RI.OFFERS.secondHouse.price + '</span></label>' +
-          '<p class="xsmall muted">Price $' + RI.OFFERS.price + (RI.OFFERS.priceIsSample ? ' (sample)' : '') + ' · ' + RI.OFFERS.inviteCredits + ' invite credits · ' + RI.OFFERS.freeRuns + ' free runs, +' + RI.OFFERS.runsPerPayment + ' per payment · price ready email ' + (RI.OFFERS.priceReadyEmail ? 'on' : 'off') + ' · reminder after ' + RI.OFFERS.reminderEmail.days + ' days ' + (RI.OFFERS.reminderEmail.on ? 'on' : 'off') + '</p></div>' +
+        '<div class="dlg-sec"><h3>Prices</h3><p class="xsmall muted">The prices in the business model (RI.OFFERS in data.js).</p>' +
+          '<p class="xsmall muted">Detailed report $' + RI.OFFERS.price + ' · Pro $' + RI.OFFERS.pro.price + ' a month, ' + RI.OFFERS.pro.credits + ' houses, extra houses $' + RI.OFFERS.pro.extra + ' · price ready email ' + (RI.OFFERS.priceReadyEmail ? 'on' : 'off') + ' · reminder after ' + RI.OFFERS.reminderEmail.days + ' days ' + (RI.OFFERS.reminderEmail.on ? 'on' : 'off') + '</p></div>' +
         '<div class="dlg-sec"><h3>Funnel events</h3><div class="funnel-mini" id="funnel-mini"></div><p class="xsmall muted">Counted in this browser. The console\'s funnel view counts them on the server.</p></div>' +
         '<div class="dlg-sec"><h3>Demo data</h3><div class="cta-row"><button type="button" class="btn btn-secondary btn-sm" data-reset-demo>' + RI.icon('refresh','i-sm') + 'Reset demo data</button>' +
         (RI.session() ? '<button type="button" class="btn btn-secondary btn-sm" data-logout>Log out</button>' : '') + '</div><p class="xsmall muted">Accounts, waitlist entries and choices are kept in this browser only.</p></div></div>';
       doc.body.appendChild(d);
       d.addEventListener('click', function(e){ if(e.target === d || e.target.closest('[data-dlg-close]')) d.close(); });
-      d.addEventListener('change', function(e){ var k = e.target.getAttribute('data-offer'); if(!k) return;
-        var cur = {}; try { cur = JSON.parse(localStorage.getItem('ri-offers') || '{}') || {}; } catch(err){}
-        cur[k] = e.target.checked; try { localStorage.setItem('ri-offers', JSON.stringify(cur)); } catch(err){}
-        if(k === 'founding') RI.OFFERS.founding.on = e.target.checked; else RI.OFFERS.secondHouse.on = e.target.checked;
-        RI.toast('Offer ' + (e.target.checked ? 'on' : 'off') + ' in this browser. Reload a price page to see it.'); });
     }
     var counts = {}; RI.store.get('events', []).forEach(function(e){ counts[e.e] = (counts[e.e] || 0) + 1; });
     d.querySelector('#funnel-mini').innerHTML = RI.FUNNEL.map(function(f){ return '<div><span>' + f[1] + '</span><b>' + (counts[f[0]] || 0) + '</b></div>'; }).join('');
@@ -580,6 +577,20 @@
     doc.querySelectorAll('[data-gv="ranges"]').forEach(function(el){
       el.innerHTML = [['E','Essential'],['S','Standard'],['P','Premium']].map(function(k){ var t = T[k[0]], on = k[0] === 'S';
         return '<div class="gv-r' + (on ? ' on' : '') + '"><span class="gv-rn">' + k[1] + '</span><span class="gv-rv">' + full(t.low) + ' <em>to</em> ' + full(t.high) + '</span><span class="gv-rl" aria-hidden="true"><span class="gv-rz' + (t.partial ? ' part' : '') + '" style="left:' + (t.low / max * 100) + '%;width:' + ((t.high - t.low) / max * 100) + '%"></span></span></div>'; }).join('');
+    });
+    /* Step 3 on the home page: the price card for one house. The three goals on one scale, and what is left out
+       of the total named in plain words (DESIGN.md 8.4). From the sample house only. */
+    doc.querySelectorAll('[data-gv="price"]').forEach(function(el){
+      var S = RI.SAMPLE, m = 0, u = 0, k50 = 50000 / max * 100, k100 = 100000 / max * 100;
+      S.rooms.forEach(function(r){ r.items.forEach(function(it){ if(it.state === 'measure') m++; else if(it.state === 'unverified') u++; }); });
+      var ph = (S.facts.filter(function(f){ return f[0] === 'Photos'; })[0] || [])[1] || '';
+      var parts = []; if(m) parts.push(m + ' need' + (m === 1 ? 's' : '') + ' measurement'); if(u) parts.push(u + ' unverified');
+      el.innerHTML = '<div class="gp-head"><img src="' + RI.img(S.img) + '" alt=""><span class="gp-t"><b>' + RI.esc(S.title) + '</b><small>' + RI.esc(ph ? ph.replace(/^(\d+),? in /, '$1 photos in ') : '') + '</small></span><span class="state state-partial">Partial</span></div>' +
+        '<div class="gp-rows">' + RI.PACKAGES.map(function(p){ var t = T[p.key], on = p.key === 'S';
+          return '<div class="gp-r' + (on ? ' on' : '') + '"><span class="gp-n"><b>' + p.name + '</b><small>' + p.goal + '</small></span><span class="gp-v">' + full(t.low) + ' <em>to</em> ' + full(t.high) + '</span>' +
+            '<span class="gv-rl gp-l"><span class="gv-rz' + (t.partial ? ' part' : '') + '" style="left:' + (t.low / max * 100) + '%;width:' + ((t.high - t.low) / max * 100) + '%"></span></span></div>';
+        }).join('') + '<div class="gp-axis"><span style="left:0">$0</span><span style="left:' + k50 + '%">$50k</span><span style="left:' + k100 + '%">$100k</span></div></div>' +
+        (parts.length ? '<p class="gp-unk">' + RI.icon('info','i-sm') + '<span><b>' + (m + u) + ' item' + (m + u === 1 ? '' : 's') + '</b> left out of the total: ' + parts.join(', ') + '.</span></p>' : '');
     });
     var items = (RI.SAMPLE.rooms[0] || {}).items || [], item = function(id){ return items.filter(function(x){ return x.id === id; })[0]; };
     doc.querySelectorAll('[data-gv="pres"]').forEach(function(el){
