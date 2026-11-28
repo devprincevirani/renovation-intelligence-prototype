@@ -3770,3 +3770,98 @@ dialog.dlg.dlg-drawer.ax-open{width:min(1040px,100vw)}
   .refc-btns{flex:1 1 100%}
   .refc-btns .btn{flex:1}
 }
+
+/* ---------- Blog (business model 5; Sam's roles answer 9). The editor reuses the Guidance grid, panes and checks ---------- */
+/* The list (Nov 28): one row per article. Status and the buttons get fixed-width columns from 760, the Author column
+   and a header row from 1100, so every row lines up */
+.bg-tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px}
+.bg-tools .c-search{flex:1 1 220px;max-width:340px}
+.bg-list{list-style:none;margin:0;padding:0;border:1px solid var(--border);border-radius:8px;background:var(--raised);overflow:hidden}
+.bg-lhead{display:none}
+.bg-row{display:grid;grid-template-columns:minmax(0,1fr);gap:10px 16px;align-items:center;padding:12px 14px;border-top:1px solid var(--border-soft);transition:background var(--fast)}
+.bg-lhead+.bg-row{border-top:0}
+.bg-row:hover{background:#FBF9F5}
+.bg-main{display:grid;grid-template-columns:88px minmax(0,1fr);gap:14px;align-items:center;min-width:0;color:var(--text);text-decoration:none}
+.bg-th{display:block;width:88px;height:62px;object-fit:cover;border-radius:4px;background:var(--sunken)}
+.bg-tx{display:grid;gap:4px;min-width:0}
+.bg-tx b{font-weight:600;font-size:.98rem;line-height:1.3}
+.bg-main:hover .bg-tx b{text-decoration:underline;text-underline-offset:3px}
+.bg-sub{display:flex;flex-wrap:wrap;font-size:.8rem;color:var(--muted)}
+.bg-sub>span+span::before{content:"\00B7";padding:0 7px}
+.bg-sub .sm{color:#33607E;font-weight:600}
+.bg-aum{font-size:.8rem;color:var(--muted)}
+.bg-au{display:none;align-items:center;gap:10px;min-width:0;font-size:.86rem;color:var(--text)}
+.bg-au span{min-width:0;line-height:1.3}
+.bg-st{display:grid;gap:4px;justify-items:start;padding-left:102px}
+.bg-st small{font-size:.8rem;color:var(--muted)}
+.bg-acts{display:none}
+.bg-ic{width:40px;height:40px;display:grid;place-items:center;border:1px solid var(--border);border-radius:4px;background:var(--raised);color:var(--deep-forest)}
+.bg-ic:hover{border-color:var(--border-strong)}
+@media (max-width:759px){ .bg-sub .u{display:none} }
+@media (min-width:760px){
+  .bg-row{grid-template-columns:minmax(0,1fr) 190px 92px;padding:12px 16px}
+  .bg-st{padding-left:0}
+  .bg-acts{display:flex;gap:6px;justify-content:flex-end}
+}
+@media (min-width:1100px){
+  .bg-lhead,.bg-row{grid-template-columns:minmax(0,1fr) 210px 190px 92px}
+  .bg-lhead{display:grid;gap:16px;padding:10px 16px;background:#F2EAE0;font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .bg-lhead span:first-child{padding-left:102px}
+  .bg-au{display:flex}
+  .bg-aum{display:none}
+}
+/* The editor's fields */
+.bg-slug{display:flex;align-items:stretch}
+.bg-slug>span{display:flex;align-items:center;padding:0 10px;border:1px solid var(--border-strong);border-right:0;border-radius:4px 0 0 4px;background:var(--sunken);color:var(--muted);font-size:.9rem}
+.bg-slug .input{border-radius:0 4px 4px 0;min-width:0}
+.bg-lib{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.bg-lib label{color:var(--muted)}
+.bg-altl{margin-top:4px;font-weight:600}
+.gu-count.over{color:var(--bad);font-weight:600}
+/* Section 6 "Article": a rich text box. The toolbar stays in view under the top bar while writing a long article */
+.bg-ed .gu-form>*{min-width:0}
+.bg-rte{min-width:0;border:1px solid var(--border-strong);border-radius:8px;background:var(--raised)}
+.bg-rte:focus-within{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.bg-tb{position:sticky;top:65px;z-index:5;display:flex;flex-wrap:nowrap;align-items:center;gap:2px;overflow-x:auto;scrollbar-width:none;padding:6px 8px;border-bottom:1px solid var(--border);border-radius:8px 8px 0 0;background:#FBFAF7}
+.bg-tb::-webkit-scrollbar{display:none}
+@media (min-width:1080px){ .bg-tb{top:67px} }
+.bg-tb .sep{flex:none;width:1px;height:24px;margin:0 6px;background:var(--border)}
+.bg-tb select{flex:none;min-height:36px;padding:0 28px 0 10px;border:1px solid var(--border);border-radius:4px;background:var(--raised) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23303332' stroke-width='2'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E") no-repeat right 8px center/14px;font:inherit;font-size:.86rem;font-weight:600;color:var(--text);appearance:none;cursor:pointer}
+.bg-tbtn{flex:none;min-width:36px;height:36px;display:inline-grid;place-items:center;padding:0 8px;border:1px solid transparent;border-radius:4px;background:none;color:var(--text);font:inherit;font-size:.92rem;font-weight:600;cursor:pointer}
+.bg-tbtn:hover{background:var(--sunken)}
+.bg-tbtn[aria-pressed="true"]{background:var(--deep-forest);color:#fff}
+.bg-tbtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bg-tbtn .b{font-weight:700;font-size:1rem}
+.bg-tbtn .it{font-style:italic;font-family:Georgia,serif;font-size:1.05rem}
+.bg-doc{min-height:320px;padding:18px 20px 24px;font-size:1rem;line-height:1.7;color:var(--text);outline:0;overflow-wrap:anywhere}
+.bg-doc>*{margin:0}
+.bg-doc>*+*{margin-top:12px}
+.bg-doc>*+h2{margin-top:22px}
+/* Chrome sometimes puts a new list inside the paragraph it came from; space it like any other block */
+.bg-doc>* :is(p,ul,ol,h2){margin:0}
+.bg-doc>*>:is(p,ul,ol,h2)+*,.bg-doc>*>*+:is(p,ul,ol,h2){margin-top:12px}
+.bg-doc h2{font-family:var(--display);font-weight:500;font-size:1.35rem;line-height:1.25}
+.bg-doc ul,.bg-doc ol{padding-left:1.4em;display:grid;gap:6px}
+.bg-doc a{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.bg-doc:empty::before{content:attr(data-ph);color:var(--muted);pointer-events:none}
+/* Phones: every button in view, on two rows, instead of a toolbar that hides the link and undo off the edge */
+@media (max-width:640px){
+  .bg-tb{flex-wrap:wrap;gap:4px}
+  .bg-tb .sep{display:none}
+  .bg-doc{padding:14px 14px 20px}
+}
+.bg-pv{display:grid;gap:10px}
+.bg-pvcard{pointer-events:none}
+.bg-pvcard .bl-pt{font-size:1.1rem;min-height:0}
+.bg-pvcard .bl-ps{min-height:0}
+.bg-pvart summary{cursor:pointer;font-size:.84rem;font-weight:600;color:var(--deep-forest);min-height:32px;display:flex;align-items:center}
+.bg-pvart .bl-text{font-size:.9rem;gap:10px;line-height:1.6;padding-top:6px}
+.bg-pvart .bl-text h2{font-size:1.05rem;margin-top:6px}
+.bg-serp{display:grid;gap:2px;font-size:.86rem}
+.bg-serp-u{font-size:.76rem;color:var(--muted);overflow-wrap:anywhere}
+.bg-serp b{font-weight:600;color:#1F4E79}
+.bg-serp>span:last-child{color:var(--muted);line-height:1.45}
+.bg-bar{position:sticky;bottom:12px;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-top:14px;padding:10px 12px 10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--raised)}
+.bg-bar>span,.bg-ed~#bg-bar .c-savebar>span{display:flex;align-items:center;gap:8px;flex:1 1 240px;font-size:.86rem}
+.bg-bar>span .i{color:var(--deep-forest);flex:none}
+@media (max-width:640px){ .bg-bar .btn,#bg-bar .c-savebar .btn{flex:1 1 auto} }
