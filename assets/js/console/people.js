@@ -143,7 +143,7 @@
     ['builder', 'Builder', 'hammer', 'I renovate houses for clients'], ['agent', 'Agent', 'key', 'I help people buy and sell'], ['other', 'Other', 'more', 'Something else']];
   /* Short names for the grid; the full sentence stays in the invite and permissions dialogs */
   var SHORT = {'houses.view':'See houses', 'houses.grade':'Grade decisions', 'rulebook.view':'Read the rulebook', 'rulebook.edit':'Edit rulebook drafts',
-    'pricing.edit':'Edit products and rates', 'content.edit':'Edit guidance and documents', 'accuracy.manage':'Label photos for accuracy', 'backtests.run':'Run back-tests',
+    'pricing.edit':'Edit products and rates', 'content.edit':'Edit guidance and documents', 'blog.edit':'Write and publish blog articles', 'accuracy.manage':'Label photos for accuracy', 'backtests.run':'Run back-tests',
     'users.view':'See users and the waitlist', 'contacts.export':'Read feedback, export contacts', 'funnel.view':'See the funnel', 'audit.view':'Read the audit log'};
   var SAM_ONLY = ['Publish or discard a draft', 'Invite staff and set permissions', 'Invite contacts to the trial', 'Disable an account'];
   /* Demo access logins: a note on where the row comes from, not a state, so it is quiet and sits by the name */
@@ -447,7 +447,7 @@
   var AREAS = [
     ['Houses', 'house', ['houses.view', 'houses.grade']],
     ['Rulebook and pricing', 'list', ['rulebook.view', 'rulebook.edit', 'pricing.edit']],
-    ['Content', 'file', ['content.edit']],
+    ['Content', 'file', ['content.edit', 'blog.edit']],
     ['Quality', 'shield', ['accuracy.manage', 'backtests.run']],
     ['People and records', 'user', ['users.view', 'contacts.export', 'funnel.view', 'audit.view']]
   ];
@@ -660,7 +660,7 @@
   var AU_KIND = {'Published':'pub', 'Draft saved':'draft', 'Discarded':'off', 'Back-test run':'chk', 'Accuracy run':'chk', 'Role created':'acc', 'Role changed':'acc', 'Role given':'acc', 'Access adjusted':'acc', 'Role deleted':'acc', 'Photo labelled':'chk', 'Graded':'chk',
     'Staff invited':'acc', 'Permissions changed':'acc', 'Staff enabled':'acc', 'Contacts exported':'acc', 'Super admin created':'acc', 'Staff disabled':'bad', 'Account disabled':'bad'};
   /* What each area is called, and where it opens */
-  var AU_AREA = {referrals:['Referrals', '#/referrals'], rates:['Rates', '#/rates'], rules:['Rules', '#/rules'], sheets:['Condition sheets', '#/condition-sheets'], templates:['Room templates', '#/room-templates'],
+  var AU_AREA = {referrals:['Referrals', '#/referrals'], blog:['Blog', '#/blog'], rates:['Rates', '#/rates'], rules:['Rules', '#/rules'], sheets:['Condition sheets', '#/condition-sheets'], templates:['Room templates', '#/room-templates'],
     packages:['Packages', '#/packages'], products:['Products', '#/products'], guidance:['Guidance', '#/guidance'], resources:['Builder documents', '#/resources'],
     backtests:['Back-tests', '#/backtests'], accuracy:['Photo accuracy', '#/accuracy'], users:['Users and staff', '#/users?tab=staff'], feedback:['Contacts and feedback', '#/feedback'], tree:['Decision tree', '']};
   C.route('/audit', function(view){
