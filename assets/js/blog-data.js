@@ -206,7 +206,17 @@
   function isLive(p){ return p.status === 'published' || (p.status === 'scheduled' && p.at && p.at <= Date.now()); }
   function live(){ return all().filter(isLive).sort(function(a, b){ return (b.at || 0) - (a.at || 0); }); }
   function bySlug(slug){ return all().filter(function(p){ return p.slug === slug; })[0] || null; }
-  function topic(key){ return TOPICS.filter(function(t){ return t.key === key; })[0] || {key:key, name:key}; }
+  /* Topics (Nov 28): staff add, rename, order and hide them in the console (con.blogTopics); TOPICS is the default */
+  function topics(){
+    var v = RI.store && RI.store.get('con.blogTopics');
+    return (Array.isArray(v) && v.length ? v : TOPICS).map(function(t){ return {key:t.key, name:t.name, hidden:!!t.hidden}; });
+  }
+  function topic(key){ return topics().filter(function(t){ return t.key === key; })[0] || {key:key, name:key}; }
+  /* The blog's tabs: shown topics with at least one live article, in the saved order */
+  function tabs(posts){
+    posts = posts || live();
+    return topics().filter(function(t){ return !t.hidden && posts.some(function(p){ return p.topic === t.key; }); });
+  }
   function href(u){ return /^https?:/.test(u) ? u : (RI.url ? RI.url(u) : u); }
   function urlFor(p){ return SHELLS.indexOf(p.slug) > -1 ? 'blog/' + p.slug + '/' : 'blog/article/?a=' + encodeURIComponent(p.slug); }
   /* A sample photo is a file name under assets/img; a photo added in the console is kept as a data URL */
@@ -247,5 +257,5 @@
   function slugify(s){ return String(s || '').toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80); }
 
   RI.BLOG = {TOPICS:TOPICS, SEED:SEED, SHELLS:SHELLS, TEAM:TEAM, DAY:DAY, all:all, live:live, isLive:isLive, bySlug:bySlug, topic:topic,
-             urlFor:urlFor, imgSrc:imgSrc, render:render, words:words, mins:mins, date:date, related:related, slugify:slugify, esc:esc};
+             topics:topics, tabs:tabs, urlFor:urlFor, imgSrc:imgSrc, render:render, words:words, mins:mins, date:date, related:related, slugify:slugify, esc:esc};
 })();

@@ -10,7 +10,7 @@
   var LIBRARY = ['kitchen-dated-wide.jpg', 'kitchen-dated.jpg', 'hero-kitchen-remodel.jpg', 'cabinet-run.jpg', 'wood-floor.jpg', 'questions-painter.jpg', 'brick-ranch.jpg', 'colonial.jpg', 'split-level.jpg', 'livonia-street.jpg',
                  'rooms/living-arches.jpg', 'rooms/basement-utility.jpg', 'rooms/basement-finished.jpg', 'rooms/bath-tub.jpg', 'rooms/bedroom-front.jpg', 'ba/bath-before.jpg', 'ba/kitchen-before.jpg'];
 
-  C.SEEDS.push(function(){ C.set('blog', B.SEED); });
+  C.SEEDS.push(function(){ C.set('blog', B.SEED); C.set('blogTopics', B.TOPICS); });
 
   function all(){ return C.get('blog', B.SEED) || []; }
   function save(list){ C.set('blog', list); }
@@ -115,6 +115,122 @@
     list(view, q);
   }, {nav:'blog', perm:'blog.edit'});
 
+  /* ---------- Topics (Nov 28, user): add, rename, change the tab order, hide. Edits stay in the dialog until
+     "Save topics"; one audit entry says what changed ---------- */
+  var GRIP = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>';
+  function topicsDialog(){
+    var before = B.topics(), list = B.topics(), posts = all();
+    function used(key){ var n = posts.filter(function(p){ return p.topic === key; }).length; return n ? n + (n === 1 ? ' article' : ' articles') : 'No articles yet'; }
+    function rowHTML(t){
+      return '<li class="bg-tpr' + (t.hidden ? ' is-hidden' : '') + '" data-k="' + esc(t.key) + '">' +
+        '<button type="button" class="bg-tgrip" aria-label="Reorder ' + esc(t.name) + ': drag, or use the up and down arrow keys" title="Drag to change the order">' + GRIP + '</button>' +
+        '<span class="field bg-tnm"><input class="input" data-name value="' + esc(t.name) + '" aria-label="Topic name" maxlength="60" autocomplete="off"><span class="err"></span></span>' +
+        '<span class="bg-tmeta">' + (t.hidden ? C.lbl('Hidden') : '') + '<span>' + used(t.key) + '</span></span>' +
+        '<button type="button" class="btn btn-secondary btn-sm bg-thd" data-hide aria-pressed="' + t.hidden + '">' + (t.hidden ? 'Show' : 'Hide') + '</button></li>';
+    }
+    /* Add first (user, Nov 28), then the list; drag the handle to change the order */
+    var d = C.dialog('Blog topics', '<form id="bg-tf" class="bg-tform" novalidate>' +
+      '<div class="field bg-tadd"><label for="bg-tn">Add a topic</label><span class="bg-taddr"><input class="input" id="bg-tn" maxlength="60" placeholder="For example: Kitchens" autocomplete="off"><button type="button" class="btn btn-secondary" id="bg-tad">' + RI.icon('plus', 'i-sm') + 'Add</button></span><span class="err"></span></div>' +
+      '<p class="small muted">Drag topics to set the order of the tabs on the blog. A topic shows as a tab once it has a published article. Hidden topics keep their articles; they still show under All.</p>' +
+      '<ol class="bg-tpl" id="bg-tpl"></ol><p class="sr" id="bg-tlive" aria-live="polite"></p>' +
+      '<div class="cta-row bg-tfoot"><button type="button" class="btn btn-secondary" data-dlg-close>Cancel</button><button type="submit" class="btn btn-primary">Save</button></div></form>', {wide:true});
+    var ol = d.querySelector('#bg-tpl'), add = d.querySelector('#bg-tn'), live = d.querySelector('#bg-tlive'), body = d.querySelector('.dlg-body');
+    function byKey(k){ return list.filter(function(t){ return t.key === k; })[0]; }
+    function at(k){ return list.indexOf(byKey(k)); }
+    function rowOf(k){ return [].filter.call(ol.children, function(r){ return r.getAttribute('data-k') === k; })[0]; }
+    function say(k){ var i = at(k); live.textContent = byKey(k).name + ', position ' + (i + 1) + ' of ' + list.length + '.'; }
+    function draw(){ ol.innerHTML = list.map(rowHTML).join(''); RI.fillIcons(ol); }
+    draw();
+    /* A name is fine when it is filled in, short, used once and never says quote. Returns the problem, or '' */
+    function problem(name, self){
+      var v = name.trim();
+      if(!v) return 'Give the topic a name.';
+      if(v.length > 30) return 'Keep it to 30 characters or fewer.';
+      if(/\bquotes?\b/i.test(v)) return 'Never use the word quote. Say estimate.';
+      if(list.some(function(t, i){ return i !== self && t.name.trim().toLowerCase() === v.toLowerCase(); })) return 'Another topic already has this name.';
+      return '';
+    }
+    ol.addEventListener('input', function(e){ var r = e.target.closest('.bg-tpr'); if(!r || !e.target.hasAttribute('data-name')) return; byKey(r.getAttribute('data-k')).name = e.target.value; RI.form.setInvalid(e.target, ''); });
+    ol.addEventListener('click', function(e){
+      var r = e.target.closest('.bg-tpr'); if(!r || !e.target.closest('[data-hide]')) return;
+      var k = r.getAttribute('data-k'), t = byKey(k); t.hidden = !t.hidden; draw(); rowOf(k).querySelector('[data-hide]').focus();
+    });
+    /* Keyboard: the arrow keys on a handle move that topic one place */
+    ol.addEventListener('keydown', function(e){
+      var g = e.target.closest('.bg-tgrip'); if(!g || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+      e.preventDefault();
+      var k = g.closest('.bg-tpr').getAttribute('data-k'), i = at(k), j = i + (e.key === 'ArrowUp' ? -1 : 1);
+      if(j < 0 || j >= list.length) return;
+      var t = list[i]; list[i] = list[j]; list[j] = t; draw(); rowOf(k).querySelector('.bg-tgrip').focus(); say(k);
+    });
+    /* Mouse and touch: pointer events, so it works on phones too. The row follows the finger; the others make room as
+       it passes their middle; letting go keeps the new order */
+    var drag = null;
+    ol.addEventListener('pointerdown', function(e){
+      var g = e.target.closest('.bg-tgrip'); if(!g || e.button > 0) return;
+      e.preventDefault();
+      var row = g.closest('.bg-tpr');
+      drag = {row:row, grab:e.clientY - row.getBoundingClientRect().top, id:e.pointerId};
+      try { g.setPointerCapture(e.pointerId); } catch(x){}
+      row.classList.add('is-drag'); ol.classList.add('is-sorting');
+    });
+    ol.addEventListener('pointermove', function(e){
+      if(!drag || e.pointerId !== drag.id) return;
+      var row = drag.row, center = e.clientY - drag.grab + row.offsetHeight / 2, next = null;
+      [].some.call(ol.children, function(x){ if(x === row) return false; var b = x.getBoundingClientRect(); if(b.top + b.height / 2 > center){ next = x; return true; } return false; });
+      if(next ? row.nextElementSibling !== next : ol.lastElementChild !== row) ol.insertBefore(row, next);
+      row.style.transform = 'none'; var top = row.getBoundingClientRect().top;
+      row.style.transform = 'translateY(' + Math.round(e.clientY - drag.grab - top) + 'px)';
+      /* Near the top or bottom edge of a long list, scroll it */
+      var sc = body.scrollHeight > body.clientHeight ? body : d, sr = sc.getBoundingClientRect();
+      if(e.clientY < sr.top + 48) sc.scrollTop -= 12; else if(e.clientY > sr.bottom - 48) sc.scrollTop += 12;
+    });
+    function drop(e){
+      if(!drag || e.pointerId !== drag.id) return;
+      var k = drag.row.getAttribute('data-k'), order = [].map.call(ol.children, function(r){ return r.getAttribute('data-k'); });
+      drag.row.style.transform = ''; drag = null; ol.classList.remove('is-sorting');
+      list = order.map(byKey); draw(); rowOf(k).querySelector('.bg-tgrip').focus(); say(k);
+    }
+    ol.addEventListener('pointerup', drop); ol.addEventListener('pointercancel', drop);
+    function addOne(){
+      var bad = problem(add.value, -1); if(bad){ RI.form.setInvalid(add, bad); add.focus(); return; }
+      var base = B.slugify(add.value) || 'topic', key = base, n = 2;
+      while(key === 'all' || list.some(function(t){ return t.key === key; })) key = base + '-' + n++;
+      list.unshift({key:key, name:add.value.trim(), hidden:false}); add.value = ''; RI.form.setInvalid(add, '');
+      draw(); add.focus(); say(key);
+    }
+    d.querySelector('#bg-tad').addEventListener('click', addOne);
+    add.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); addOne(); } });
+    add.addEventListener('input', function(){ RI.form.setInvalid(add, ''); });
+    d.querySelector('#bg-tf').addEventListener('submit', function(e){
+      e.preventDefault();
+      /* A name typed in "Add a topic" but not added yet is added now, rather than lost */
+      if(add.value.trim()){ var c = list.length; addOne(); if(list.length === c) return; }
+      var firstBad = null;
+      ol.querySelectorAll('.bg-tpr').forEach(function(r, i){ var inp = r.querySelector('[data-name]'), bad = problem(list[i].name, i); RI.form.setInvalid(inp, bad); if(bad && !firstBad) firstBad = inp; });
+      if(firstBad){ firstBad.focus(); return; }
+      list.forEach(function(t){ t.name = t.name.trim(); });
+      /* What changed, for the audit log */
+      var was = {}; before.forEach(function(t){ was[t.key] = t; });
+      var out = [];
+      list.forEach(function(t){
+        var o = was[t.key];
+        if(!o){ out.push('added ' + t.name); return; }
+        if(o.name !== t.name) out.push('renamed ' + o.name + ' to ' + t.name);
+        if(o.hidden !== t.hidden) out.push((t.hidden ? 'hid ' : 'showed ') + t.name);
+      });
+      var oldOrder = before.map(function(t){ return t.key; }).join(), newOrder = list.filter(function(t){ return was[t.key]; }).map(function(t){ return t.key; }).join();
+      if(oldOrder !== newOrder) out.push('changed the order');
+      d.close();
+      if(!out.length){ RI.toast('Nothing changed.', 'info'); return; }
+      C.set('blogTopics', list);
+      var what = out.join('; '); what = what.charAt(0).toUpperCase() + what.slice(1);
+      C.log('Blog topics changed', what, '', 'blog');
+      RI.toast('Topics saved. The blog shows them now.', 'check');
+      C.render();
+    });
+  }
+
   /* ---------- The list (Nov 28 redesign): one row per article; Author, Status and the buttons in fixed columns,
      so they line up on every row ---------- */
   function list(view, q){
@@ -124,8 +240,9 @@
     view.innerHTML = C.page({kicker:'Content', title:'Blog', sub:'Write, schedule and publish the articles on the public blog. Every change goes in the audit log.',
       actions:'<a class="btn btn-secondary" href="' + RI.url('blog/') + '" target="_blank" rel="noopener">' + RI.icon('eye', 'i-sm') + 'View the blog</a><a class="btn btn-primary" href="#/blog?new=1">' + RI.icon('plus', 'i-sm') + 'New article</a>',
       body:'<div class="bg-tools">' + C.seg('bg-tab', [['all', 'All', n.all], ['published', 'Published', n.published], ['scheduled', 'Scheduled', n.scheduled], ['draft', 'Drafts', n.draft]], tab) +
-        '<span class="c-select"><select id="bg-tpf" aria-label="Topic"><option value="">All topics</option>' + B.TOPICS.map(function(t){ return '<option value="' + t.key + '">' + esc(t.name) + '</option>'; }).join('') + '</select></span>' +
-        C.search('bg-q', 'Search titles and authors', term) + '</div><div id="bg-rows"></div>'});
+        '<span class="c-select"><select id="bg-tpf" aria-label="Topic"><option value="">All topics</option>' + B.topics().map(function(t){ return '<option value="' + t.key + '">' + esc(t.name) + (t.hidden ? ' (hidden)' : '') + '</option>'; }).join('') + '</select></span>' +
+        C.search('bg-q', 'Search titles and authors', term) +
+        '<button type="button" class="btn btn-secondary bg-mt" id="bg-mt" aria-label="Manage topics" title="Add, rename, order or hide topics">' + RI.icon('sliders', 'i-sm') + 'Topics</button></div><div id="bg-rows"></div>'});
     function rows(){
       var t = term.trim().toLowerCase();
       var shown = posts.filter(function(p){ return (tab === 'all' || stateOf(p) === tab) && (!topic || p.topic === topic) && (!t || (p.title + ' ' + p.slug + ' ' + (p.author || '')).toLowerCase().indexOf(t) > -1); });
@@ -148,6 +265,7 @@
       history.replaceState(null, '', '#/blog' + (tab === 'all' ? '' : '?tab=' + tab)); rows();
     });
     doc.getElementById('bg-tpf').addEventListener('change', function(){ topic = this.value; rows(); });
+    doc.getElementById('bg-mt').addEventListener('click', topicsDialog);
     var qi = doc.getElementById('bg-q'); qi.addEventListener('input', function(){ term = qi.value; rows(); });
   }
 
@@ -156,7 +274,8 @@
     var me = C.me(), p = id && all().filter(function(x){ return x.id === id; })[0];
     if(id && !p){ view.innerHTML = C.page({back:['#/blog', 'All articles'], title:'This article does not exist', body:'<div class="c-empty big">' + RI.icon('info') + '<a class="btn btn-secondary" href="#/blog">Back to the blog</a></div>'}); return; }
     var isNew = !p;
-    if(isNew) p = {id:C.uid('b'), slug:'', title:'', topic:'costs', summary:'', img:'', alt:'', body:'', related:[], author:me.name, status:'draft', at:null, updated:null};
+    var firstTopic = (B.topics().filter(function(t){ return !t.hidden; })[0] || B.topics()[0]).key;
+    if(isNew) p = {id:C.uid('b'), slug:'', title:'', topic:firstTopic, summary:'', img:'', alt:'', body:'', related:[], author:me.name, status:'draft', at:null, updated:null};
     var saved = JSON.stringify(pick(p)), slugTouched = !isNew && !!p.slug;
     function pick(x){ return {title:x.title || '', slug:x.slug || '', topic:x.topic || 'costs', summary:x.summary || '', img:x.img || '', alt:x.alt || '', body:x.body || '', related:(x.related || []).slice(), author:x.author || ''}; }
     var f = pick(p);
@@ -168,7 +287,8 @@
     function formHTML(){
       return box(1, 'Title', 'bg-t', '<input class="input" id="bg-t" value="' + esc(f.title) + '" placeholder="For example: Refinish or replace kitchen cabinets?" autocomplete="off">', '', 'bg-tc') +
         box(2, 'Web address', 'bg-s', '<div class="bg-slug"><span>/blog/</span><input class="input" id="bg-s" value="' + esc(f.slug) + '" autocomplete="off" spellcheck="false"></div>', 'Lowercase words joined by hyphens. Made from the title until you change it. Changing it on a live article breaks old links.') +
-        box(3, 'Topic', 'bg-tp', '<span class="c-select"><select id="bg-tp">' + B.TOPICS.map(function(t){ return '<option value="' + t.key + '"' + (t.key === f.topic ? ' selected' : '') + '>' + esc(t.name) + '</option>'; }).join('') + '</select></span>') +
+        box(3, 'Topic', 'bg-tp', '<span class="c-select"><select id="bg-tp">' + B.topics().map(function(t){ return '<option value="' + t.key + '"' + (t.key === f.topic ? ' selected' : '') + '>' + esc(t.name) + (t.hidden ? ' (hidden from the blog tabs)' : '') + '</option>'; }).join('') + '</select></span>' +
+          '<p class="small muted" id="bg-tph"' + (B.topic(f.topic).hidden ? '' : ' hidden') + '>This topic is hidden, so the article shows only under All.</p>') +
         box(4, 'Summary', 'bg-sm', '<textarea class="input" id="bg-sm" rows="3">' + esc(f.summary) + '</textarea>', 'Shows on the blog card and as the description in search results.', 'bg-smc') +
         box(5, 'Photo', '', '<label class="pf-drop' + (f.img ? ' has' : '') + '" id="bg-drop" for="bg-file"><span class="pf-dv" id="bg-dv">' + (f.img ? '<img src="' + B.imgSrc(f) + '" alt="">' : '') + '</span><span class="pf-dt"><b id="bg-dt">' + (f.img ? 'Replace the photo' : 'Drop a photo here, or choose a file') + '</b><small>A wide photo of a real room or house. Up to 1.5 MB.</small></span></label><input type="file" id="bg-file" accept="image/*" class="sr">' +
           '<div class="bg-lib"><label class="small" for="bg-libs">Or use a photo from the site</label><span class="c-select sm"><select id="bg-libs"><option value="">Choose a photo</option>' + LIBRARY.map(function(x){ return '<option value="' + x + '"' + (x === f.img ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select></span></div>' +
@@ -231,6 +351,7 @@
     var $ = function(x){ return doc.getElementById(x); };
     function read(){
       f.title = $('bg-t').value; f.topic = $('bg-tp').value; f.summary = $('bg-sm').value; f.body = $('bg-b').value; f.alt = $('bg-alt').value; f.author = $('bg-au').value;
+      $('bg-tph').hidden = !B.topic(f.topic).hidden;
       if(!slugTouched) $('bg-s').value = B.slugify(f.title);
       f.slug = $('bg-s').value.trim();
       refresh();
