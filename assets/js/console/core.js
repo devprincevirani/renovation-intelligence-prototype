@@ -23,6 +23,7 @@
     ['rulebook.edit', 'Edit drafts of rules, condition sheets, thresholds, room templates, packages and the catalog'],
     ['pricing.edit', 'Edit drafts of products and rates'],
     ['content.edit', 'Edit drafts of guidance text; upload and manage builder documents'],
+    ['blog.edit', 'Write, schedule, publish and unpublish blog articles'],
     ['accuracy.manage', 'Label photos for the accuracy set and see the scores'],
     ['backtests.run', 'Start a back-test and read its report'],
     ['users.view', 'See users, account types and the waitlist'],
@@ -133,7 +134,7 @@
 
   /* ---------- Seeds: each module adds its own; they run once per browser ---------- */
   C.SEEDS = [];
-  C.SEED_VERSION = 7;
+  C.SEED_VERSION = 8;
   C.seed = function(){
     /* Every demo user's houses, so the console has the whole picture */
     var real = RI.session();
@@ -162,7 +163,7 @@
   C.range = function(lo, hi){ return '<span class="num">' + RI.money(lo) + '<span class="to">to</span>' + RI.money(hi) + '</span>'; };
   /* Draft, queued and published are always labeled (DESIGN 8.6) */
   C.lbl = function(state, extra){
-    var map = {draft:['Draft','lb-draft'], queued:['Queued','lb-queued'], published:['Published','lb-pub'], discarded:['Discarded','lb-off'], replaced:['Replaced','lb-off'], retired:['Retired','lb-off'], sample:['Sample','lb-sample']};
+    var map = {draft:['Draft','lb-draft'], queued:['Queued','lb-queued'], scheduled:['Scheduled','lb-queued'], published:['Published','lb-pub'], discarded:['Discarded','lb-off'], replaced:['Replaced','lb-off'], retired:['Retired','lb-off'], sample:['Sample','lb-sample']};
     var x = map[state] || [state, 'lb-off'];
     return '<span class="lb ' + x[1] + '">' + x[0] + (extra ? ' ' + extra : '') + '</span>';
   };
@@ -306,7 +307,7 @@
     ['Quality', [['checks', 'Check results', '#/checks', 'shield', 'houses.view'], ['accuracy', 'Photo accuracy', '#/accuracy', 'eye', 'accuracy.manage']]],
     ['Rulebook', [['rules', 'Rules and families', '#/rules', 'list', 'rulebook.view'], ['sheets', 'Condition sheets', '#/condition-sheets', 'sliders', 'rulebook.view'], ['templates', 'Room templates', '#/room-templates', 'ruler', 'rulebook.view'], ['packages', 'Packages and catalog', '#/packages', 'tag', 'rulebook.view']]],
     ['Pricing', [['regions', 'Regions', '#/regions', 'pin', 'rulebook.view'], ['rates', 'Rates', '#/rates', 'file', 'rulebook.view'], ['products', 'Products', '#/products', 'tag', 'rulebook.view']]],
-    ['Content', [['guidance', 'Guidance', '#/guidance', 'info', 'rulebook.view'], ['resources', 'Builder documents', '#/resources', 'file', 'content.edit']]],
+    ['Content', [['guidance', 'Guidance', '#/guidance', 'info', 'rulebook.view'], ['resources', 'Builder documents', '#/resources', 'file', 'content.edit'], ['blog', 'Blog', '#/blog', 'pencil', 'blog.edit']]],
     ['Changes', [['publish', 'Publish queue', '#/publish', 'refresh', ['rulebook.edit', 'pricing.edit', 'content.edit']], ['backtests', 'Back-tests', '#/backtests', 'clock', 'backtests.run']]],
     ['Customers', [['feedback', 'Contacts and feedback', '#/feedback', 'mail', 'contacts.export'], ['funnel', 'Funnel', '#/funnel', 'sliders', 'funnel.view'], ['referrals', 'Referrals', '#/referrals', 'share', 'users.view']]],
     ['Admin', [['users', 'Users and staff', '#/users', 'user', 'users.view'], ['audit', 'Audit log', '#/audit', 'console', 'audit.view']]]
@@ -359,7 +360,8 @@
       var ru = (C.get('rules', []) || []).filter(function(r){ return (r.code + ' ' + r.text + ' ' + r.plain).toLowerCase().indexOf(v) > -1; }).slice(0, 4).map(function(r){ return ['Rules', r.code, r.plain, '#/rules/' + r.code, 'list']; });
       var pr = (C.PRESETS || []).filter(function(p){ return (p[0] + ' ' + p[1]).toLowerCase().indexOf(v) > -1; }).slice(0, 3).map(function(p){ return ['Presets', p[0], p[1], '#/packages?tab=presets&p=' + p[0], 'sliders']; });
       var pd = (C.get('products', []) || []).filter(function(p){ return (p.name + ' ' + p.item).toLowerCase().indexOf(v) > -1; }).slice(0, 3).map(function(p){ return ['Products', p.name, p.item, '#/products', 'tag']; });
-      return out.concat(hs, sc, ru, pr, pd);
+      var bl = C.can('blog.edit') ? (C.get('blog', []) || []).filter(function(p){ return (p.title + ' ' + p.slug).toLowerCase().indexOf(v) > -1; }).slice(0, 3).map(function(p){ return ['Blog', p.title, '/blog/' + p.slug + '/', '#/blog?id=' + p.id, 'pencil']; }) : [];
+      return out.concat(hs, sc, ru, pr, pd, bl);
     }
     function draw(){
       var v = q.value.trim(); if(!v){ box.hidden = true; q.setAttribute('aria-expanded', 'false'); return; }
@@ -394,7 +396,7 @@
     doc.getElementById('con-scrim').addEventListener('click', closeMenu);
     doc.addEventListener('keydown', function(e){
       if(e.key === 'Escape') closeMenu();
-      var t = e.target; if(e.key === '/' && !(t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')){ var q = doc.getElementById('ct-q'); if(q && q.offsetParent){ e.preventDefault(); q.focus(); } }
+      var t = e.target; if(e.key === '/' && !(t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)){ var q = doc.getElementById('ct-q'); if(q && q.offsetParent){ e.preventDefault(); q.focus(); } }
     });
     window.addEventListener('hashchange', C.render);
     C.render();
