@@ -3,7 +3,12 @@
    Nov 28 redesigns (user approved the previews): the list shows the newest article across the full width on a solid
    panel, topic tabs with counts, a search box and a grid that lines up; an article gets "In this article" beside the
    text, a next-step panel at the end (no cost-page buttons, user) and "Read next".
-   Prototype note: in the real build these pages are rendered on the server (docs/SEO_CONVERSION.md section 3). */
+   SEO in production (not built in this prototype, which is front end only): the real build renders the list and
+   every article on the server, so search engines read the full text without running this script, and adds per page:
+   the canonical link, Open Graph and share tags, structured data (BlogPosting with headline, author, dates and image,
+   proposed) and a sitemap entry; the "In this article" links stay plain anchors. See docs/SEO_CONVERSION.md sections
+   3 to 6; the blog is not in that doc yet (change request CR-002).
+   Here only document.title and the meta description are set, in article() below. */
 (function(){
   var RI = window.RI, doc = document, main = doc.getElementById('main'), B = RI && RI.BLOG;
   if(!main || !B) return;
