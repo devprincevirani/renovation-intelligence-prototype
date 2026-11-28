@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en" data-root="../" data-page="referral">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Referral program: earn account credit | Renovation Intelligence</title>
+<meta name="description" content="Share your link with someone planning a renovation. Earn $10 account credit when a friend buys a report, and $25 when a professional stays on Pro.">
+<!-- SEO in production. This prototype page is built in the browser and has only its title and description. The real build renders it on the server and adds the canonical link, Open Graph and share tags, structured data (BreadcrumbList, proposed) and a sitemap entry, as in docs/SEO_CONVERSION.md sections 3 to 6. -->
+<meta name="theme-color" content="#203B38">
+<link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Jost:wght@400;500&display=swap">
+<link rel="stylesheet" href="../assets/css/styles.css?v=57">
+<script defer src="../assets/js/data.js?v=147"></script>
+<script defer src="../assets/js/site.js?v=165"></script>
+<script defer src="../assets/js/referral.js?v=2"></script>
+<script defer src="../assets/js/referral-page.js?v=2"></script>
+</head>
+<body>
+<div id="site-head"></div>
+<!-- Referral program (business model v1.0, section 3, and section 5 "Website Pages Required": explain eligibility,
+     rewards and referral links). Redesigned Nov 28 with the user: four sections, photos of people sharing.
+     Amounts and timings follow the program's settings (RI.Ref.settings(), changed in the console Referrals screen);
+     the figures written here are the defaults, for a page without scripts. -->
+<main id="main" class="rpg">
+
+  <!-- 1. What it is and what you get, beside friends talking: a referral is one person telling another -->
+  <section class="rpg-hero" aria-labelledby="rpg-h1">
+    <div class="wrap rpg-hero-in">
+      <div class="rpg-copy">
+        <nav class="crumbs" aria-label="Breadcrumb"><a href="../">Home</a><span aria-hidden="true">/</span><span>Referral program</span></nav>
+        <p class="label">Referral program</p>
+        <h1 id="rpg-h1">Refer a friend. Earn credit toward your next report.</h1>
+        <p class="lede">Send your link to someone planning a renovation. You get <b data-ref="report">$10</b> when a friend buys a report, and <b data-ref="pro">$25</b> when a professional stays on Pro.</p>
+        <div class="notice notice-quiet rpg-paused" id="rpg-paused" hidden><i data-i="info"></i><span>Referrals are paused for now. Credit already earned stays in your account.</span></div>
+        <div class="cta-row">
+          <a class="btn btn-primary" data-when="prelaunch" data-cta="free" data-arrow href="../waitlist/">Join the waitlist</a>
+          <a class="btn btn-primary rpg-get" data-when="launched" hidden href="../app/#/refer"><span class="t">Get your referral link</span><i data-i="arrow" class="i-arrow"></i></a>
+          <a class="textlink" href="#rpg-who">Who can take part</a>
+        </div>
+        <p class="small muted rpg-pre" data-when="prelaunch">Referral rewards start when sign up opens.</p>
+      </div>
+      <figure class="rpg-photo">
+        <img src="../assets/img/referral-friends.jpg" alt="Three friends talking over coffee">
+        <!-- The credit notice the account shows, as a picture of the real thing -->
+        <div class="rpg-toast" aria-hidden="true">
+          <span class="rpg-toast-ic"><i data-i="check"></i></span>
+          <span class="rpg-toast-t"><b><span data-ref="report">$10</span> added to your account</b><span>Kim bought a report with your link</span></span>
+        </div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 2. Who you can refer, and what each one earns you -->
+  <section class="rpg-ways" aria-labelledby="rpg-ways-h">
+    <div class="wrap">
+      <div class="rpg-head"><p class="label">Rewards</p><h2 id="rpg-ways-h">Two ways to earn credit</h2></div>
+      <div class="rpg-cards">
+        <article class="rpg-card">
+          <img src="../assets/img/referral-phone-app.jpg" alt="A woman using an app on her phone at home" loading="lazy">
+          <div class="rpg-card-b">
+            <p class="rpg-amt"><b data-ref="report">$10</b><span>account credit</span></p>
+            <h3>A friend buys a report</h3>
+            <p>A friend or neighbor signs up from your link and buys a <span data-offer="price">$50</span> report.</p>
+          </div>
+        </article>
+        <article class="rpg-card">
+          <img src="../assets/img/referral-builder.jpg" alt="A builder in a hard hat carrying plans toward a house under construction" loading="lazy">
+          <div class="rpg-card-b">
+            <p class="rpg-amt"><b data-ref="pro">$25</b><span>account credit</span></p>
+            <h3>A professional joins Pro</h3>
+            <p>An agent, builder or investor signs up from your link and stays on Pro for <span data-ref="months">2 months</span>.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. How it works: four points on one drawn line, then what the credit does to the next report -->
+  <section class="rpg-how" aria-labelledby="rpg-how-h">
+    <div class="wrap">
+      <div class="rpg-head"><p class="label">How it works</p><h2 id="rpg-how-h">From your link to your credit</h2></div>
+      <ol class="rpg-steps">
+        <li><span class="rpg-node"><i data-i="share"></i></span><b>Share your link</b><span>Send it to someone planning a renovation.</span></li>
+        <li><span class="rpg-node"><i data-i="user"></i></span><b>They sign up</b><span>A free account. It has to be their first.</span></li>
+        <li><span class="rpg-node"><i data-i="file"></i></span><b>They buy</b><span>A <span data-offer="price">$50</span> report, or <span data-ref="months">2 months</span> of Pro.</span></li>
+        <li class="end"><span class="rpg-node"><i data-i="check"></i></span><b>You get credit</b><span data-ref="hold-line">Added 14 days later, if there is no refund.</span></li>
+      </ol>
+      <div class="rpg-eg">
+        <p class="rpg-eg-t"><span class="rpg-eg-k">Example</span>Kim buys a report with your link. Your next report then costs <b data-ref="pay">$40</b>.</p>
+        <div class="rpg-line" id="rpg-line" style="--w:20%" aria-hidden="true">
+          <span class="rpg-seg c"><b data-ref="report">$10</b> your credit</span>
+          <span class="rpg-seg p"><b data-ref="pay">$40</b> you pay</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. The rules as situations and what each one earns, beside where to find your link -->
+  <section class="rpg-end" id="rpg-who" aria-labelledby="rpg-who-h">
+    <div class="wrap rpg-end-in">
+      <div class="rpg-rules">
+        <div class="rpg-head"><p class="label">Who can take part</p><h2 id="rpg-who-h">What counts, and what does not</h2></div>
+        <div class="rpg-sit" role="table" aria-label="What earns a reward">
+          <div class="rpg-sit-h" role="row"><span role="columnheader">If this happens</span><span role="columnheader">You get</span></div>
+          <div class="rpg-sit-r" role="row"><span role="cell">A friend signs up from your link and buys a <span data-offer="price">$50</span> report</span><b role="cell" class="rpg-out yes">+<span data-ref="report">$10</span></b></div>
+          <div class="rpg-sit-r" role="row"><span role="cell">A professional signs up from your link and pays for <span data-ref="months">2 months</span> of Pro</span><b role="cell" class="rpg-out yes">+<span data-ref="pro">$25</span></b></div>
+          <div class="rpg-sit-r" role="row"><span role="cell">Your friend already has an account</span><b role="cell" class="rpg-out no">No reward</b></div>
+          <div class="rpg-sit-r" role="row"><span role="cell">Someone else referred them first</span><b role="cell" class="rpg-out no">No reward</b></div>
+          <div class="rpg-sit-r" role="row"><span role="cell">You sign up again with a second account</span><b role="cell" class="rpg-out no">No reward</b></div>
+          <div class="rpg-sit-r" role="row"><span role="cell">The purchase is refunded<small>Credit already added is taken back</small></span><b role="cell" class="rpg-out no">No reward</b></div>
+          <p class="rpg-sit-f"><i data-i="clock"></i><span><span data-ref="hold-sentence">Credit arrives 14 days after the purchase</span>. It comes off your next report and is never paid out as cash.</span></p>
+        </div>
+      </div>
+      <aside class="rpg-linkcard" aria-labelledby="rpg-link-h">
+        <img src="../assets/img/referral-message.jpg" alt="A phone with a new text message open" loading="lazy">
+        <div class="rpg-linkcard-b">
+          <h3 id="rpg-link-h" data-when="launched" hidden>Your link is in your account</h3>
+          <h3 data-when="prelaunch">Get your link when sign up opens</h3>
+          <ol class="rpg-how3">
+            <li><span>1</span>Log in</li>
+            <li><span>2</span>Open Refer and earn</li>
+            <li><span>3</span>Copy your link, or give your code</li>
+          </ol>
+          <a class="btn btn-primary btn-block" data-when="prelaunch" data-cta="free" data-arrow href="../waitlist/">Join the waitlist</a>
+          <a class="btn btn-primary btn-block rpg-get" data-when="launched" hidden href="../app/#/refer"><span class="t">Get your referral link</span><i data-i="arrow" class="i-arrow"></i></a>
+          <p class="rpg-fine"><span class="state state-sample">Proposed</span> Amounts and rules are proposed launch settings, subject to business and legal approval.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+</main>
+<div id="site-foot"></div>
+</body>
+</html>

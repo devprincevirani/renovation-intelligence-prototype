@@ -13,6 +13,10 @@ The sample photos in this prototype come from Wikimedia Commons, Flickr, StockSn
 | `assets/img/hero-kitchen-remodel.jpg` | White Kitchen, a kitchen remodel, United States, 2017. Mastercraftkitchenandbath, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). [Source](https://commons.wikimedia.org/wiki/File:White_Kitchen.jpg). Resized. |
 | `assets/img/livonia-street.jpg` | Rosedale Gardens Historic District, Livonia, Michigan. Andrew Jameson, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). |
 | `assets/img/questions-painter.jpg` | Guy Man. Michal Jarmoluk, via StockSnap, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) (public domain). [Source](https://stocksnap.io/photo/guy-man-GPENZWC6X4). Resized. |
+| `assets/img/referral-friends.jpg` | Business Women. Direct Media, via StockSnap, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) (public domain). [Source](https://stocksnap.io/photo/business-women-BOWOZQBREK). Resized. |
+| `assets/img/referral-phone-app.jpg` | Woman using phone. rawpixel, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) (public domain). [Source](https://www.rawpixel.com/image/5927513/photo-image-phone-public-domain-person). Resized. |
+| `assets/img/referral-builder.jpg` | Construction Builder. Michal Jarmoluk, via StockSnap, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) (public domain). [Source](https://stocksnap.io/photo/construction-builder-A5Q1BUP3OF). Resized. |
+| `assets/img/referral-message.jpg` | Writing Text Message. rawpixel, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) (public domain). [Source](https://www.rawpixel.com/image/5969510/writing-text-message). Resized. |
 | `assets/img/livonia-corner.jpg` | Rosedale Gardens Historic District, Livonia, Michigan. Andrew Jameson, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). |
 | `assets/img/livonia-pines.jpg` | Rosedale Gardens Historic District, Livonia, Michigan. Andrew Jameson, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). |
 | `assets/img/brick-ranch.jpg` | Lake Drive ranches, Bailey Lakes, Ohio. Nyttend, Public domain. |
